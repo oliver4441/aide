@@ -229,7 +229,8 @@ export async function GET(request: NextRequest) {
 
   const sinceDate = new Date(since);
 
-  const [products, categories, sales, saleItems] = await Promise.all([
+  const [business, products, categories, sales, saleItems] = await Promise.all([
+    prisma.business.findUnique({ where: { id: businessId } }),
     prisma.product.findMany({
       where: { businessId, updatedAt: { gt: sinceDate } },
     }),
@@ -246,5 +247,5 @@ export async function GET(request: NextRequest) {
     }),
   ]);
 
-  return NextResponse.json({ products, categories, sales, saleItems });
+  return NextResponse.json({ business, products, categories, sales, saleItems });
 }

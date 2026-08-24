@@ -158,6 +158,9 @@ class SyncEngine {
       const result = await res.json();
       let count = 0;
 
+      if (result.business) {
+        await db.businesses.put(result.business);
+      }
       if (result.products) {
         for (const p of result.products) {
           await db.products.put({ ...p, syncStatus: 'synced' });
@@ -211,3 +214,10 @@ class SyncEngine {
 }
 
 export const syncEngine = new SyncEngine();
+
+export async function seedFromSession(businessId: string): Promise<number> {
+  if (typeof window === 'undefined') return 0;
+  localStorage.setItem('aide_business_id', businessId);
+  localStorage.setItem('aide_last_sync', '0');
+  return syncEngine.pull();
+}
