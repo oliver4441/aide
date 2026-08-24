@@ -41,6 +41,8 @@ export async function POST(request: NextRequest) {
       lowStock: parseInt(body.lowStock) || 5,
       isService: body.isService || false,
       categoryId: body.categoryId || null,
+      imageUrl: body.imageUrl || null,
+      thumbnailUrl: body.thumbnailUrl || null,
       businessId,
     },
   });

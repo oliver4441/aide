@@ -53,6 +53,7 @@ export default function LoginPage() {
             </svg>
           </div>
           <span className="text-2xl font-bold text-primary font-headline">Aide</span>
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-warning/20 text-warning border border-warning/30">BETA</span>
         </div>
 
         {/* Card */}

@@ -5,7 +5,7 @@ export default function SocialProof() {
     <section className="border-y border-outline-variant py-8">
       <div className="max-w-[1440px] mx-auto px-4 md:px-8 text-center">
         <p className="text-xs text-on-surface-variant uppercase tracking-widest mb-6 font-semibold">
-          Works for every type of business
+          Built for all business types
         </p>
         <div className="flex flex-wrap justify-center items-center gap-3 md:gap-4">
           {businessTypes.map((type) => (

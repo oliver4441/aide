@@ -1,11 +1,70 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useProducts } from "@/hooks/useProducts";
 import { useCategories } from "@/hooks/useCategories";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 import { formatMoney } from "@/lib/format";
 import { ProductRecord } from "@/lib/db";
+
+const CATEGORY_ABBR: Record<string, string> = {
+  salon: "SA",
+  shop: "SH",
+  restaurant: "RE",
+  grocery: "GR",
+  pharmacy: "PH",
+  electronics: "EL",
+  clothing: "CL",
+  other: "OT",
+  "hair care": "HC",
+  "skin care": "SC",
+  "food & beverage": "FB",
+  "home & garden": "HG",
+};
+
+function generateSku(categoryName: string): string {
+  const abbr = CATEGORY_ABBR[categoryName.toLowerCase()] || "GEN";
+  const digits = String(Math.floor(1000 + Math.random() * 9000));
+  return `${abbr}-${digits}`;
+}
+
+async function compressImage(file: File, maxSizeBytes = 500 * 1024): Promise<string> {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let w = img.width;
+        let h = img.height;
+
+        const maxDim = 800;
+        if (w > maxDim || h > maxDim) {
+          const ratio = Math.min(maxDim / w, maxDim / h);
+          w = Math.round(w * ratio);
+          h = Math.round(h * ratio);
+        }
+
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(img, 0, 0, w, h);
+
+        let quality = 0.85;
+        let dataUrl = canvas.toDataURL("image/jpeg", quality);
+
+        while (dataUrl.length > maxSizeBytes * 1.37 && quality > 0.3) {
+          quality -= 0.1;
+          dataUrl = canvas.toDataURL("image/jpeg", quality);
+        }
+
+        resolve(dataUrl);
+      };
+      img.src = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 export default function InventoryPage() {
   const { data: products, loading, mutate: mutateProduct, remove: removeProduct } = useProducts();
@@ -15,6 +74,8 @@ export default function InventoryPage() {
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<ProductRecord | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
     name: "",
@@ -26,6 +87,8 @@ export default function InventoryPage() {
     isService: false,
     categoryId: "",
   });
+  const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
+  const [generatedSku, setGeneratedSku] = useState<string | null>(null);
 
   const allProducts = products ?? [];
   const allCategories = categories ?? [];
@@ -42,6 +105,8 @@ export default function InventoryPage() {
   const openAdd = () => {
     setEditing(null);
     setForm({ name: "", sku: "", buyingPrice: "", sellingPrice: "", quantity: "", lowStock: "5", isService: false, categoryId: "" });
+    setImageDataUrl(null);
+    setGeneratedSku(null);
     setShowModal(true);
   };
 
@@ -57,16 +122,38 @@ export default function InventoryPage() {
       isService: p.isService,
       categoryId: p.categoryId || "",
     });
+    setImageDataUrl(p.imageUrl || null);
+    setGeneratedSku(null);
     setShowModal(true);
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return;
+    const dataUrl = await compressImage(file);
+    setImageDataUrl(dataUrl);
   };
 
   const save = async () => {
     const now = new Date().toISOString();
+
+    let sku = form.sku || editing?.sku || undefined;
+    let skuToShow = sku;
+    if (!editing && !sku) {
+      const catName = allCategories.find((c) => c.id === form.categoryId)?.name || "";
+      sku = generateSku(catName);
+      skuToShow = sku;
+      setGeneratedSku(sku);
+    }
+
+    const thumbnailUrl = imageDataUrl || undefined;
+
     const record: ProductRecord = {
       id: editing?.id || `prod_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       businessId: business?.id || "",
       name: form.name,
-      sku: form.sku || undefined,
+      sku,
       buyingPrice: parseFloat(form.buyingPrice) || 0,
       sellingPrice: parseFloat(form.sellingPrice) || 0,
       quantity: parseInt(form.quantity) || 0,
@@ -74,12 +161,18 @@ export default function InventoryPage() {
       isService: form.isService,
       isActive: true,
       categoryId: form.categoryId || undefined,
+      imageUrl: imageDataUrl || undefined,
+      thumbnailUrl,
       syncStatus: "pending",
       updatedAt: now,
       createdAt: editing?.createdAt || now,
     };
     await mutateProduct(record);
-    setShowModal(false);
+    if (!editing) {
+      setGeneratedSku(sku || null);
+    } else {
+      setShowModal(false);
+    }
   };
 
   const remove = async (id: string) => {
@@ -149,7 +242,9 @@ export default function InventoryPage() {
           <div className="p-12 text-center text-on-surface-variant/60">Loading...</div>
         ) : filtered.length === 0 ? (
           <div className="p-12 text-center text-on-surface-variant/60">
-            <p className="text-4xl mb-3">📦</p>
+            <svg className="w-10 h-10 mx-auto mb-3 text-on-surface-variant/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
             <p>No products found</p>
           </div>
         ) : (
@@ -169,11 +264,28 @@ export default function InventoryPage() {
                 {filtered.map((p) => (
                   <tr key={p.id} className="hover:bg-surface-container/30 transition-colors">
                     <td className="px-5 py-3">
-                      <div className="text-sm font-medium text-on-surface">{p.name}</div>
-                      {p.sku && <div className="text-xs text-on-surface-variant font-mono">{p.sku}</div>}
+                      <div className="flex items-center gap-3">
+                        {p.thumbnailUrl ? (
+                          <img
+                            src={p.thumbnailUrl}
+                            alt={p.name}
+                            className="w-9 h-9 rounded-lg object-cover border border-outline-variant flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-9 h-9 rounded-lg bg-surface-container flex items-center justify-center flex-shrink-0">
+                            <svg className="w-4 h-4 text-on-surface-variant/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                            </svg>
+                          </div>
+                        )}
+                        <div>
+                          <div className="text-sm font-medium text-on-surface">{p.name}</div>
+                          {p.sku && <div className="text-xs text-on-surface-variant font-mono">{p.sku}</div>}
+                        </div>
+                      </div>
                     </td>
                     <td className="px-5 py-3 text-sm text-on-surface-variant hidden md:table-cell">
-                      —
+                      {allCategories.find((c) => c.id === p.categoryId)?.name || "—"}
                     </td>
                     <td className="px-5 py-3 text-sm text-on-surface-variant text-right whitespace-nowrap">
                       {formatMoney(p.buyingPrice)}
@@ -216,7 +328,7 @@ export default function InventoryPage() {
       {showModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
           <div
-            className="bg-surface-container-low border border-outline-variant rounded-2xl w-full max-w-md p-6 space-y-4"
+            className="bg-surface-container-low border border-outline-variant rounded-2xl w-full max-w-md p-6 space-y-4 max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-lg font-bold text-on-surface font-headline">
@@ -224,6 +336,65 @@ export default function InventoryPage() {
             </h2>
 
             <div className="space-y-3">
+              {/* Image Section */}
+              <div>
+                <label className="block text-xs font-medium text-on-surface-variant mb-2">Product Image</label>
+                {imageDataUrl ? (
+                  <div className="relative inline-block">
+                    <img
+                      src={imageDataUrl}
+                      alt="Product preview"
+                      className="w-24 h-24 rounded-xl object-cover border border-outline-variant"
+                    />
+                    <button
+                      onClick={() => setImageDataUrl(null)}
+                      className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-danger text-on-primary flex items-center justify-center text-xs"
+                    >
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-outline-variant text-on-surface-variant text-sm hover:bg-surface-container transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      Upload
+                    </button>
+                    <button
+                      onClick={() => cameraInputRef.current?.click()}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-outline-variant text-on-surface-variant text-sm hover:bg-surface-container transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      Take Photo
+                    </button>
+                  </div>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+                <input
+                  ref={cameraInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+              </div>
+
               <div>
                 <label className="block text-xs font-medium text-on-surface-variant mb-1">Name *</label>
                 <input
@@ -234,7 +405,8 @@ export default function InventoryPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              {/* SKU - auto-generated on new products */}
+              {editing ? (
                 <div>
                   <label className="block text-xs font-medium text-on-surface-variant mb-1">SKU</label>
                   <input
@@ -244,19 +416,27 @@ export default function InventoryPage() {
                     placeholder="SKU-001"
                   />
                 </div>
+              ) : generatedSku ? (
                 <div>
-                  <label className="block text-xs font-medium text-on-surface-variant mb-1">Category</label>
-                  <select
-                    value={form.categoryId}
-                    onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
-                    className="w-full px-3 py-2.5 rounded-lg bg-surface-container border border-outline-variant text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  >
-                    <option value="">None</option>
-                    {allCategories.map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
+                  <label className="block text-xs font-medium text-on-surface-variant mb-1">Generated SKU</label>
+                  <div className="w-full px-3 py-2.5 rounded-lg bg-surface-container/50 border border-outline-variant text-on-surface text-sm font-mono">
+                    {generatedSku}
+                  </div>
                 </div>
+              ) : null}
+
+              <div>
+                <label className="block text-xs font-medium text-on-surface-variant mb-1">Category</label>
+                <select
+                  value={form.categoryId}
+                  onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-lg bg-surface-container border border-outline-variant text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                >
+                  <option value="">None</option>
+                  {allCategories.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -321,7 +501,7 @@ export default function InventoryPage() {
                 onClick={() => setShowModal(false)}
                 className="flex-1 px-4 py-2.5 rounded-xl border border-outline-variant text-on-surface-variant text-sm font-medium hover:bg-surface-container transition-colors"
               >
-                Cancel
+                {generatedSku ? "Close" : "Cancel"}
               </button>
               <button
                 onClick={save}

@@ -36,12 +36,16 @@ export default function LandingNav() {
             </svg>
           </div>
           <span className="text-xl font-bold text-on-surface font-headline">Aide</span>
+          <span className="text-[10px] font-bold bg-warning/20 text-warning px-2 py-0.5 rounded-full ml-2">BETA</span>
         </Link>
 
         <div className="hidden md:flex items-center gap-8 text-sm text-on-surface-variant">
           <a href="#features" className="hover:text-on-surface transition-colors">Features</a>
           <a href="#pricing" className="hover:text-on-surface transition-colors">Pricing</a>
-          <a href="#about" className="hover:text-on-surface transition-colors">About</a>
+          <a href="https://omixsystems.store" target="_blank" rel="noopener noreferrer" className="hover:text-on-surface transition-colors">About</a>
+          <a href="/help" className="hover:text-on-surface transition-colors">Help</a>
+          <a href="https://omixsystems.store" target="_blank" rel="noopener noreferrer" className="hover:text-on-surface transition-colors">API Docs</a>
+          <a href="https://blog.omixsystems.store" target="_blank" rel="noopener noreferrer" className="hover:text-on-surface transition-colors">Blog</a>
         </div>
 
         <div className="hidden md:flex items-center gap-3">
@@ -81,7 +85,10 @@ export default function LandingNav() {
         <div className="md:hidden bg-surface-container-low border-b border-outline-variant px-4 pb-4 space-y-3">
           <a href="#features" onClick={() => setMobileOpen(false)} className="block py-2 text-sm text-on-surface-variant hover:text-on-surface">Features</a>
           <a href="#pricing" onClick={() => setMobileOpen(false)} className="block py-2 text-sm text-on-surface-variant hover:text-on-surface">Pricing</a>
-          <a href="#about" onClick={() => setMobileOpen(false)} className="block py-2 text-sm text-on-surface-variant hover:text-on-surface">About</a>
+          <a href="https://omixsystems.store" target="_blank" rel="noopener noreferrer" onClick={() => setMobileOpen(false)} className="block py-2 text-sm text-on-surface-variant hover:text-on-surface">About</a>
+          <a href="/help" onClick={() => setMobileOpen(false)} className="block py-2 text-sm text-on-surface-variant hover:text-on-surface">Help</a>
+          <a href="https://omixsystems.store" target="_blank" rel="noopener noreferrer" onClick={() => setMobileOpen(false)} className="block py-2 text-sm text-on-surface-variant hover:text-on-surface">API Docs</a>
+          <a href="https://blog.omixsystems.store" target="_blank" rel="noopener noreferrer" onClick={() => setMobileOpen(false)} className="block py-2 text-sm text-on-surface-variant hover:text-on-surface">Blog</a>
           <div className="flex items-center gap-3 pt-2 border-t border-outline-variant">
             <ThemeToggle />
             <Link href="/login" onClick={() => setMobileOpen(false)} className="text-sm font-medium text-on-surface-variant hover:text-on-surface">

@@ -59,6 +59,7 @@ model Business {
   products      Product[]
   sales         Sale[]
   categories    Category[]
+  reviews       Review[]
 }
 
 enum BusinessType {
@@ -116,6 +117,8 @@ model Product {
   quantity      Int      @default(0)
   lowStock      Int      @default(5)
   isService     Boolean  @default(false)
+  imageUrl      String?
+  thumbnailUrl  String?
   isActive      Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -167,6 +170,20 @@ model SaleItem {
   saleId    String
   product   Product? @relation(fields: [productId], references: [id])
   productId String?
+}
+
+// User reviews/feedback
+model Review {
+  id            String   @id @default(cuid())
+  rating        Int
+  categories    Json
+  comment       String?
+  contactEmail  String?
+  businessId    String
+  userId        String?
+  createdAt     DateTime @default(now())
+
+  business      Business @relation(fields: [businessId], references: [id])
 }
 
 // Offline sync conflict tracking

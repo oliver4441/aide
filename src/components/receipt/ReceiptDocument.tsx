@@ -8,6 +8,7 @@ interface ReceiptItem {
   quantity: number;
   price: number;
   cost?: number;
+  imageUrl?: string;
 }
 
 interface ReceiptSale {
@@ -60,6 +61,7 @@ export default function ReceiptDocument({
             line-height: 1.4 !important;
           }
           .receipt-root * { color: #000 !important; background: transparent !important; }
+          .receipt-image { display: none !important; }
           .no-print { display: none !important; }
           @page { size: 80mm auto; margin: 2mm; }
         }
@@ -99,11 +101,20 @@ export default function ReceiptDocument({
         <div className="space-y-1">
           {sale.items.map((item, i) => (
             <div key={item.id || i} className="text-[10px]">
-              <div className="flex justify-between">
-                <span className="text-on-surface truncate max-w-[60%]">
-                  {item.name}
-                </span>
-                <span className="text-on-surface-variant">{item.quantity} × {formatMoney(item.price, currency)}</span>
+              <div className="flex justify-between items-start gap-2">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  {item.imageUrl && (
+                    <img
+                      src={item.imageUrl}
+                      alt=""
+                      className="w-8 h-8 rounded border border-outline-variant object-cover flex-shrink-0 receipt-image"
+                    />
+                  )}
+                  <span className="text-on-surface truncate">
+                    {item.name}
+                  </span>
+                </div>
+                <span className="text-on-surface-variant flex-shrink-0">{item.quantity} × {formatMoney(item.price, currency)}</span>
               </div>
               <div className="flex justify-between text-right">
                 <span></span>

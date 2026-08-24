@@ -12,7 +12,7 @@ export default function Hero() {
         <div className="flex-1 max-w-2xl">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold mb-6">
             <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-            Built for modern entrepreneurs
+            Offline-first business management that actually works
           </div>
 
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] mb-6 font-headline text-on-surface">
@@ -44,27 +44,6 @@ export default function Hero() {
               See Features
             </a>
           </div>
-
-          <div className="mt-10 flex items-center gap-4 text-sm text-on-surface-variant">
-            <div className="flex -space-x-2">
-              {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="w-8 h-8 rounded-full bg-primary/20 border-2 border-surface flex items-center justify-center text-[10px] font-bold text-primary"
-                >
-                  {["G", "J", "F"][i - 1]}
-                </div>
-              ))}
-            </div>
-            <div>
-              <div className="flex items-center gap-1 text-warning text-xs">
-                {"★★★★★".split("").map((_, i) => (
-                  <span key={i}>★</span>
-                ))}
-              </div>
-              <span>Powering 500+ businesses</span>
-            </div>
-          </div>
         </div>
 
         <div className="flex-1 w-full max-w-lg">
@@ -82,7 +61,7 @@ export default function Hero() {
                 <div className="bg-surface-container-low border border-outline-variant rounded-xl p-3">
                   <div className="text-[10px] text-on-surface-variant uppercase tracking-wider mb-1">Today&apos;s Sales</div>
                   <div className="text-lg font-bold text-on-surface font-headline">KSh 45,230</div>
-                  <div className="text-[10px] text-success">+12% ↑</div>
+                  <div className="text-[10px] text-success">+12%</div>
                 </div>
                 <div className="bg-surface-container-low border border-outline-variant rounded-xl p-3">
                   <div className="text-[10px] text-on-surface-variant uppercase tracking-wider mb-1">Products</div>

@@ -10,6 +10,8 @@ export default function SettingsPage() {
   const { data: session } = useSession();
   const { data: business, mutate: mutateBusiness } = useBusinessSettings();
   const [conflicts, setConflicts] = useState<any[]>([]);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [newCategory, setNewCategory] = useState("");
 
   const [form, setForm] = useState({
     name: "",
@@ -37,6 +39,31 @@ export default function SettingsPage() {
     ).subscribe((records) => setConflicts(records));
     return () => sub.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    const sub = liveQuery(() => db.categories.toArray()).subscribe((cats) => {
+      setCategories(cats.filter((c) => !c.deletedAt).map((c) => ({ id: c.id, name: c.name })));
+    });
+    return () => sub.unsubscribe();
+  }, []);
+
+  const addCategory = async () => {
+    if (!newCategory.trim()) return;
+    const id = `cat_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    await db.categories.put({
+      id,
+      name: newCategory.trim(),
+      businessId: business?.id || localStorage.getItem("aide_business_id") || "",
+      sortOrder: categories.length,
+      syncStatus: "pending",
+      createdAt: new Date().toISOString(),
+    });
+    setNewCategory("");
+  };
+
+  const deleteCategory = async (id: string) => {
+    await db.categories.update(id, { syncStatus: "pending" as const, deletedAt: new Date().toISOString() });
+  };
 
   const save = async () => {
     if (!business) return;
@@ -198,6 +225,50 @@ export default function SettingsPage() {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Product Categories */}
+      <div className="bg-surface-container-low border border-outline-variant rounded-xl p-6">
+        <h2 className="text-lg font-bold text-on-surface font-headline mb-4">Product Categories</h2>
+        <div className="space-y-3">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={newCategory}
+              onChange={(e) => setNewCategory(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addCategory()}
+              placeholder="New category name..."
+              className="flex-1 px-3 py-2.5 rounded-lg bg-surface-container border border-outline-variant text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+            />
+            <button
+              onClick={addCategory}
+              disabled={!newCategory.trim()}
+              className="px-4 py-2.5 rounded-lg bg-primary text-on-primary text-sm font-semibold hover:bg-primary-light transition-colors disabled:opacity-40"
+            >
+              Add
+            </button>
+          </div>
+          {categories.length === 0 ? (
+            <p className="text-sm text-on-surface-variant">No categories yet. Add one above.</p>
+          ) : (
+            <div className="space-y-1">
+              {categories.map((cat) => (
+                <div
+                  key={cat.id}
+                  className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-surface-container/50 transition-colors"
+                >
+                  <span className="text-sm text-on-surface">{cat.name}</span>
+                  <button
+                    onClick={() => deleteCategory(cat.id)}
+                    className="text-xs text-on-surface-variant hover:text-danger transition-colors"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Notification Preferences */}

@@ -175,7 +175,12 @@ export default function POSPage() {
                     {!product.isService && (
                       <div className="text-[10px] text-on-surface-variant/60 mt-1">
                         {product.quantity <= product.lowStock ? (
-                          <span className="text-danger">⚠ {product.quantity} left</span>
+                          <span className="text-danger flex items-center gap-1">
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                            </svg>
+                            {product.quantity} left
+                          </span>
                         ) : (
                           <span>{product.quantity} in stock</span>
                         )}
@@ -198,7 +203,9 @@ export default function POSPage() {
 
           {cart.length === 0 ? (
             <div className="p-8 text-center text-on-surface-variant/60 text-sm">
-              <p className="text-3xl mb-2">🛒</p>
+              <svg className="w-10 h-10 mx-auto mb-2 text-on-surface-variant/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
+              </svg>
               Tap products to add them
             </div>
           ) : (

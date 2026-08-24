@@ -6,15 +6,16 @@ import ScrollFadeIn from "./ScrollFadeIn";
 const tiers = [
   {
     name: "Free",
-    price: "$0",
-    period: "forever",
+    price: "KSh 0",
+    period: "Free forever",
     features: ["1 business", "Up to 50 products", "Basic POS", "Sales history"],
     cta: "Get Started",
     featured: false,
+    comingSoon: false,
   },
   {
     name: "Pro",
-    price: "$12",
+    price: "KSh 1,490",
     period: "per month",
     features: [
       "Unlimited businesses",
@@ -27,11 +28,12 @@ const tiers = [
     ],
     cta: "Start Free Trial",
     featured: true,
+    comingSoon: true,
   },
   {
     name: "Enterprise",
-    price: "Custom",
-    period: "tailored for you",
+    price: "KSh 4,990",
+    period: "per month",
     features: [
       "Everything in Pro",
       "Multi-location",
@@ -42,6 +44,7 @@ const tiers = [
     ],
     cta: "Contact Sales",
     featured: false,
+    comingSoon: true,
   },
 ];
 
@@ -64,13 +67,21 @@ export default function Pricing() {
           {tiers.map((tier, i) => (
             <ScrollFadeIn key={i} delay={i * 100}>
               <div
-                className={`bg-surface-container-lowest border rounded-2xl p-6 h-full flex flex-col ${
-                  tier.featured ? "border-primary/40 shadow-xl shadow-primary/5" : "border-outline-variant"
-                }`}
+                className={`bg-surface-container-lowest border rounded-2xl p-6 h-full flex flex-col relative ${
+                  tier.comingSoon ? "opacity-60" : ""
+                } ${tier.featured && !tier.comingSoon ? "border-primary/40 shadow-xl shadow-primary/5" : "border-outline-variant"}`}
               >
-                {tier.featured && (
+                {tier.featured && !tier.comingSoon && (
                   <div className="self-center -mt-8 mb-2 bg-primary text-on-primary text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
                     Most Popular
+                  </div>
+                )}
+                {tier.comingSoon && (
+                  <div className="self-center -mt-8 mb-2 bg-warning/20 text-warning text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1">
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    Coming Soon
                   </div>
                 )}
                 <div className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2">{tier.name}</div>
@@ -86,16 +97,25 @@ export default function Pricing() {
                     </li>
                   ))}
                 </ul>
-                <Link
-                  href="/login"
-                  className={`block text-center py-2.5 rounded-xl text-sm font-semibold transition-colors ${
-                    tier.featured
-                      ? "bg-primary text-on-primary hover:bg-primary-light"
-                      : "border border-outline-variant text-on-surface-variant hover:bg-surface-container-low"
-                  }`}
-                >
-                  {tier.cta}
-                </Link>
+                {tier.comingSoon ? (
+                  <div className="block text-center py-2.5 rounded-xl text-sm font-semibold border border-outline-variant text-on-surface-variant cursor-not-allowed flex items-center justify-center gap-2">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    Coming Soon
+                  </div>
+                ) : (
+                  <Link
+                    href="/login"
+                    className={`block text-center py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                      tier.featured
+                        ? "bg-primary text-on-primary hover:bg-primary-light"
+                        : "border border-outline-variant text-on-surface-variant hover:bg-surface-container-low"
+                    }`}
+                  >
+                    {tier.cta}
+                  </Link>
+                )}
               </div>
             </ScrollFadeIn>
           ))}

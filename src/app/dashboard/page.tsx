@@ -57,23 +57,23 @@ export default function DashboardPage() {
         <MetricCard
           label="Today's Sales"
           value={formatMoney(todayRevenue)}
-          icon="💰"
+          iconType="dollar"
         />
         <MetricCard
           label="Today's Profit"
           value={formatMoney(todayProfit)}
-          icon="📈"
+          iconType="chart"
         />
         <MetricCard
           label="Total Products"
           value={totalProducts.toString()}
-          icon="📦"
+          iconType="box"
           change="Active inventory items"
         />
         <MetricCard
           label="Low Stock"
           value={lowStockProducts.toString()}
-          icon="⚠️"
+          iconType="warning"
           change={lowStockProducts > 0 ? "Action required" : "All stocked up"}
           isWarning={lowStockProducts > 0}
         />
@@ -128,10 +128,14 @@ export default function DashboardPage() {
         {/* Stock Watch */}
         <div className="bg-surface-container-low border border-outline-variant rounded-xl overflow-hidden flex flex-col">
           <div className="px-5 py-4 border-b border-outline-variant">
-            <h2 className="text-lg font-bold text-on-surface font-headline flex items-center gap-2">
+              <h2 className="text-lg font-bold text-on-surface font-headline flex items-center gap-2">
               Stock Watch
               {lowStockProducts > 0 && (
-                <span className="text-warning text-sm">⚠</span>
+                <span className="text-warning">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                </span>
               )}
             </h2>
           </div>
@@ -158,17 +162,40 @@ export default function DashboardPage() {
   );
 }
 
+const metricIcons: Record<string, JSX.Element> = {
+  dollar: (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  ),
+  chart: (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+    </svg>
+  ),
+  box: (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+    </svg>
+  ),
+  warning: (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+    </svg>
+  ),
+};
+
 function MetricCard({
   label,
   value,
-  icon,
+  iconType,
   change,
   changePositive = true,
   isWarning = false,
 }: {
   label: string;
   value: string;
-  icon: string;
+  iconType: string;
   change?: string;
   changePositive?: boolean;
   isWarning?: boolean;
@@ -183,7 +210,9 @@ function MetricCard({
     >
       <div className="flex justify-between items-start mb-3">
         <span className="text-xs font-medium text-on-surface-variant uppercase tracking-wider">{label}</span>
-        <span className="text-lg">{icon}</span>
+        <span className={`${isWarning ? "text-danger" : "text-on-surface-variant/60"}`}>
+          {metricIcons[iconType]}
+        </span>
       </div>
       <div className="text-2xl font-bold text-on-surface mb-1 font-headline">{value}</div>
       {change && (

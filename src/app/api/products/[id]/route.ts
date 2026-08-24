@@ -35,6 +35,8 @@ export async function PATCH(
   if (body.isService !== undefined) data.isService = body.isService;
   if (body.categoryId !== undefined) data.categoryId = body.categoryId || null;
   if (body.isActive !== undefined) data.isActive = body.isActive;
+  if (body.imageUrl !== undefined) data.imageUrl = body.imageUrl || null;
+  if (body.thumbnailUrl !== undefined) data.thumbnailUrl = body.thumbnailUrl || null;
 
   const product = await prisma.product.update({
     where: { id: params.id },

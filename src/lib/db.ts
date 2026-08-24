@@ -35,6 +35,8 @@ export interface ProductRecord {
   isService: boolean;
   isActive: boolean;
   categoryId?: string;
+  imageUrl?: string;
+  thumbnailUrl?: string;
   syncStatus: 'synced' | 'pending' | 'conflict';
   updatedAt: string;
   createdAt: string;
