@@ -1,0 +1,167 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Platform admin
+model Admin {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String
+  passwordHash  String
+  role          AdminRole @default(SUPER_ADMIN)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  businesses    Business[]
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
+  SUPPORT
+}
+
+// Business owner
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String
+  passwordHash  String
+  phone         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  businesses    BusinessMembership[]
+}
+
+// A business (shop, salon, store, etc.)
+model Business {
+  id            String    @id @default(cuid())
+  name          String
+  type          BusinessType
+  slug          String    @unique
+  currency      String    @default("KSh")
+  taxRate       Float     @default(0)
+  receiptFooter String?
+  logoUrl       String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  admin         Admin?    @relation(fields: [adminId], references: [id])
+  adminId       String?
+
+  memberships   BusinessMembership[]
+  products      Product[]
+  sales         Sale[]
+  categories    Category[]
+}
+
+enum BusinessType {
+  SALON
+  SHOP
+  RESTAURANT
+  GROCERY
+  PHARMACY
+  ELECTRONICS
+  CLOTHING
+  OTHER
+}
+
+// User-Business relationship
+model BusinessMembership {
+  id        String   @id @default(cuid())
+  role      BusinessRole @default(MANAGER)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  business  Business @relation(fields: [businessId], references: [id])
+  businessId String
+
+  @@unique([userId, businessId])
+}
+
+enum BusinessRole {
+  OWNER
+  MANAGER
+  STAFF
+}
+
+// Product categories
+model Category {
+  id        String   @id @default(cuid())
+  name      String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  business  Business @relation(fields: [businessId], references: [id])
+  businessId String
+  products  Product[]
+
+  @@unique([businessId, name])
+}
+
+// Inventory items
+model Product {
+  id            String   @id @default(cuid())
+  name          String
+  sku           String?
+  buyingPrice   Float
+  sellingPrice  Float
+  quantity      Int      @default(0)
+  lowStock      Int      @default(5)
+  isService     Boolean  @default(false)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  business      Business @relation(fields: [businessId], references: [id])
+  businessId    String
+  category      Category? @relation(fields: [categoryId], references: [id])
+  categoryId    String?
+
+  saleItems     SaleItem[]
+}
+
+// Sales transactions
+model Sale {
+  id            String   @id @default(cuid())
+  total         Float
+  cost          Float
+  profit        Float
+  paid          Float
+  change        Float
+  paymentMethod PaymentMethod @default(CASH)
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  business      Business @relation(fields: [businessId], references: [id])
+  businessId    String
+  items         SaleItem[]
+}
+
+enum PaymentMethod {
+  CASH
+  MOBILE_MONEY
+  CARD
+  OTHER
+}
+
+// Individual sale items
+model SaleItem {
+  id        String @id @default(cuid())
+  name      String
+  quantity  Int
+  price     Float
+  cost      Float
+
+  sale      Sale   @relation(fields: [saleId], references: [id])
+  saleId    String
+  product   Product? @relation(fields: [productId], references: [id])
+  productId String?
+}

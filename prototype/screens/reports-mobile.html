@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ShopManager - Reports</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&amp;family=Inter:wght@400;500&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "on-tertiary-fixed": "#221920",
+                "primary-fixed-dim": "#ffafd4",
+                "dark-border": "#2d343f",
+                "on-tertiary-container": "#dbcbd4",
+                "on-primary-fixed-variant": "#762b55",
+                "tertiary-fixed-dim": "#d2c2cb",
+                "inverse-on-surface": "#f0f0f6",
+                "background": "#f9f9ff",
+                "on-surface-variant": "#524349",
+                "outline": "#847279",
+                "on-error-container": "#93000a",
+                "on-primary-fixed": "#3d0027",
+                "on-surface": "#191c20",
+                "secondary-container": "#dce3f3",
+                "surface-bright": "#f9f9ff",
+                "error": "#ba1a1a",
+                "primary-container": "#8b3d67",
+                "tertiary-fixed": "#efdee7",
+                "surface-container-high": "#e7e8ee",
+                "glass-highlight": "rgba(255, 255, 255, 0.05)",
+                "surface-container-low": "#f3f3f9",
+                "primary-fixed": "#ffd8e7",
+                "surface-container": "#ededf3",
+                "surface-tint": "#92436d",
+                "on-background": "#191c20",
+                "on-secondary-container": "#5e6572",
+                "secondary-fixed-dim": "#c0c7d6",
+                "outline-variant": "#d7c1c8",
+                "on-primary-container": "#ffbcda",
+                "surface-dim": "#d9dadf",
+                "dark-bg": "#0f1115",
+                "secondary": "#585f6c",
+                "on-tertiary-fixed-variant": "#4f444b",
+                "on-tertiary": "#ffffff",
+                "dark-surface": "#1a1d23",
+                "tertiary": "#493e45",
+                "on-secondary": "#ffffff",
+                "inverse-primary": "#ffafd4",
+                "secondary-fixed": "#dce3f3",
+                "surface-container-highest": "#e2e2e8",
+                "tertiary-container": "#61555d",
+                "primary": "#6f264f",
+                "inverse-surface": "#2e3035",
+                "on-primary": "#ffffff",
+                "error-container": "#ffdad6",
+                "surface-plum": "#f4eff1",
+                "on-secondary-fixed-variant": "#404754",
+                "surface-container-lowest": "#ffffff",
+                "surface": "#f9f9ff",
+                "on-secondary-fixed": "#151c27",
+                "surface-variant": "#e2e2e8",
+                "on-error": "#ffffff"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+        },
+        "spacing": {
+                "sm": "12px",
+                "xs": "8px",
+                "base": "4px",
+                "lg": "24px",
+                "md": "16px",
+                "xl": "32px",
+                "gutter-mobile": "16px",
+                "gutter-desktop": "24px"
+        },
+        "fontFamily": {
+                "headline-lg-mobile": [
+                        "Manrope"
+                ],
+                "headline-lg": [
+                        "Manrope"
+                ],
+                "display-lg": [
+                        "Manrope"
+                ],
+                "metric-xl": [
+                        "Manrope"
+                ],
+                "body-lg": [
+                        "Inter"
+                ],
+                "label-md": [
+                        "JetBrains Mono"
+                ],
+                "headline-md": [
+                        "Manrope"
+                ],
+                "body-md": [
+                        "Inter"
+                ],
+                "body-sm": [
+                        "Inter"
+                ]
+        },
+        "fontSize": {
+                "headline-lg-mobile": [
+                        "24px",
+                        {
+                                "lineHeight": "32px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "headline-lg": [
+                        "32px",
+                        {
+                                "lineHeight": "40px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "display-lg": [
+                        "40px",
+                        {
+                                "lineHeight": "48px",
+                                "letterSpacing": "-0.02em",
+                                "fontWeight": "700"
+                        }
+                ],
+                "metric-xl": [
+                        "32px",
+                        {
+                                "lineHeight": "40px",
+                                "fontWeight": "700"
+                        }
+                ],
+                "body-lg": [
+                        "18px",
+                        {
+                                "lineHeight": "28px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "label-md": [
+                        "12px",
+                        {
+                                "lineHeight": "16px",
+                                "letterSpacing": "0.05em",
+                                "fontWeight": "500"
+                        }
+                ],
+                "headline-md": [
+                        "24px",
+                        {
+                                "lineHeight": "32px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "body-md": [
+                        "16px",
+                        {
+                                "lineHeight": "24px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "body-sm": [
+                        "14px",
+                        {
+                                "lineHeight": "20px",
+                                "fontWeight": "400"
+                        }
+                ]
+        }
+},
+    },
+  }
+</script>
+<style>
+  body {
+    background-color: theme('colors.dark-bg');
+    color: theme('colors.on-surface');
+  }
+  .glass-panel {
+    background: rgba(26, 29, 35, 0.8);
+    backdrop-filter: blur(20px);
+    border: 1px solid theme('colors.dark-border');
+  }
+</style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="antialiased min-h-screen flex flex-col pt-16 pb-20">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-surface/70 dark:bg-dark-surface/80 backdrop-blur-xl border-b border-outline-variant/30 dark:border-dark-border/50 shadow-[0_24px_48px_-12px_rgba(139,61,103,0.06)] flex justify-between items-center px-gutter-mobile h-16 transition-transform duration-200">
+<div class="flex items-center gap-xs">
+<div class="w-8 h-8 rounded-full overflow-hidden border border-dark-border">
+<img alt="user_profile_photo" class="w-full h-full object-cover" data-alt="A macro shot of a sleek, futuristic avatar icon with glowing magenta accents against a dark slate background. High tech aesthetic, cinematic lighting, ultra detailed 8k resolution, maintaining a dark mode palette." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB-eKgdSp-8UH-uJOMdpgwmFU-oWsSo32V5NcrygfWpDC-777mVV6L6_-jHAY1XkBLImbClARZ17GnqfBy3Y56UxgDSvdz-skgNZ0U33K4HNPNuQDIl4HI7RiNNtWSNYfjHKIt0FMz97vekb_Sa_jMRIavmfUnkDwfJBocIIb0SVfjZliAPcNC1MwAbUW3K8czPCgVaEdkf3bOnC-0spiPBIUJwmVDiZPvQ5koMyDGX1XaoA_umlL3tkw"/>
+</div>
+</div>
+<div class="font-headline-md-mobile text-headline-md-mobile font-bold text-primary dark:text-primary-fixed-dim tracking-tight">ShopManager</div>
+<div class="flex items-center">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary/5 transition-colors text-on-surface-variant dark:text-outline active:scale-95 transition-transform duration-200">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+</div>
+</header>
+<main class="flex-grow p-gutter-mobile md:p-gutter-desktop max-w-[1440px] mx-auto w-full grid grid-cols-4 md:grid-cols-8 lg:grid-cols-12 gap-md md:gap-lg mt-md">
+<div class="col-span-4 md:col-span-8 lg:col-span-12 flex justify-between items-end mb-sm">
+<div>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg text-primary-fixed-dim">Reports Dashboard</h1>
+<p class="font-body-sm text-body-sm text-outline mt-1">Overview of your shop's performance metrics.</p>
+</div>
+<button class="flex items-center gap-2 bg-dark-surface border border-primary text-primary-fixed-dim px-4 py-2 rounded-lg hover:bg-primary/10 transition-colors active:scale-95 font-label-md text-label-md">
+<span class="material-symbols-outlined" data-icon="print" style="font-variation-settings: 'FILL' 1;">print</span>
+            Print Reports
+        </button>
+</div>
+<!-- Sales Trends Chart Card -->
+<section class="col-span-4 md:col-span-8 lg:col-span-8 glass-panel rounded-xl p-md md:p-lg relative overflow-hidden group shadow-[0_24px_48px_-12px_rgba(139,61,103,0.06)]">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-l-xl"></div>
+<div class="flex justify-between items-center mb-md">
+<h2 class="font-headline-md text-headline-md text-surface-bright">Revenue Trends</h2>
+<select class="bg-dark-bg border-dark-border text-outline text-label-md font-label-md rounded-md focus:ring-primary focus:border-primary">
+<option>Last 30 Days</option>
+<option>This Quarter</option>
+<option>Year to Date</option>
+</select>
+</div>
+<div class="h-64 w-full rounded-lg bg-dark-bg/50 border border-dark-border flex items-end justify-between p-4 relative overflow-hidden">
+<!-- Simulated Chart Bars -->
+<div class="w-[8%] bg-primary/20 hover:bg-primary/40 rounded-t-sm h-[30%] transition-all duration-300 relative group cursor-pointer">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-surface-container-high text-on-surface px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">$1.2k</div>
+</div>
+<div class="w-[8%] bg-primary/30 hover:bg-primary/50 rounded-t-sm h-[45%] transition-all duration-300 relative group cursor-pointer"></div>
+<div class="w-[8%] bg-primary/40 hover:bg-primary/60 rounded-t-sm h-[25%] transition-all duration-300 relative group cursor-pointer"></div>
+<div class="w-[8%] bg-primary/50 hover:bg-primary/70 rounded-t-sm h-[60%] transition-all duration-300 relative group cursor-pointer"></div>
+<div class="w-[8%] bg-primary/60 hover:bg-primary/80 rounded-t-sm h-[50%] transition-all duration-300 relative group cursor-pointer"></div>
+<div class="w-[8%] bg-primary hover:bg-primary-container rounded-t-sm h-[85%] transition-all duration-300 relative group cursor-pointer shadow-[0_0_15px_rgba(139,61,103,0.3)]"></div>
+<div class="w-[8%] bg-primary/80 hover:bg-primary rounded-t-sm h-[70%] transition-all duration-300 relative group cursor-pointer"></div>
+<!-- Grid Lines -->
+<div class="absolute inset-0 pointer-events-none flex flex-col justify-between py-4">
+<div class="w-full border-t border-dark-border/30 border-dashed"></div>
+<div class="w-full border-t border-dark-border/30 border-dashed"></div>
+<div class="w-full border-t border-dark-border/30 border-dashed"></div>
+<div class="w-full border-t border-dark-border/30 border-dashed"></div>
+</div>
+</div>
+</section>
+<!-- Key Metrics Bento -->
+<section class="col-span-4 md:col-span-8 lg:col-span-4 flex flex-col gap-md">
+<div class="glass-panel rounded-xl p-md border-l-4 border-l-primary flex items-center justify-between">
+<div>
+<p class="font-label-md text-label-md text-outline uppercase">Total Profit Margin</p>
+<p class="font-metric-xl text-metric-xl text-primary-fixed-dim mt-1">24.8%</p>
+</div>
+<div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary-fixed-dim">
+<span class="material-symbols-outlined text-3xl" data-icon="trending_up">trending_up</span>
+</div>
+</div>
+<div class="glass-panel rounded-xl p-md border-l-4 border-l-secondary-fixed-dim flex items-center justify-between">
+<div>
+<p class="font-label-md text-label-md text-outline uppercase">Total Orders</p>
+<p class="font-metric-xl text-metric-xl text-secondary-fixed-dim mt-1">1,492</p>
+</div>
+<div class="w-12 h-12 rounded-full bg-secondary-fixed-dim/10 flex items-center justify-center text-secondary-fixed-dim">
+<span class="material-symbols-outlined text-3xl" data-icon="shopping_cart">shopping_cart</span>
+</div>
+</div>
+<div class="glass-panel rounded-xl p-md border-l-4 border-l-tertiary-fixed-dim flex items-center justify-between">
+<div>
+<p class="font-label-md text-label-md text-outline uppercase">Avg Order Value</p>
+<p class="font-metric-xl text-metric-xl text-tertiary-fixed-dim mt-1">$84.50</p>
+</div>
+<div class="w-12 h-12 rounded-full bg-tertiary-fixed-dim/10 flex items-center justify-center text-tertiary-fixed-dim">
+<span class="material-symbols-outlined text-3xl" data-icon="payments">payments</span>
+</div>
+</div>
+</section>
+<!-- Category Performance -->
+<section class="col-span-4 md:col-span-4 lg:col-span-6 glass-panel rounded-xl p-md relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-secondary-fixed-dim rounded-l-xl"></div>
+<h2 class="font-headline-md text-headline-md text-surface-bright mb-md">Category Performance</h2>
+<div class="space-y-4">
+<!-- Item 1 -->
+<div>
+<div class="flex justify-between font-body-sm text-body-sm mb-1">
+<span class="text-on-surface-variant">Electronics</span>
+<span class="text-primary-fixed-dim font-bold">45%</span>
+</div>
+<div class="w-full bg-dark-bg rounded-full h-2">
+<div class="bg-primary h-2 rounded-full" style="width: 45%"></div>
+</div>
+</div>
+<!-- Item 2 -->
+<div>
+<div class="flex justify-between font-body-sm text-body-sm mb-1">
+<span class="text-on-surface-variant">Apparel</span>
+<span class="text-secondary-fixed-dim font-bold">30%</span>
+</div>
+<div class="w-full bg-dark-bg rounded-full h-2">
+<div class="bg-secondary-fixed-dim h-2 rounded-full" style="width: 30%"></div>
+</div>
+</div>
+<!-- Item 3 -->
+<div>
+<div class="flex justify-between font-body-sm text-body-sm mb-1">
+<span class="text-on-surface-variant">Accessories</span>
+<span class="text-tertiary-fixed-dim font-bold">15%</span>
+</div>
+<div class="w-full bg-dark-bg rounded-full h-2">
+<div class="bg-tertiary-fixed-dim h-2 rounded-full" style="width: 15%"></div>
+</div>
+</div>
+<!-- Item 4 -->
+<div>
+<div class="flex justify-between font-body-sm text-body-sm mb-1">
+<span class="text-on-surface-variant">Home Goods</span>
+<span class="text-outline font-bold">10%</span>
+</div>
+<div class="w-full bg-dark-bg rounded-full h-2">
+<div class="bg-outline h-2 rounded-full" style="width: 10%"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- Top Selling Items -->
+<section class="col-span-4 md:col-span-4 lg:col-span-6 glass-panel rounded-xl p-md relative">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-tertiary-fixed-dim rounded-l-xl"></div>
+<h2 class="font-headline-md text-headline-md text-surface-bright mb-md">Top Selling Items</h2>
+<ul class="space-y-3">
+<li class="flex items-center gap-3 p-2 rounded-lg hover:bg-dark-bg/50 transition-colors">
+<div class="w-10 h-10 rounded bg-dark-bg border border-dark-border flex items-center justify-center text-primary-fixed-dim">
+<span class="material-symbols-outlined" data-icon="headphones">headphones</span>
+</div>
+<div class="flex-grow">
+<p class="font-body-md text-body-md text-surface-bright">Pro Wireless Headphones</p>
+<p class="font-body-sm text-body-sm text-outline">124 units sold</p>
+</div>
+<div class="font-body-md text-body-md text-primary-fixed-dim font-bold">$24,676</div>
+</li>
+<li class="flex items-center gap-3 p-2 rounded-lg hover:bg-dark-bg/50 transition-colors">
+<div class="w-10 h-10 rounded bg-dark-bg border border-dark-border flex items-center justify-center text-secondary-fixed-dim">
+<span class="material-symbols-outlined" data-icon="watch">watch</span>
+</div>
+<div class="flex-grow">
+<p class="font-body-md text-body-md text-surface-bright">Smart Watch Series X</p>
+<p class="font-body-sm text-body-sm text-outline">98 units sold</p>
+</div>
+<div class="font-body-md text-body-md text-secondary-fixed-dim font-bold">$19,502</div>
+</li>
+<li class="flex items-center gap-3 p-2 rounded-lg hover:bg-dark-bg/50 transition-colors">
+<div class="w-10 h-10 rounded bg-dark-bg border border-dark-border flex items-center justify-center text-tertiary-fixed-dim">
+<span class="material-symbols-outlined" data-icon="backpack">backpack</span>
+</div>
+<div class="flex-grow">
+<p class="font-body-md text-body-md text-surface-bright">Urban Commuter Backpack</p>
+<p class="font-body-sm text-body-sm text-outline">156 units sold</p>
+</div>
+<div class="font-body-md text-body-md text-tertiary-fixed-dim font-bold">$13,260</div>
+</li>
+</ul>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="md:hidden fixed bottom-0 w-full z-50 rounded-t-xl bg-surface/70 dark:bg-dark-surface/80 backdrop-blur-xl border-t border-outline-variant/30 dark:border-dark-border/50 shadow-[0_-8px_24px_rgba(139,61,103,0.04)] flex justify-around items-center h-20 pb-safe px-2">
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline hover:text-primary dark:hover:text-primary-fixed-dim active:scale-90 transition-transform duration-150">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label-md text-label-md mt-1">Dashboard</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline hover:text-primary dark:hover:text-primary-fixed-dim active:scale-90 transition-transform duration-150">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span class="font-label-md text-label-md mt-1">Sales</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline hover:text-primary dark:hover:text-primary-fixed-dim active:scale-90 transition-transform duration-150">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+<span class="font-label-md text-label-md mt-1">Inventory</span>
+</button>
+<button class="flex flex-col items-center justify-center text-primary dark:text-primary-fixed-dim font-bold bg-primary-container/20 rounded-xl px-3 py-1 active:scale-90 transition-transform duration-150">
+<span class="material-symbols-outlined" data-icon="analytics" style="font-variation-settings: 'FILL' 1;">analytics</span>
+<span class="font-label-md text-label-md mt-1">Reports</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline hover:text-primary dark:hover:text-primary-fixed-dim active:scale-90 transition-transform duration-150">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-label-md text-label-md mt-1">Settings</span>
+</button>
+</nav>
+<!-- Footer -->
+<footer class="flex flex-col items-center justify-center w-full mt-auto mb-24 opacity-40 uppercase py-lg bg-transparent">
+<div class="absolute inset-0 pointer-events-none opacity-5" style="background-image: radial-gradient(circle at 2px 2px, theme('colors.primary') 1px, transparent 0); background-size: 24px 24px;"></div>
+<span class="font-label-md text-label-md tracking-[0.1em] text-on-surface/40 dark:text-on-surface-variant/40 relative z-10">designed by omixsystems</span>
+</footer>
+</body></html>
