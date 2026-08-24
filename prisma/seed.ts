@@ -4,7 +4,11 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  // Clean existing data
+  // Warm up connection
+  await prisma.$queryRaw`SELECT 1`;
+  console.log("✅ Database connection warmed up");
+
+  // Clean existing data (sequential to avoid timeouts)
   await prisma.saleItem.deleteMany();
   await prisma.sale.deleteMany();
   await prisma.product.deleteMany();
@@ -108,13 +112,13 @@ async function main() {
   ];
 
   const allSalonProducts = [...salonProducts, ...salonServices];
-  const products = await Promise.all(
-    allSalonProducts.map((p) =>
-      prisma.product.create({
-        data: { ...p, businessId: salon.id },
-      })
-    )
-  );
+  const products = [];
+  for (const p of allSalonProducts) {
+    const created = await prisma.product.create({
+      data: { ...p, businessId: salon.id },
+    });
+    products.push(created);
+  }
 
   // Create sample sales for the last few days
   const now = new Date();

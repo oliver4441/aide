@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://aide-oliver4441s-projects.vercel.app/sitemap.xml
