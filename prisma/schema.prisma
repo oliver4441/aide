@@ -136,6 +136,9 @@ model Sale {
   profit        Float
   paid          Float
   change        Float
+  tax           Float    @default(0)
+  taxRate       Float    @default(0)
+  cashier       String?
   paymentMethod PaymentMethod @default(CASH)
   notes         String?
   createdAt     DateTime @default(now())
@@ -164,4 +167,18 @@ model SaleItem {
   saleId    String
   product   Product? @relation(fields: [productId], references: [id])
   productId String?
+}
+
+// Offline sync conflict tracking
+model SyncConflict {
+  id            String   @id @default(cuid())
+  entityType    String
+  entityId      String
+  clientData    Json
+  serverData    Json
+  resolution    String?
+  status        String   @default("PENDING_OWNER")
+  businessId    String
+  createdAt     DateTime @default(now())
+  resolvedAt    DateTime?
 }

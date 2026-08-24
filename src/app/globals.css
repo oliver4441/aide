@@ -4,28 +4,53 @@
 
 @layer base {
   :root {
-    --primary: #6f264f;
-    --primary-light: #8b3d67;
-    --primary-container: #8b3d67;
-    --surface: #f9f9ff;
-    --surface-dim: #d3daea;
-    --surface-bright: #f9f9ff;
-    --surface-container: #ededf3;
-    --surface-container-low: #f0f3ff;
-    --surface-container-high: #e2e8f8;
-    --surface-container-highest: #dce2f3;
-    --surface-container-lowest: #ffffff;
-    --surface-plum: #f4eff1;
-    --surface-variant: #dce2f3;
-    --on-surface: #151c27;
-    --on-surface-variant: #524349;
-    --on-primary: #ffffff;
-    --on-primary-container: #ffbcda;
-    --outline: #847279;
-    --outline-variant: #d7c1c8;
-    --error: #ba1a1a;
-    --error-container: #ffdad6;
-    --on-error-container: #93000a;
+    --primary: 111 38 79;
+    --primary-light: 139 61 103;
+    --primary-container: 139 61 103;
+    --surface: 249 249 255;
+    --surface-dim: 211 218 234;
+    --surface-bright: 249 249 255;
+    --surface-container-lowest: 255 255 255;
+    --surface-container-low: 240 243 255;
+    --surface-container: 231 238 254;
+    --surface-container-high: 226 232 248;
+    --surface-container-highest: 220 226 243;
+    --surface-plum: 244 239 241;
+    --on-surface: 21 28 39;
+    --on-surface-variant: 82 67 73;
+    --outline: 132 114 121;
+    --outline-variant: 215 193 200;
+    --error: 186 26 26;
+    --error-container: 255 218 214;
+    --on-error-container: 147 0 10;
+    --success: 16 185 129;
+    --warning: 245 158 11;
+    --danger: 225 29 72;
+  }
+
+  .dark {
+    --primary: 255 175 212;
+    --primary-light: 219 151 187;
+    --primary-container: 139 61 103;
+    --surface: 18 18 23;
+    --surface-dim: 18 18 23;
+    --surface-bright: 38 36 44;
+    --surface-container-lowest: 13 13 17;
+    --surface-container-low: 24 22 30;
+    --surface-container: 30 28 38;
+    --surface-container-high: 40 37 48;
+    --surface-container-highest: 50 46 60;
+    --surface-plum: 35 25 35;
+    --on-surface: 245 240 245;
+    --on-surface-variant: 200 188 196;
+    --outline: 120 110 118;
+    --outline-variant: 60 52 60;
+    --error: 255 180 180;
+    --error-container: 80 30 35;
+    --on-error-container: 255 218 214;
+    --success: 52 211 153;
+    --warning: 251 191 36;
+    --danger: 251 113 133;
   }
 
   body {

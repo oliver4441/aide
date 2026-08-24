@@ -1,19 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-
-interface Product {
-  id: string;
-  name: string;
-  sku: string | null;
-  sellingPrice: number;
-  buyingPrice: number;
-  quantity: number;
-  lowStock: number;
-  isService: boolean;
-  category?: { name: string } | null;
-}
+import { useState } from "react";
+import { useProducts } from "@/hooks/useProducts";
+import { useSales } from "@/hooks/useSales";
+import { useBusinessSettings } from "@/hooks/useBusinessSettings";
+import { formatMoney } from "@/lib/format";
+import { printReceipt } from "@/components/receipt/PrintReceipt";
+import { SaleRecord, SaleItemRecord } from "@/lib/db";
 
 interface CartItem {
   productId: string;
@@ -24,31 +17,26 @@ interface CartItem {
   isService: boolean;
 }
 
-function formatKES(n: number) {
-  return "KSh " + n.toLocaleString("en-KE");
-}
-
 export default function POSPage() {
-  const router = useRouter();
-  const [products, setProducts] = useState<Product[]>([]);
+  const { data: products, loading: productsLoading } = useProducts();
+  const { mutate: createSale } = useSales();
+  const { data: business } = useBusinessSettings();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [search, setSearch] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("CASH");
   const [showCheckout, setShowCheckout] = useState(false);
   const [paidAmount, setPaidAmount] = useState("");
   const [processing, setProcessing] = useState(false);
+  const [lastSale, setLastSale] = useState<(SaleRecord & { items: SaleItemRecord[] }) | null>(null);
 
-  useEffect(() => {
-    fetch("/api/products").then((r) => r.json()).then(setProducts);
-  }, []);
-
-  const filtered = products.filter(
+  const allProducts = products ?? [];
+  const filtered = allProducts.filter(
     (p) =>
       p.name.toLowerCase().includes(search.toLowerCase()) ||
       (p.sku && p.sku.toLowerCase().includes(search.toLowerCase()))
   );
 
-  const addToCart = (product: Product) => {
+  const addToCart = (product: any) => {
     setCart((prev) => {
       const existing = prev.find((c) => c.productId === product.id);
       if (existing) {
@@ -82,6 +70,7 @@ export default function POSPage() {
   };
 
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const cost = cart.reduce((sum, item) => sum + item.cost * item.quantity, 0);
   const paid = parseFloat(paidAmount) || 0;
   const change = paid - total;
 
@@ -90,22 +79,44 @@ export default function POSPage() {
     setProcessing(true);
 
     try {
-      const res = await fetch("/api/sales", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: cart,
-          paymentMethod,
-          paid,
-        }),
-      });
+      const saleId = `sale_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const now = new Date().toISOString();
+      const businessId = business?.id || "";
+      const deviceId = typeof window !== "undefined"
+        ? localStorage.getItem("aide_device_id") || "unknown"
+        : "unknown";
 
-      if (res.ok) {
-        setCart([]);
-        setShowCheckout(false);
-        setPaidAmount("");
-        router.push("/sales");
-      }
+      const sale: SaleRecord = {
+        id: saleId,
+        businessId,
+        total,
+        cost,
+        profit: total - cost,
+        paid,
+        change: Math.max(0, change),
+        tax: 0,
+        taxRate: business?.taxRate || 0,
+        paymentMethod,
+        deviceId,
+        syncStatus: "pending",
+        createdAt: now,
+      };
+
+      const items: SaleItemRecord[] = cart.map((c, i) => ({
+        id: `${saleId}_item_${i}`,
+        saleId,
+        productId: c.productId,
+        name: c.name,
+        quantity: c.quantity,
+        price: c.price,
+        cost: c.cost,
+      }));
+
+      await createSale(sale, items);
+      setLastSale({ ...sale, items });
+      setCart([]);
+      setShowCheckout(false);
+      setPaidAmount("");
     } finally {
       setProcessing(false);
     }
@@ -114,15 +125,15 @@ export default function POSPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white font-[family-name:var(--font-headline)]">New Sale</h1>
-        <p className="text-zinc-400 text-sm mt-1">Tap products to add to cart</p>
+        <h1 className="text-2xl font-bold text-on-surface font-headline">New Sale</h1>
+        <p className="text-on-surface-variant text-sm mt-1">Tap products to add to cart</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Product Grid */}
         <div className="lg:col-span-2 space-y-4">
           <div className="relative">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input
@@ -130,98 +141,101 @@ export default function POSPage() {
               placeholder="Search products..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 rounded-xl bg-dark-surface border border-dark-border text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
+              className="w-full pl-10 pr-4 py-3 rounded-xl bg-surface-container-low border border-outline-variant text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
             />
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {filtered.map((product) => {
-              const inCart = cart.find((c) => c.productId === product.id);
-              return (
-                <button
-                  key={product.id}
-                  onClick={() => addToCart(product)}
-                  className={`p-4 rounded-xl border text-left transition-all ${
-                    inCart
-                      ? "bg-primary/10 border-primary/40 shadow-lg shadow-primary/10"
-                      : "bg-dark-surface border-dark-border hover:border-primary/30 hover:bg-zinc-800/50"
-                  }`}
-                >
-                  <div className="text-sm font-medium text-zinc-200 mb-1 truncate">{product.name}</div>
-                  {product.category && (
-                    <div className="text-[10px] text-zinc-500 mb-2">{product.category.name}</div>
-                  )}
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-primary">{formatKES(product.sellingPrice)}</span>
-                    {inCart && (
-                      <span className="text-[10px] bg-primary text-white px-1.5 py-0.5 rounded-full font-bold">
-                        ×{inCart.quantity}
-                      </span>
-                    )}
-                  </div>
-                  {!product.isService && (
-                    <div className="text-[10px] text-zinc-600 mt-1">
-                      {product.quantity <= product.lowStock ? (
-                        <span className="text-red-400">⚠ {product.quantity} left</span>
-                      ) : (
-                        <span>{product.quantity} in stock</span>
+            {productsLoading ? (
+              [...Array(6)].map((_, i) => (
+                <div key={i} className="h-28 bg-surface-container rounded-xl animate-pulse" />
+              ))
+            ) : (
+              filtered.map((product) => {
+                const inCart = cart.find((c) => c.productId === product.id);
+                return (
+                  <button
+                    key={product.id}
+                    onClick={() => addToCart(product)}
+                    className={`p-4 rounded-xl border text-left transition-all ${
+                      inCart
+                        ? "bg-primary/10 border-primary/40 shadow-lg shadow-primary/10"
+                        : "bg-surface-container-low border-outline-variant hover:border-primary/30 hover:bg-surface-container/50"
+                    }`}
+                  >
+                    <div className="text-sm font-medium text-on-surface mb-1 truncate">{product.name}</div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-primary">{formatMoney(product.sellingPrice)}</span>
+                      {inCart && (
+                        <span className="text-[10px] bg-primary text-on-primary px-1.5 py-0.5 rounded-full font-bold">
+                          x{inCart.quantity}
+                        </span>
                       )}
                     </div>
-                  )}
-                </button>
-              );
-            })}
+                    {!product.isService && (
+                      <div className="text-[10px] text-on-surface-variant/60 mt-1">
+                        {product.quantity <= product.lowStock ? (
+                          <span className="text-danger">⚠ {product.quantity} left</span>
+                        ) : (
+                          <span>{product.quantity} in stock</span>
+                        )}
+                      </div>
+                    )}
+                  </button>
+                );
+              })
+            )}
           </div>
         </div>
 
         {/* Cart */}
-        <div className="bg-dark-surface border border-dark-border rounded-xl overflow-hidden flex flex-col h-fit lg:sticky lg:top-4">
-          <div className="px-5 py-4 border-b border-dark-border">
-            <h2 className="text-lg font-bold text-white font-[family-name:var(--font-headline)]">
+        <div className="bg-surface-container-low border border-outline-variant rounded-xl overflow-hidden flex flex-col h-fit lg:sticky lg:top-4">
+          <div className="px-5 py-4 border-b border-outline-variant">
+            <h2 className="text-lg font-bold text-on-surface font-headline">
               Cart ({cart.reduce((s, c) => s + c.quantity, 0)})
             </h2>
           </div>
 
           {cart.length === 0 ? (
-            <div className="p-8 text-center text-zinc-600 text-sm">
+            <div className="p-8 text-center text-on-surface-variant/60 text-sm">
               <p className="text-3xl mb-2">🛒</p>
               Tap products to add them
             </div>
           ) : (
             <>
-              <div className="flex-1 max-h-[400px] overflow-y-auto divide-y divide-dark-border">
+              <div className="flex-1 max-h-[400px] overflow-y-auto divide-y divide-outline-variant">
                 {cart.map((item) => (
                   <div key={item.productId} className="px-5 py-3 flex items-center justify-between">
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-zinc-200 truncate">{item.name}</div>
-                      <div className="text-xs text-zinc-500">{formatKES(item.price)} each</div>
+                      <div className="text-sm font-medium text-on-surface truncate">{item.name}</div>
+                      <div className="text-xs text-on-surface-variant">{formatMoney(item.price)} each</div>
                     </div>
                     <div className="flex items-center gap-2 ml-3">
                       <button
                         onClick={() => updateQty(item.productId, item.quantity - 1)}
-                        className="w-7 h-7 rounded-lg bg-zinc-800 text-zinc-400 flex items-center justify-center hover:bg-zinc-700 transition-colors text-sm"
+                        className="w-7 h-7 rounded-lg bg-surface-container text-on-surface-variant flex items-center justify-center hover:bg-surface-container-high transition-colors text-sm"
                       >
                         −
                       </button>
-                      <span className="w-8 text-center text-sm font-bold text-white">{item.quantity}</span>
+                      <span className="w-8 text-center text-sm font-bold text-on-surface">{item.quantity}</span>
                       <button
                         onClick={() => updateQty(item.productId, item.quantity + 1)}
-                        className="w-7 h-7 rounded-lg bg-zinc-800 text-zinc-400 flex items-center justify-center hover:bg-zinc-700 transition-colors text-sm"
+                        className="w-7 h-7 rounded-lg bg-surface-container text-on-surface-variant flex items-center justify-center hover:bg-surface-container-high transition-colors text-sm"
                       >
                         +
                       </button>
                     </div>
-                    <div className="ml-3 text-sm font-bold text-white whitespace-nowrap">
-                      {formatKES(item.price * item.quantity)}
+                    <div className="ml-3 text-sm font-bold text-on-surface whitespace-nowrap">
+                      {formatMoney(item.price * item.quantity)}
                     </div>
                   </div>
                 ))}
               </div>
 
-              <div className="border-t border-dark-border p-5 space-y-3">
+              <div className="border-t border-outline-variant p-5 space-y-3">
                 <div className="flex justify-between text-sm">
-                  <span className="text-zinc-400">Subtotal</span>
-                  <span className="text-white font-bold">{formatKES(total)}</span>
+                  <span className="text-on-surface-variant">Subtotal</span>
+                  <span className="text-on-surface font-bold">{formatMoney(total)}</span>
                 </div>
 
                 {/* Payment Method */}
@@ -232,8 +246,8 @@ export default function POSPage() {
                       onClick={() => setPaymentMethod(m)}
                       className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${
                         paymentMethod === m
-                          ? "bg-primary text-white"
-                          : "bg-zinc-800 text-zinc-400 hover:text-white"
+                          ? "bg-primary text-on-primary"
+                          : "bg-surface-container text-on-surface-variant hover:text-on-surface"
                       }`}
                     >
                       {m === "MOBILE_MONEY" ? "M-Pesa" : m}
@@ -247,9 +261,9 @@ export default function POSPage() {
                     setShowCheckout(true);
                   }}
                   disabled={cart.length === 0}
-                  className="w-full bg-primary text-white font-bold py-3 rounded-xl hover:bg-primary-light transition-colors disabled:opacity-40 shadow-lg shadow-primary/20"
+                  className="w-full bg-primary text-on-primary font-bold py-3 rounded-xl hover:bg-primary-light transition-colors disabled:opacity-40 shadow-lg shadow-primary/20"
                 >
-                  Checkout {formatKES(total)}
+                  Checkout {formatMoney(total)}
                 </button>
               </div>
             </>
@@ -261,50 +275,74 @@ export default function POSPage() {
       {showCheckout && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setShowCheckout(false)}>
           <div
-            className="bg-dark-surface border border-dark-border rounded-2xl w-full max-w-sm p-6 space-y-5"
+            className="bg-surface-container-low border border-outline-variant rounded-2xl w-full max-w-sm p-6 space-y-5"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-lg font-bold text-white text-center font-[family-name:var(--font-headline)]">Confirm Payment</h2>
+            <h2 className="text-lg font-bold text-on-surface text-center font-headline">Confirm Payment</h2>
 
             <div className="text-center">
-              <div className="text-3xl font-bold text-primary font-[family-name:var(--font-headline)]">{formatKES(total)}</div>
-              <div className="text-xs text-zinc-500 mt-1">via {paymentMethod === "MOBILE_MONEY" ? "M-Pesa" : paymentMethod}</div>
+              <div className="text-3xl font-bold text-primary font-headline">{formatMoney(total)}</div>
+              <div className="text-xs text-on-surface-variant mt-1">via {paymentMethod === "MOBILE_MONEY" ? "M-Pesa" : paymentMethod}</div>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1">Amount Paid (KSh)</label>
+              <label className="block text-xs font-medium text-on-surface-variant mb-1">Amount Paid</label>
               <input
                 type="number"
                 value={paidAmount}
                 onChange={(e) => setPaidAmount(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-zinc-900 border border-dark-border text-white text-lg font-bold text-center focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className="w-full px-4 py-3 rounded-xl bg-surface-container border border-outline-variant text-on-surface text-lg font-bold text-center focus:outline-none focus:ring-2 focus:ring-primary/30"
                 autoFocus
               />
             </div>
 
             {paid >= total && (
               <div className="text-center text-sm">
-                <span className="text-zinc-500">Change: </span>
-                <span className="text-emerald-400 font-bold">{formatKES(change)}</span>
+                <span className="text-on-surface-variant">Change: </span>
+                <span className="text-success font-bold">{formatMoney(change)}</span>
               </div>
             )}
 
             <div className="flex gap-3">
               <button
                 onClick={() => setShowCheckout(false)}
-                className="flex-1 px-4 py-3 rounded-xl border border-dark-border text-zinc-400 text-sm font-medium hover:bg-zinc-800 transition-colors"
+                className="flex-1 px-4 py-3 rounded-xl border border-outline-variant text-on-surface-variant text-sm font-medium hover:bg-surface-container transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={checkout}
                 disabled={paid < total || processing}
-                className="flex-1 px-4 py-3 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary-light transition-colors disabled:opacity-40"
+                className="flex-1 px-4 py-3 rounded-xl bg-primary text-on-primary text-sm font-bold hover:bg-primary-light transition-colors disabled:opacity-40"
               >
                 {processing ? "Processing..." : "Complete Sale"}
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Post-sale receipt prompt */}
+      {lastSale && (
+        <div className="fixed bottom-24 md:bottom-8 right-4 z-50 flex gap-2">
+          <button
+            onClick={() => {
+              printReceipt(lastSale, business || { name: "Aide Business" });
+              setLastSale(null);
+            }}
+            className="bg-primary text-on-primary font-semibold px-5 py-3 rounded-xl hover:bg-primary-light transition-colors shadow-lg shadow-primary/20 flex items-center gap-2 text-sm"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+            </svg>
+            Print Receipt
+          </button>
+          <button
+            onClick={() => setLastSale(null)}
+            className="bg-surface-container-high text-on-surface-variant px-3 py-3 rounded-xl hover:bg-surface-container-highest transition-colors text-sm"
+          >
+            Dismiss
+          </button>
         </div>
       )}
     </div>
