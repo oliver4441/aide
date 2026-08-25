@@ -1,8 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import ThemeToggle from "@/components/ThemeToggle";
 import OnlineStatus from "@/components/OnlineStatus";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
@@ -81,6 +82,11 @@ const iconPaths: Record<string, JSX.Element> = {
       <path strokeLinecap="round" strokeLinejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
   ),
+  shield: (
+    <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+    </svg>
+  ),
 };
 
 const mobileNavItems = [
@@ -88,7 +94,6 @@ const mobileNavItems = [
   { label: "Sale", href: "/dashboard/pos", icon: "add_shopping_cart" },
   { label: "History", href: "/dashboard/sales", icon: "history" },
   { label: "Stock", href: "/dashboard/inventory", icon: "inventory_2" },
-  { label: "More", href: "/dashboard/settings", icon: "more_horizontal" },
 ];
 
 const mobileIconPaths: Record<string, JSX.Element> = {
@@ -99,6 +104,12 @@ const mobileIconPaths: Record<string, JSX.Element> = {
     </svg>
   ),
 };
+
+const moreSheetItems = [
+  { label: "Reports", href: "/dashboard/reports", icon: "analytics" },
+  { label: "Settings", href: "/dashboard/settings", icon: "settings" },
+  { label: "Help Center", href: "/help", icon: "help_outline" },
+];
 
 function OfflineBadge() {
   return (
@@ -114,12 +125,26 @@ function OfflineBadge() {
 export default function Sidebar() {
   const pathname = usePathname();
   const { data: business } = useBusinessSettings();
+  const { data: session } = useSession();
+  const isAdmin = (session?.user as any)?.role === "admin";
   const businessName = business?.name ?? "Aide Business";
+  const [moreOpen, setMoreOpen] = useState(false);
+
+  useEffect(() => {
+    setMoreOpen(false);
+  }, [pathname]);
 
   const isActive = (href: string) => {
     if (href === "/dashboard") return pathname === "/dashboard";
     return pathname.startsWith(href);
   };
+
+  const sections: NavSection[] = isAdmin
+    ? [
+        ...navSections,
+        { title: "Platform", items: [{ label: "Admin Console", href: "/dashboard/admin", icon: "shield", offlineReady: false }] },
+      ]
+    : navSections;
 
   return (
     <>
@@ -129,11 +154,7 @@ export default function Sidebar() {
         <div className="px-5 pt-5 pb-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-                <svg className="w-4.5 h-4.5 text-on-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
+              <img src="/logo.jpg" alt="Aide logo" className="w-8 h-8 rounded-lg object-cover shadow-sm" />
               <div className="flex items-center gap-1.5">
                 <span className="text-base font-bold text-primary font-headline">Aide</span>
                 <span className="text-[9px] font-bold tracking-wider text-on-surface-variant/50 bg-surface-container px-1.5 py-0.5 rounded">BETA</span>
@@ -145,21 +166,23 @@ export default function Sidebar() {
         </div>
 
         {/* New Sale CTA */}
-        <div className="px-4 mb-2">
-          <Link
-            href="/dashboard/pos"
-            className="w-full bg-primary text-on-primary font-semibold py-2.5 rounded-xl hover:opacity-90 transition-all flex items-center justify-center gap-2 text-sm shadow-md shadow-primary/20"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            New Sale
-          </Link>
-        </div>
+        {!isAdmin && (
+          <div className="px-4 mb-2">
+            <Link
+              href="/dashboard/pos"
+              className="w-full bg-primary text-on-primary font-semibold py-2.5 rounded-xl hover:opacity-90 transition-all flex items-center justify-center gap-2 text-sm shadow-md shadow-primary/20"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              New Sale
+            </Link>
+          </div>
+        )}
 
         {/* Navigation Sections */}
         <div className="flex-1 overflow-y-auto px-3 py-2 space-y-4">
-          {navSections.map((section) => (
+          {sections.map((section) => (
             <div key={section.title}>
               <div className="px-3 mb-1.5">
                 <span className="text-[10px] font-semibold uppercase tracking-widest text-on-surface-variant/40">{section.title}</span>
@@ -227,7 +250,59 @@ export default function Sidebar() {
               </Link>
             );
           })}
+          {/* More button */}
+          <button
+            onClick={() => setMoreOpen(true)}
+            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors min-w-[52px] ${
+              moreOpen || ["/dashboard/reports", "/dashboard/settings", "/help"].some((h) => isActive(h))
+                ? "text-primary"
+                : "text-on-surface-variant"
+            }`}
+            aria-label="More navigation"
+          >
+            {mobileIconPaths.more_horizontal}
+            <span className="text-[9px] font-medium">More</span>
+          </button>
         </div>
+
+        {/* More Sheet */}
+        {moreOpen && (
+          <>
+            <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setMoreOpen(false)} />
+            <div className="fixed bottom-14 left-0 right-0 bg-surface-container-low border-t border-outline-variant rounded-t-2xl z-[55] p-4 pb-6 shadow-2xl animate-fade-in">
+              <div className="w-10 h-1 bg-outline-variant rounded-full mx-auto mb-4" />
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-on-surface-variant/40 mb-2 px-1">Navigate</p>
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {(isAdmin
+                  ? [...moreSheetItems, { label: "Admin", href: "/dashboard/admin", icon: "shield" }]
+                  : moreSheetItems
+                ).map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`flex flex-col items-center gap-1.5 py-3 rounded-xl transition-colors ${
+                      isActive(item.href)
+                        ? "bg-primary/15 text-primary"
+                        : "bg-surface-container text-on-surface-variant hover:text-on-surface"
+                    }`}
+                  >
+                    {mobileIconPaths[item.icon]}
+                    <span className="text-[11px] font-medium">{item.label}</span>
+                  </Link>
+                ))}
+              </div>
+              <button
+                onClick={() => signOut({ callbackUrl: "/login" })}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-colors text-sm font-medium"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Log Out
+              </button>
+            </div>
+          </>
+        )}
       </nav>
     </>
   );

@@ -8,7 +8,7 @@ import CompleteStep from "./CompleteStep";
 
 const STEPS = ["source", "goals", "business", "complete"] as const;
 
-export default function OnboardingModal({ onClose }: { onClose: () => void }) {
+export default function OnboardingModal({ storageKey, onClose }: { storageKey: string; onClose: () => void }) {
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState<"left" | "right">("left");
   const [source, setSource] = useState("");
@@ -45,9 +45,9 @@ export default function OnboardingModal({ onClose }: { onClose: () => void }) {
   };
 
   const handleDone = () => {
-    localStorage.setItem("aide_onboarded", "true");
+    localStorage.setItem(storageKey, "true");
     localStorage.setItem(
-      "aide_onboarding_prefs",
+      `${storageKey}_prefs`,
       JSON.stringify({ source, goals, businessType })
     );
     onClose();

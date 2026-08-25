@@ -26,7 +26,7 @@ export default function AdminReviewsPage() {
   useEffect(() => {
     if (status === "loading") return;
     const role = (session?.user as any)?.role;
-    if (role !== "SUPER_ADMIN" && role !== "ADMIN") {
+    if (role !== "admin") {
       router.replace("/dashboard");
       return;
     }

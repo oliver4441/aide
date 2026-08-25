@@ -12,7 +12,7 @@ export default function DashboardInit() {
   useEffect(() => {
     if (seeded.current || status !== "authenticated" || !session?.user) return;
 
-    const businessId = (session.user as any).businessId;
+    const businessId = (session.user as any).businessId || localStorage.getItem("aide_business_id");
     if (!businessId) return;
 
     seeded.current = true;

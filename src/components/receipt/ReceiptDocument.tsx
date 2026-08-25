@@ -1,6 +1,7 @@
 "use client";
 
 import { formatMoney, formatDate } from "@/lib/format";
+import ReceiptQR from "./ReceiptQR";
 
 interface ReceiptItem {
   id?: string;
@@ -153,6 +154,14 @@ export default function ReceiptDocument({
             <span className="font-bold text-on-surface">{formatMoney(sale.change, currency)}</span>
           </div>
         )}
+      </div>
+
+      {/* QR — customer scans to get receipt on their phone (generated locally, works offline) */}
+      <div className="print:hidden flex flex-col items-center pt-2 mt-2 border-t border-outline-variant">
+        {typeof window !== "undefined" && (
+          <ReceiptQR url={`${window.location.origin}/r/${sale.id}`} size={80} />
+        )}
+        <span className="text-[8px] text-on-surface-variant mt-1">Scan to save your receipt</span>
       </div>
 
       {/* Footer */}

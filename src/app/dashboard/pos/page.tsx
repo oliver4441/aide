@@ -331,7 +331,7 @@ export default function POSPage() {
 
       {/* Post-sale receipt prompt */}
       {lastSale && (
-        <div className="fixed bottom-24 md:bottom-8 right-4 z-50 flex gap-2">
+        <div className="fixed bottom-24 md:bottom-8 right-4 z-50 flex flex-col items-end gap-2">
           <button
             onClick={() => {
               printReceipt(lastSale, business || { name: "Aide Business" });
@@ -343,6 +343,32 @@ export default function POSPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
             </svg>
             Print Receipt
+          </button>
+          <button
+            onClick={async () => {
+              const url = `${window.location.origin}/r/${lastSale.id}`;
+              if (navigator.share) {
+                try {
+                  await navigator.share({
+                    title: "Your Receipt",
+                    text: `Receipt from ${business?.name || "our shop"} — ${formatMoney(lastSale.total)}`,
+                    url,
+                  });
+                } catch {}
+              } else {
+                try {
+                  await navigator.clipboard.writeText(url);
+                  alert("Receipt link copied — paste it in WhatsApp or SMS to send to your customer.");
+                } catch {}
+              }
+              setLastSale(null);
+            }}
+            className="bg-surface-container-lowest border border-outline-variant text-on-surface font-semibold px-5 py-3 rounded-xl hover:bg-surface-container transition-colors shadow-lg flex items-center gap-2 text-sm"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+            </svg>
+            Send to Customer
           </button>
           <button
             onClick={() => setLastSale(null)}

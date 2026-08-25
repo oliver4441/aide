@@ -4,12 +4,14 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import ThemeToggle from "@/components/ThemeToggle";
+import { signInWithGoogle } from "@/lib/firebaseClient";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -32,6 +34,26 @@ export default function LoginPage() {
     }
   };
 
+  const handleGoogle = async () => {
+    setError("");
+    setGoogleLoading(true);
+    try {
+      const idToken = await signInWithGoogle();
+      const result = await signIn("credentials", { idToken, redirect: false });
+      if (result?.error) {
+        setError("Google sign-in failed. Try again.");
+      } else {
+        router.push("/dashboard");
+      }
+    } catch (err: any) {
+      if (err?.code !== "auth/popup-closed-by-user") {
+        setError("Google sign-in failed. Try again.");
+      }
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-surface flex items-center justify-center p-4 relative">
       <div className="absolute top-4 right-4">
@@ -47,11 +69,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="flex items-center justify-center gap-3 mb-8">
-          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-            <svg className="w-6 h-6 text-on-error-container" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </div>
+          <img src="/logo.jpg" alt="Aide logo" className="w-10 h-10 rounded-xl object-cover shadow-md" />
           <span className="text-2xl font-bold text-primary font-headline">Aide</span>
           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-warning/20 text-warning border border-warning/30">BETA</span>
         </div>
@@ -70,6 +88,26 @@ export default function LoginPage() {
               {error}
             </div>
           )}
+
+          <button
+            onClick={handleGoogle}
+            disabled={googleLoading || loading}
+            className="w-full flex items-center justify-center gap-3 border border-outline-variant bg-surface-container-low text-on-surface font-semibold py-3 rounded-lg hover:bg-surface-container transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-4"
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z" />
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0012 23z" />
+              <path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 010-4.2V7.06H2.18a11 11 0 000 9.88l3.66-2.84z" />
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15A11 11 0 002.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+            </svg>
+            {googleLoading ? "Connecting..." : "Continue with Google"}
+          </button>
+
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex-1 h-px bg-outline-variant" />
+            <span className="text-xs text-on-surface-variant">or</span>
+            <div className="flex-1 h-px bg-outline-variant" />
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
@@ -98,19 +136,17 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={loading}
-              className="w-full bg-primary text-white font-semibold py-3 rounded-lg hover:bg-primary-light transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={loading || googleLoading}
+              className="w-full bg-primary text-on-primary font-semibold py-3 rounded-lg hover:bg-primary-light transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Signing in..." : "Sign In"}
             </button>
           </form>
-
-          <div className="mt-6 pt-6 border-t border-outline-variant text-center">
-            <p className="text-xs text-on-surface-variant">
-              Demo: <span className="font-mono">admin@example.com</span> / <span className="font-mono">password</span>
-            </p>
-          </div>
         </div>
+
+        <p className="text-center text-xs text-on-surface-variant mt-6">
+          New here? Use Continue with Google to create your business space instantly.
+        </p>
       </div>
     </div>
   );

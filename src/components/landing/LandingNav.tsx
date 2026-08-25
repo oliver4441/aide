@@ -24,17 +24,7 @@ export default function LandingNav() {
     >
       <div className="max-w-[1440px] mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-            <svg
-              className="w-5 h-5 text-on-primary"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </div>
+          <img src="/logo.jpg" alt="Aide logo" className="w-8 h-8 rounded-lg object-cover shadow-sm" />
           <span className="text-xl font-bold text-on-surface font-headline">Aide</span>
           <span className="text-[10px] font-bold bg-warning/20 text-warning px-2 py-0.5 rounded-full ml-2">BETA</span>
         </Link>

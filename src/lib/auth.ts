@@ -12,6 +12,43 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
+        // Google sign-in: verify Firebase ID token server-side
+        const idToken = (credentials as any)?.idToken
+        if (idToken) {
+          try {
+            const res = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`)
+            if (!res.ok) throw new Error("Invalid Google token")
+            const info = await res.json()
+            if (info.aud !== "omix-systems-cd1af" || info.email_verified !== "true") {
+              throw new Error("Invalid token audience")
+            }
+            let u = await prisma.user.findUnique({
+              where: { email: info.email },
+              include: { businesses: { include: { business: true } } },
+            })
+            if (!u) {
+              const randomHash = await bcrypt.hash(crypto.randomUUID(), 10)
+              u = await prisma.user.create({
+                data: {
+                  email: info.email,
+                  name: info.name || info.email.split("@")[0],
+                  passwordHash: randomHash,
+                },
+                include: { businesses: { include: { business: true } } },
+              })
+            }
+            return {
+              id: u.id,
+              email: u.email,
+              name: u.name,
+              role: "user" as const,
+              businessId: u.businesses[0]?.businessId || null,
+            }
+          } catch (e) {
+            throw new Error("Google sign-in failed")
+          }
+        }
+
         if (!credentials?.email || !credentials?.password) {
           throw new Error("Invalid credentials")
         }

@@ -1,11 +1,23 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { useDashboard } from "@/hooks/useDashboard";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 import { formatMoney, timeAgo } from "@/lib/format";
 
 export default function DashboardPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (status === "authenticated" && (session?.user as any)?.role === "admin") {
+      router.replace("/dashboard/admin");
+    }
+  }, [status, session, router]);
+
   const {
     todayRevenue,
     todayProfit,

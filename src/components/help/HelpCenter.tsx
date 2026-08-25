@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
 
 interface HelpCenterProps {
   open: boolean;
@@ -152,6 +153,57 @@ export default function HelpCenter({ open, onClose }: HelpCenterProps) {
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
+          {/* Quick Navigation */}
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-on-surface-variant/40 mb-2">
+            Go to
+          </p>
+          <div className="grid grid-cols-3 gap-2 mb-6">
+            {[
+              { label: "Dashboard", href: "/dashboard" },
+              { label: "New Sale", href: "/dashboard/pos" },
+              { label: "Inventory", href: "/dashboard/inventory" },
+              { label: "Sales", href: "/dashboard/sales" },
+              { label: "Reports", href: "/dashboard/reports" },
+              { label: "Settings", href: "/dashboard/settings" },
+            ].map((nav) => (
+              <Link
+                key={nav.href}
+                href={nav.href}
+                onClick={onClose}
+                className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl bg-surface-container border border-outline-variant text-on-surface-variant hover:text-primary hover:border-primary/30 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+                <span className="text-[11px] font-medium">{nav.label}</span>
+              </Link>
+            ))}
+          </div>
+
+          {/* Mini Business Guide */}
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-on-surface-variant/40 mb-2">
+            Run your business in 5 steps
+          </p>
+          <div className="space-y-1.5 mb-6">
+            {[
+              { n: 1, title: "Add products", d: "Inventory → Add Product. Name, price, photo — SKU is auto-generated." },
+              { n: 2, title: "Sell", d: "New Sale → tap items → Complete Sale. Stock deducts itself." },
+              { n: 3, title: "Share the receipt", d: "Print it, or tap 'Send to Customer' so they get it on their phone." },
+              { n: 4, title: "Track everything", d: "Dashboard shows live revenue & profit; Reports shows best sellers and trends." },
+              { n: 5, title: "Sell offline, sync later", d: "No internet? Keep selling. Everything syncs when you reconnect — or tap 'Sync now'." },
+            ].map((s) => (
+              <div key={s.n} className="flex gap-3 bg-surface-container-low border border-outline-variant rounded-lg p-2.5">
+                <span className="w-5 h-5 rounded-full bg-primary/15 text-primary font-bold flex items-center justify-center shrink-0 text-[10px] mt-0.5">
+                  {s.n}
+                </span>
+                <div>
+                  <p className="text-xs font-semibold text-on-surface">{s.title}</p>
+                  <p className="text-[11px] text-on-surface-variant leading-snug">{s.d}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
           {/* Chat CTA */}
           <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 mb-6">
             <p className="text-sm text-on-surface font-medium mb-2">

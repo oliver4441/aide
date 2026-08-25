@@ -11,11 +11,7 @@ export default function HelpPage() {
       <header className="border-b border-outline-variant bg-surface/95 backdrop-blur-xl sticky top-0 z-30">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <svg className="w-5 h-5 text-on-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-            </div>
+            <img src="/logo.jpg" alt="Aide logo" className="w-8 h-8 rounded-lg object-cover shadow-sm" />
             <span className="text-lg font-bold text-primary font-headline">Aide</span>
           </Link>
           <Link
@@ -30,7 +26,7 @@ export default function HelpPage() {
       {/* Content */}
       <div className="max-w-4xl mx-auto px-6 py-12">
         {/* Hero */}
-        <div className="text-center mb-16">
+        <div className="text-center mb-10">
           <h1 className="text-4xl md:text-5xl font-bold text-on-surface font-headline mb-4">
             Help Center
           </h1>
@@ -39,8 +35,55 @@ export default function HelpPage() {
           </p>
         </div>
 
+        {/* Section Navigation */}
+        <nav className="sticky top-[65px] z-20 bg-surface/95 backdrop-blur-xl border border-outline-variant rounded-xl p-1.5 mb-12 flex gap-1 overflow-x-auto">
+          {[
+            { label: "Getting Started", href: "#getting-started" },
+            { label: "Run Your Business", href: "#run-guide" },
+            { label: "FAQ", href: "#faq" },
+            { label: "Contact", href: "#contact" },
+          ].map((tab) => (
+            <a
+              key={tab.href}
+              href={tab.href}
+              className="flex-1 text-center px-4 py-2.5 rounded-lg text-sm font-medium text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors whitespace-nowrap"
+            >
+              {tab.label}
+            </a>
+          ))}
+        </nav>
+
+        {/* Step-by-step Run Guide */}
+        <section id="run-guide" className="mb-16 scroll-mt-32">
+          <h2 className="text-2xl font-bold text-on-surface font-headline mb-6">
+            How to Run Your Business on Aide
+          </h2>
+          <div className="space-y-3">
+            {[
+              { n: 1, title: "Set up categories", d: "Settings → Product Categories. Add groups like 'Drinks', 'Hair Products', or 'Accessories' so your stock stays organized." },
+              { n: 2, title: "Add your products", d: "Inventory → Add Product. Give it a name and prices, snap a photo, pick a category — Aide generates the SKU for you." },
+              { n: 3, title: "Sell at the POS", d: "New Sale → tap items to build the cart → choose Cash, M-Pesa, or Card → Complete Sale. Stock updates automatically." },
+              { n: 4, title: "Share the receipt", d: "Print it, or let the customer scan the QR code to get the receipt on their phone and save it as PDF." },
+              { n: 5, title: "Watch your numbers", d: "Dashboard shows today's revenue and profit live. Reports breaks down best sellers, payment methods, and weekly trends." },
+              { n: 6, title: "Work anywhere", d: "No internet? Keep selling — everything is stored on your phone and syncs safely when you reconnect. Use 'Sync now' to push immediately." },
+              { n: 7, title: "Export your records", d: "Sales History exports everything as CSV or JSON — perfect for your accountant or bookkeeping." },
+              { n: 8, title: "Install the app", d: "Use the Install banner (or browser menu → Add to Home Screen) so Aide opens full-screen like a native app and works offline." },
+            ].map((s) => (
+              <div key={s.n} className="flex gap-4 bg-surface-container-low border border-outline-variant rounded-xl p-4">
+                <div className="w-8 h-8 rounded-full bg-primary/15 text-primary font-bold flex items-center justify-center shrink-0 text-sm">
+                  {s.n}
+                </div>
+                <div>
+                  <h3 className="text-on-surface font-semibold text-sm">{s.title}</h3>
+                  <p className="text-on-surface-variant text-xs leading-relaxed mt-0.5">{s.d}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
         {/* Getting Started */}
-        <section className="mb-16">
+        <section id="getting-started" className="mb-16 scroll-mt-32">
           <h2 className="text-2xl font-bold text-on-surface font-headline mb-6">
             Getting Started
           </h2>
@@ -102,12 +145,12 @@ export default function HelpPage() {
         </section>
 
         {/* FAQ */}
-        <div className="mb-16">
+        <div id="faq" className="mb-16 scroll-mt-32">
           <FAQSection />
         </div>
 
         {/* Contact */}
-        <div className="mb-16">
+        <div id="contact" className="mb-16 scroll-mt-32">
           <ContactSection />
         </div>
 

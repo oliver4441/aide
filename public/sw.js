@@ -1,4 +1,4 @@
-const VERSION = "v2";
+const VERSION = "v4";
 const CACHE_NAME = `aide-${VERSION}`;
 const API_CACHE = `api-${VERSION}`;
 const OFFLINE_PAGE = "/offline.html";
@@ -24,9 +24,15 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(CACHE_NAME)
-      .then((cache) => cache.addAll(STATIC_ASSETS))
-      .then(() => self.skipWaiting()),
+      .then((cache) => cache.addAll(STATIC_ASSETS)),
+    // No skipWaiting here — UpdatePrompt controls activation
   );
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener("activate", (event) => {
