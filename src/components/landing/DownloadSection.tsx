@@ -53,7 +53,7 @@ export default function DownloadSection({ version }: DownloadSectionProps) {
             </p>
             <div className="space-y-2">
               <a
-                href={`https://github.com/oliver4441/aide/releases/download/v${version}/aide-release.apk`}
+                href={`https://github.com/oliver4441/aide/releases/download/v${version}/app-debug.apk`}
                 className="block w-full bg-primary text-on-primary font-semibold py-3 rounded-xl hover:bg-primary-light transition-colors flex items-center justify-center gap-2 text-sm"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
