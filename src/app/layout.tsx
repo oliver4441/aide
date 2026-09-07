@@ -5,8 +5,46 @@ import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Aide - Business Management",
-  description: "Offline-first POS, inventory & analytics for modern businesses",
+  title: {
+    default: "Aide — Offline-First POS, Inventory & Analytics for Kenyan Businesses",
+    template: "%s | Aide",
+  },
+  description:
+    "Aide is an offline-first POS, inventory and reporting app for salons, shops, restaurants and pharmacies. Sell on the POS, track stock, print receipts, and sync when online. Deployed in Kenya.",
+  metadataBase: new URL("https://aide.omixsystems.store"),
+  openGraph: {
+    type: "website",
+    locale: "en_KE",
+    url: "https://aide.omixsystems.store",
+    siteName: "Aide — Business Management",
+    title: "Aide — Offline-First POS, Inventory & Analytics",
+    description:
+      "Offline-first POS, inventory & reporting for Kenyan businesses. Works without internet, prints receipts, syncs when online.",
+    images: [
+      {
+        url: "/og.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Aide — Offline-First Business Management",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Aide — Offline-First POS, Inventory & Analytics",
+    description:
+      "Offline-first POS, inventory & reporting for Kenyan businesses. Works without internet, prints receipts, syncs when online.",
+    images: ["/og.jpg"],
+  },
+  icons: {
+    icon: [
+      { url: "/favicon.ico", type: "image/x-icon" },
+      { url: "/favicon.jpg", type: "image/jpeg", sizes: "192x192" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
@@ -15,6 +53,9 @@ export const metadata: Metadata = {
   },
   other: {
     "mobile-web-app-capable": "yes",
+    "msapplication-TileColor": "#6f264f",
+    "msapplication-tap-highlight": "no",
+    "theme-color": "#6f264f",
   },
 };
 

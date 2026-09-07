@@ -1,13 +1,29 @@
-"use client";
-
 import Link from "next/link";
 import FAQSection from "@/components/help/FAQSection";
 import ContactSection from "@/components/help/ContactSection";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Help Center — Aide",
+  description:
+    "How to run your business on Aide: set up categories and products, sell at the POS, print receipts, work offline, export sales, and install the app.",
+  openGraph: {
+    title: "Aide Help Center",
+    description:
+      "Set up categories and products, sell at the POS, print receipts, work offline, and export sales.",
+    images: [{ url: "/og-help.jpg", width: 1200, height: 630, alt: "Aide Help Center" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Aide Help Center",
+    description: "Set up categories and products, sell at the POS, print receipts, work offline, and export sales.",
+    images: ["/og-help.jpg"],
+  },
+};
 
 export default function HelpPage() {
   return (
     <div className="min-h-screen bg-surface">
-      {/* Header */}
       <header className="border-b border-outline-variant bg-surface/95 backdrop-blur-xl sticky top-0 z-30">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
@@ -23,9 +39,13 @@ export default function HelpPage() {
         </div>
       </header>
 
-      {/* Content */}
       <div className="max-w-4xl mx-auto px-6 py-12">
-        {/* Hero */}
+        <nav className="text-sm text-on-surface-variant mb-6 flex items-center gap-2 flex-wrap" aria-label="Breadcrumb">
+          <Link href="/" className="hover:text-on-surface transition-colors">Home</Link>
+          <span aria-hidden="true">/</span>
+          <span aria-current="page">Help Center</span>
+        </nav>
+
         <div className="text-center mb-10">
           <h1 className="text-4xl md:text-5xl font-bold text-on-surface font-headline mb-4">
             Help Center
@@ -35,8 +55,7 @@ export default function HelpPage() {
           </p>
         </div>
 
-        {/* Section Navigation */}
-        <nav className="sticky top-[65px] z-20 bg-surface/95 backdrop-blur-xl border border-outline-variant rounded-xl p-1.5 mb-12 flex gap-1 overflow-x-auto">
+        <nav className="sticky top-[65px] z-20 bg-surface/95 backdrop-blur-xl border border-outline-variant rounded-xl p-1.5 mb-12 flex gap-1 overflow-x-auto" aria-label="Page sections">
           {[
             { label: "Getting Started", href: "#getting-started" },
             { label: "Run Your Business", href: "#run-guide" },
@@ -53,7 +72,6 @@ export default function HelpPage() {
           ))}
         </nav>
 
-        {/* Step-by-step Run Guide */}
         <section id="run-guide" className="mb-16 scroll-mt-32">
           <h2 className="text-2xl font-bold text-on-surface font-headline mb-6">
             How to Run Your Business on Aide
@@ -82,7 +100,6 @@ export default function HelpPage() {
           </div>
         </section>
 
-        {/* Getting Started */}
         <section id="getting-started" className="mb-16 scroll-mt-32">
           <h2 className="text-2xl font-bold text-on-surface font-headline mb-6">
             Getting Started
@@ -144,17 +161,14 @@ export default function HelpPage() {
           </div>
         </section>
 
-        {/* FAQ */}
         <div id="faq" className="mb-16 scroll-mt-32">
           <FAQSection />
         </div>
 
-        {/* Contact */}
         <div id="contact" className="mb-16 scroll-mt-32">
           <ContactSection />
         </div>
 
-        {/* Quick Links */}
         <section className="mb-16">
           <h2 className="text-2xl font-bold text-on-surface font-headline mb-6">
             Quick Links
@@ -169,8 +183,8 @@ export default function HelpPage() {
               <a
                 key={link.href}
                 href={link.href}
-                target="_blank"
-                rel="noopener noreferrer"
+                target={link.href.startsWith("http") ? "_blank" : undefined}
+                rel={link.href.startsWith("http") ? "noopener noreferrer" : undefined}
                 className="bg-surface-container border border-outline-variant rounded-lg px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high transition-colors"
               >
                 {link.label} →
@@ -180,9 +194,8 @@ export default function HelpPage() {
         </section>
       </div>
 
-      {/* Footer */}
       <footer className="border-t border-outline-variant py-8 text-center text-on-surface-variant text-sm">
-        <p>© 2026 OmixSystems. All rights reserved.</p>
+        <p>© {new Date().getFullYear()} OmixSystems. All rights reserved.</p>
       </footer>
     </div>
   );

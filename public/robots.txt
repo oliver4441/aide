@@ -1,4 +1,8 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://aide-oliver4441s-projects.vercel.app/sitemap.xml
+# Host
+Host: https://aide.omixsystems.store
+
+# Sitemap
+Sitemap: https://aide.omixsystems.store/sitemap.xml

@@ -8,6 +8,7 @@ import ReviewPrompt from "@/components/reviews/ReviewPrompt";
 import InstallPrompt from "@/components/pwa/InstallPrompt";
 import UpdatePrompt from "@/components/pwa/UpdatePrompt";
 import SyncNowButton from "@/components/pwa/SyncNowButton";
+import Link from "next/link";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -19,6 +20,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="md:ml-[260px] pt-2 pb-24 md:pb-6">
         <AdBanner />
         <div className="p-4 md:px-10 md:pb-10 max-w-[1200px] mx-auto animate-fade-in">
+          <nav className="text-sm text-on-surface-variant mb-2 flex items-center gap-2 flex-wrap" aria-label="Breadcrumb">
+            <Link href="/" className="hover:text-on-surface transition-colors">Home</Link>
+            <span aria-hidden="true">/</span>
+            <span aria-current="page">Dashboard</span>
+          </nav>
           {children}
         </div>
       </div>
