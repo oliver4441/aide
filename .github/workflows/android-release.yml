@@ -20,7 +20,7 @@ name: Android APK Release
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     tags:
       - 'v*'
   workflow_dispatch:
