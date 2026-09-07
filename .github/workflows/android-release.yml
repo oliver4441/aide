@@ -1,24 +1,24 @@
 # GitHub Actions workflow: Build Android APK for Aide
 #
-# REQUIRED GITHUB SECRETS (configure in repo Settings → Secrets → Actions):
+# REQUIRED GITHUB SECRETS (configure in repo Settings -> Secrets -> Actions):
 #
-#   ANDROID_KEYSTORE_BASE64  — Base64-encoded release keystore (.jks or .keystore file).
+#   ANDROID_KEYSTORE_BASE64  - Base64-encoded release keystore (.jks or .keystore file).
 #     How to create:
 #       1. keytool -genkey -v -keystore release-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias aide-release
 #       2. base64 -w 0 release-keystore.jks > keystore.b64   (Linux)
 #          or: base64 < release-keystore.jks > keystore.b64     (macOS: use --output)
 #       3. Copy the base64 string into the ANDROID_KEYSTORE_BASE64 secret.
 #
-#   ANDROID_STORE_PASSWORD   — Store password used when creating the keystore.
-#   ANDROID_KEY_ALIAS        — Key alias used when creating the keystore (e.g. "aide-release").
-#   ANDROID_KEY_PASSWORD     — Key password used when creating the keystore.
+#   ANDROID_STORE_PASSWORD   - Store password used when creating the keystore.
+#   ANDROID_KEY_ALIAS        - Key alias used when creating the keystore (e.g. "aide-release").
+#   ANDROID_KEY_PASSWORD     - Key password used when creating the keystore.
 #
 #   If any of these are missing, the release build step will be skipped
 #   and only the debug APK will be produced + uploaded.
 
 name: Android APK Release
 
-on:
+'on':
   push:
     branches: [master]
     tags:
