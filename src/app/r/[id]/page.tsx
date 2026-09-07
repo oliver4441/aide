@@ -16,6 +16,9 @@ export const metadata: Metadata = {
     description: "View and download your Aide receipt.",
     images: ["/og-receipt.jpg"],
   },
+  alternates: {
+    canonical: "https://aide.omixsystems.store/r/",
+  },
 };
 
 export default SharedReceiptPage;

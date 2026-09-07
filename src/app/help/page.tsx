@@ -19,6 +19,9 @@ export const metadata: Metadata = {
     description: "Set up categories and products, sell at the POS, print receipts, work offline, and export sales.",
     images: ["/og-help.jpg"],
   },
+  alternates: {
+    canonical: "https://aide.omixsystems.store/help",
+  },
 };
 
 export default function HelpPage() {

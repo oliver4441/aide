@@ -16,6 +16,9 @@ export const metadata: Metadata = {
     description: "Sign in to your Aide business dashboard.",
     images: ["/og-login.jpg"],
   },
+  alternates: {
+    canonical: "https://aide.omixsystems.store/login",
+  },
 };
 
 export default function LoginPage() {

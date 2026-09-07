@@ -57,6 +57,9 @@ export const metadata: Metadata = {
     "msapplication-tap-highlight": "no",
     "theme-color": "#6f264f",
   },
+  alternates: {
+    canonical: "https://aide.omixsystems.store",
+  },
 };
 
 export const viewport = {
