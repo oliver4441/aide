@@ -7,7 +7,7 @@ interface DownloadSectionProps {
 
 export default function DownloadSection({ version }: DownloadSectionProps) {
   const changelog = [
-    { version: "v1.0.0", date: "2026-09-07", items: [
+    { version: "v1.0.1", date: "2026-09-07", items: [
       "Initial Android APK release via Capacitor",
       "Debug and signed release builds",
       "Signed with production keystore",

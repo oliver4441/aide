@@ -65,7 +65,7 @@ export default function LandingPage() {
         <Pricing />
         <CtaSection />
         <LandingFooter />
-        <DownloadSection version="1.0.0" />
+        <DownloadSection version="1.0.1" />
       </div>
     </>
   );
