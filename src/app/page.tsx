@@ -6,6 +6,8 @@ import FaqSection from "@/components/landing/FaqSection";
 import Pricing from "@/components/landing/Pricing";
 import CtaSection from "@/components/landing/CtaSection";
 import LandingFooter from "@/components/landing/LandingFooter";
+import DownloadSection from "@/components/landing/DownloadSection";
+import pkg from "../package.json";
 
 export default function LandingPage() {
   return (
