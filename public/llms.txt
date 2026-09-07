@@ -1,0 +1,75 @@
+# Aide — Offline-First Business Management Platform
+
+> Aide is an offline-first POS, inventory and reporting app for Kenyan businesses — salons, shops, restaurants, pharmacies. Sell on the POS, track stock, print receipts, export sales. Works without internet and syncs when online.
+
+**Live:** https://aide.omixsystems.store  
+**GitHub:** https://github.com/oliver4441/aide  
+**Company:** OmixSystems (Kenya)
+
+## Tech Stack
+
+- **Next.js 14** (App Router, TypeScript)
+- **Tailwind CSS** with semantic color tokens
+- **Prisma** → **Neon PostgreSQL** (offline-first sync)
+- **NextAuth** (credentials + Google)
+- **Dexie** (IndexedDB) for offline local storage
+- **PWA**: manifest + service worker + installable
+- **Tawk.to** live chat widget
+
+## What Aide Does
+
+- Point of Sale — scan products, add to cart, take cash or M-Pesa, generate receipts
+- Inventory — add products, auto-generate SKUs, track quantity, low-stock alerts
+- Sales history — activity log, filter by date, export as CSV/JSON, print receipts
+- Reports & analytics — revenue charts (last 7 days), top products, payment method breakdown
+- Settings — business profile, categories, sync conflicts, data export
+- Offline-first — all data in IndexedDB, syncs to Neon when online
+- Printable receipts — supermarket-grade, thermal + A4 PDF, QR code to share
+- Admin console — businesses, users, sales, revenue, reviews
+
+## Public Routes
+
+- `/` — Landing page (features, pricing in KES, FAQ, download)
+- `/help` — Help center (getting started, run guide, FAQ, contact)
+- `/login` — Sign in (email/password or Google)
+- `/r/[id]` — Shared receipt viewer (public)
+- `/privacy` — Privacy policy (stub)
+- `/terms` — Terms of service (stub)
+
+## Auth
+
+- Email/password sign-in via NextAuth credentials provider
+- Google sign-in via Firebase Auth
+- Session carries `role` (admin/user) + `businessId` for multi-business scoping
+- Admin: `admin@aide.co.ke` / `admin123`
+- Business user: `oliver@aide.co.ke` / `password123`
+
+## Offline Sync
+
+- Client is source of truth (IndexedDB via Dexie)
+- Client generates UUIDs
+- Sync to Neon via `POST /api/sync`
+- Deterministic conflict resolver (LWW for descriptions, movement-ledger for stock)
+- 30s auto-sync, outbox + retry/backoff
+
+## SEO
+
+- Canonical domain: `https://aide.omixsystems.store`
+- Per-page unique title, description, OG image, Twitter card
+- robots.txt → canonical host + sitemap
+- sitemap.xml: `/`, `/help`, `/login`, `/privacy`, `/terms`
+- Breadcrumbs on public pages
+- Structured data: `SoftwareApplication` on landing page
+
+## Repository
+
+- GitHub: https://github.com/oliver4441/aide
+- Branch: `master`
+- Android APK: built via GitHub Actions on tag push (`v*`); debug + signed release APK produced
+- Vercel: frontend auto-deploys from `master`
+
+## Contact
+
+- Company: OmixSystems (Kenya)
+- Live chat: Tawk.to widget on site
+- Email (placeholder — update before shipping): admin@aide.co.ke

@@ -112,6 +112,48 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             `,
           }}
         />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              name: "OmixSystems",
+              description:
+                "Kenyan software company building offline-first business tools — Aide POS, inventory and analytics for salons, shops, restaurants and pharmacies.",
+              url: "https://aide.omixsystems.store",
+              logo: "/logo.jpg",
+              sameAs: [
+                "https://github.com/oliver4441/aide",
+              ],
+            }),
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "LocalBusiness",
+              name: "OmixSystems — Aide",
+              description:
+                "Offline-first POS, inventory and reporting software for Kenyan businesses.",
+              url: "https://aide.omixsystems.store",
+              logo: "/logo.jpg",
+              address: {
+                "@type": "PostalAddress",
+                addressCountry: "KE",
+                addressLocality: "Nairobi",
+              },
+              areaServed: "KE",
+              provider: {
+                "@type": "Organization",
+                name: "OmixSystems",
+                url: "https://aide.omixsystems.store",
+              },
+            }),
+          }}
+        />
       </head>
       <body className="font-body bg-surface text-on-surface antialiased">
         <Providers>
