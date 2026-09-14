@@ -36,7 +36,6 @@ export default function LandingNav() {
         <div className="hidden items-center gap-7 text-sm md:flex">
           <a href="#product" className="text-on-surface-variant transition-colors hover:text-on-surface">Product</a>
           <a href="#features" className="text-on-surface-variant transition-colors hover:text-on-surface">Features</a>
-          <a href="#download" className="text-on-surface-variant transition-colors hover:text-on-surface">Android</a>
           <a href="#pricing" className="text-on-surface-variant transition-colors hover:text-on-surface">Pricing</a>
           <Link href="/help" className="text-on-surface-variant transition-colors hover:text-on-surface">Docs</Link>
         </div>
@@ -72,7 +71,6 @@ export default function LandingNav() {
           <div className="space-y-1 pt-2">
             <a href="#product" onClick={close} className="block rounded-lg px-3 py-2.5 text-sm text-on-surface-variant">Product</a>
             <a href="#features" onClick={close} className="block rounded-lg px-3 py-2.5 text-sm text-on-surface-variant">Features</a>
-            <a href="#download" onClick={close} className="block rounded-lg px-3 py-2.5 text-sm text-on-surface-variant">Android</a>
             <a href="#pricing" onClick={close} className="block rounded-lg px-3 py-2.5 text-sm text-on-surface-variant">Pricing</a>
             <Link href="/help" onClick={close} className="block rounded-lg px-3 py-2.5 text-sm text-on-surface-variant">Docs</Link>
           </div>
