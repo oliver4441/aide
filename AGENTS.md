@@ -85,7 +85,9 @@ var (comma-separated; default `kipkiruigideon890@gmail.com`). Admins land on
 
 ## Development
 - Edit files, `npm run dev` for local preview, `npx vercel deploy --prod` to publish
-- Firebase project: `omix-systems-cd1af` (for analytics, separate from Aide backend)
+**Firebase web config**: Values are loaded from `NEXT_PUBLIC_FIREBASE_*` environment variables in `.env`. A working copy of all required keys already exists in `.env`. If Google sign-in or analytics fails, confirm the values in `.env` still match the Firebase Console for project `omix-systems-cd1af`.
+
+**Domain authorization**: If Google sign-in reports `auth/unauthorized-domain`, add the current deployment domain to Firebase Console → Authentication → Settings → Authorized domains.
 - Neon project: `aide (shiny-rain-18812100)`
 - GitHub: `https://github.com/oliver4441/aide`
 - Vercel: `https://aide.omixsystems.store`
