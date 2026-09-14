@@ -1,0 +1,54 @@
+name: Android CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+      - 'feat/**'
+      - 'fix/**'
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    name: Native Android test and debug APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Validate Android project
+        run: test -f android/gradlew && test -f android/settings.gradle.kts -o -f android/settings.gradle
+
+      - name: Make Gradle wrapper executable
+        working-directory: android
+        run: chmod +x gradlew
+
+      - name: Run Android lint
+        working-directory: android
+        run: ./gradlew lint
+
+      - name: Run Android unit tests
+        working-directory: android
+        run: ./gradlew test
+
+      - name: Assemble debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: aide-debug-apk-${{ github.sha }}
+          path: android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
