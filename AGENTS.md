@@ -54,8 +54,11 @@ Aide is an offline-first PWA for managing real businesses (salons, shops, restau
 ## Authentication
 Sign-in is **Google-only** (Firebase popup → NextAuth verifies the Firebase ID
 token server-side, auto-provisioning a User on first sign-in). Email/password
-login has been removed; the legacy seeded accounts below no longer work:
-~~admin@aide.co.ke / admin123~~, ~~oliver@aide.co.ke / password123~~.
+login has been removed; the legacy seeded credentials no longer work.
+
+**Admin role** is granted to Google accounts listed in the `ADMIN_EMAILS` env
+var (comma-separated; default `kipkiruigideon890@gmail.com`). Admins land on
+`/dashboard/admin` and can read the reviews API; everyone else gets `user`.
 
 ## Key Files
 | File | Purpose |

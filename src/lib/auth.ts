@@ -11,6 +11,12 @@ const FIREBASE_PROJECT_ID =
   process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ||
   "omix-systems-cd1af"
 
+// Google accounts that get the admin role on sign-in (comma-separated).
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "kipkiruigideon890@gmail.com")
+  .split(",")
+  .map((email) => email.trim().toLowerCase())
+  .filter(Boolean)
+
 // Sign-in is Google-only: the client signs in with a Firebase Google popup
 // and passes the resulting ID token here for server-side verification.
 // Email/password accounts are no longer accepted.
@@ -70,7 +76,9 @@ export const authOptions: NextAuthOptions = {
             id: u.id,
             email: u.email,
             name: u.name,
-            role: "user" as const,
+            role: (ADMIN_EMAILS.includes(info.email.toLowerCase())
+              ? "admin"
+              : "user") as "admin" | "user",
             businessId: u.businesses[0]?.businessId || null,
           }
         } catch (e) {

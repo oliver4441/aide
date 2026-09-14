@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
   const role = (session?.user as any)?.role;
-  if (role !== "SUPER_ADMIN" && role !== "ADMIN") {
+  if (role !== "admin") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
