@@ -51,11 +51,14 @@ Selections saved to localStorage (`aide_onboarded`, `aide_onboarding_prefs`). Wi
 ## How the App Works (End-to-End)
 Aide is an offline-first PWA for managing real businesses (salons, shops, restaurants, pharmacies). A business owner signs up via Google or email/password, answers a quick onboarding wizard (referral source, goals, business type), and lands on their dashboard showing real-time metrics pulled from local IndexedDB — today's revenue, profit, product count, and low-stock alerts. They can add products with names, prices, quantities, images (upload or camera), and auto-generated SKUs organized into configurable categories. When a sale happens at the POS, items are scanned from inventory, the cart totals with VAT-inclusive tax, payment is recorded (cash, M-Pesa, card), and a supermarket-grade receipt is generated locally — showing business name, receipt number, date/time, cashier, itemized lines with qty x price, subtotal, VAT breakdown, total, amount paid, and change — printable via Bluetooth thermal printer or as a clean A4 PDF. The sale deducts stock locally and enqueues a sync mutation. When the device is online, the sync engine pushes all pending changes to Neon PostgreSQL and pulls latest server data, using a deterministic conflict resolver (last-write-wins for descriptions, movement-ledger for stock). The sales history is an activity log of every transaction with expandable details, filterable by date and payment method, exportable as CSV or JSON. Reports show real-time revenue charts (SVG bar graph, last 7 days), top-selling products, payment method breakdown, and are printable as A4 reports or scannable via QR code. Settings let the owner configure their business profile (name, type, currency, tax rate, receipt footer), manage product categories, review sync conflicts, and export all data. A floating help widget provides searchable FAQ and live chat via Tawk.to. The entire app works offline — all data persists in IndexedDB, all features function without internet, and syncing happens silently in the background when connectivity returns.
 
-## Admin Login Credentials
-| Role | Email | Password |
-|------|-------|----------|
-| Platform Admin (SUPER_ADMIN) | `admin@aide.co.ke` | `admin123` |
-| Business User (OWNER) | `oliver@aide.co.ke` | `password123` |
+## Authentication
+Sign-in is **Google-only** (Firebase popup → NextAuth verifies the Firebase ID
+token server-side, auto-provisioning a User on first sign-in). Email/password
+login has been removed; the legacy seeded credentials no longer work.
+
+**Admin role** is granted to Google accounts listed in the `ADMIN_EMAILS` env
+var (comma-separated; default `kipkiruigideon890@gmail.com`). Admins land on
+`/dashboard/admin` and can read the reviews API; everyone else gets `user`.
 
 ## Key Files
 | File | Purpose |

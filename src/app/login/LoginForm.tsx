@@ -8,12 +8,12 @@ import { signInWithGoogle } from "@/lib/firebaseClient";
 
 function googleErrorMessage(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error || "");
-  const codeMatch = message.match(/\((auth\/[^)]+)\)/);
+  const codeMatch = message.match(/\(auth\/[^)]+\)/);
   const code = codeMatch?.[1];
 
   switch (code) {
     case "auth/unauthorized-domain":
-      return "Google sign-in is not enabled for this website yet. Please try again later.";
+      return "Google sign-in isn't available on this domain yet. Please use aide.omixsystems.store or contact support.";
     case "auth/popup-blocked":
       return "Your browser blocked the Google sign-in window. Allow pop-ups for Aide and try again.";
     case "auth/popup-closed-by-user":
@@ -28,32 +28,9 @@ function googleErrorMessage(error: unknown): string {
 }
 
 export default function LoginForm() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const router = useRouter();
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-
-    const result = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
-
-    setLoading(false);
-
-    if (result?.error) {
-      setError("Invalid email or password");
-    } else {
-      router.push("/dashboard");
-    }
-  };
 
   const handleGoogle = async () => {
     setError("");
@@ -99,10 +76,10 @@ export default function LoginForm() {
 
         <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant shadow-lg p-8">
           <h1 className="text-2xl font-bold text-on-surface mb-2 text-center font-headline">
-            Welcome back
+            Welcome
           </h1>
           <p className="text-on-surface-variant text-center mb-8 text-sm">
-            Sign in to your business dashboard
+            Sign in or create your business account with Google
           </p>
 
           {error && (
@@ -113,8 +90,8 @@ export default function LoginForm() {
 
           <button
             onClick={handleGoogle}
-            disabled={googleLoading || loading}
-            className="w-full flex items-center justify-center gap-3 border border-outline-variant bg-surface-container-low text-on-surface font-semibold py-3 rounded-lg hover:bg-surface-container transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-4"
+            disabled={googleLoading}
+            className="w-full flex items-center justify-center gap-3 border border-outline-variant bg-surface-container-low text-on-surface font-semibold py-3 rounded-lg hover:bg-surface-container transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57a5.06 5.06 0 00-3.27-8.1z" />
@@ -124,52 +101,10 @@ export default function LoginForm() {
             </svg>
             {googleLoading ? "Connecting..." : "Continue with Google"}
           </button>
-
-          <div className="flex items-center gap-3 mb-4">
-            <div className="flex-1 h-px bg-outline-variant" />
-            <span className="text-xs text-on-surface-variant">or</span>
-            <div className="flex-1 h-px bg-outline-variant" />
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium text-on-surface mb-1.5">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface-container-low text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
-                placeholder="you@example.com"
-                autoComplete="email"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-on-surface mb-1.5">Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface-container-low text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
-                placeholder="••••••••"
-                autoComplete="current-password"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading || googleLoading}
-              className="w-full bg-primary text-on-primary font-semibold py-3 rounded-lg hover:bg-primary-light transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? "Signing in..." : "Sign In"}
-            </button>
-          </form>
         </div>
 
         <p className="text-center text-xs text-on-surface-variant mt-6">
-          New here? Use Continue with Google to create your business space instantly.
+          New here? Continue with Google to create your business space instantly.
         </p>
       </div>
     </div>

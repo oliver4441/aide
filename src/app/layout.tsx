@@ -70,6 +70,12 @@ export const viewport = {
   themeColor: "#6f264f",
 };
 
+// Firebase (Google sign-in) is initialized with the npm SDK in
+// src/lib/firebase.ts — no CDN scripts needed here. Every domain the app is
+// served from must be listed under Firebase Console → Authentication →
+// Settings → Authorized domains or Google sign-in fails with
+// auth/unauthorized-domain.
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
@@ -87,13 +93,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="msapplication-TileColor" content="#6f264f" />
         <meta name="msapplication-tap-highlight" content="no" />
         <link rel="manifest" href="/manifest.webmanifest" />
-        <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-        <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `try{firebase.initializeApp({apiKey:"AIzaSyAs7C-OegYfoPxj8LOYNagZgcMi9yo45Zg",authDomain:"omix-systems-cd1af.firebaseapp.com",projectId:"omix-systems-cd1af",storageBucket:"omix-systems-cd1af.firebasestorage.app",messagingSenderId:"458479471215",appId:"1:458479471215:web:3f079db61f589afdff5b9a"})}catch(e){}`,
-          }}
-        />
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem('theme');if(t==='light'){document.documentElement.classList.remove('dark')}else{document.documentElement.classList.add('dark')}}catch(e){document.documentElement.classList.add('dark')}})()`,
