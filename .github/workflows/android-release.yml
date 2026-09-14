@@ -1,20 +1,13 @@
 # GitHub Actions workflow: Build Android APK for Aide
 #
-# REQUIRED GITHUB SECRETS (configure in repo Settings -> Secrets -> Actions):
+# REQUIRED GITHUB SECRETS (for signed release APKs):
+#   ANDROID_KEYSTORE_BASE64
+#   ANDROID_STORE_PASSWORD
+#   ANDROID_KEY_ALIAS
+#   ANDROID_KEY_PASSWORD
 #
-#   ANDROID_KEYSTORE_BASE64  - Base64-encoded release keystore (.jks or .keystore file).
-#     How to create:
-#       1. keytool -genkey -v -keystore release-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias aide-release
-#       2. base64 -w 0 release-keystore.jks > keystore.b64   (Linux)
-#          or: base64 < release-keystore.jks > keystore.b64     (macOS: use --output)
-#       3. Copy the base64 string into the ANDROID_KEYSTORE_BASE64 secret.
-#
-#   ANDROID_STORE_PASSWORD   - Store password used when creating the keystore.
-#   ANDROID_KEY_ALIAS        - Key alias used when creating the keystore (e.g. "aide-release").
-#   ANDROID_KEY_PASSWORD     - Key password used when creating the keystore.
-#
-#   If any of these are missing, the release build step will be skipped
-#   and only the debug APK will be produced + uploaded.
+# If the signing secrets are incomplete, the workflow still succeeds by
+# building and uploading the debug APK instead of failing at release signing.
 
 name: Android APK Release
 
@@ -33,6 +26,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
     steps:
       - name: Checkout repository
@@ -48,7 +44,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'npm'
+          cache: npm
 
       - name: Install dependencies
         run: npm ci
@@ -62,13 +58,25 @@ jobs:
       - name: Build Debug APK
         run: cd android && ./gradlew assembleDebug
 
-      - name: Decode keystore (if env var is set)
-        if: ${{ env.ANDROID_KEYSTORE_BASE64 != '' }}
+      - name: Check release signing configuration
+        id: signing
+        shell: bash
+        run: |
+          if [[ -n "$ANDROID_KEYSTORE_BASE64" && -n "$ANDROID_STORE_PASSWORD" && -n "$ANDROID_KEY_ALIAS" && -n "$ANDROID_KEY_PASSWORD" ]]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+            echo "Release signing configuration is complete."
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "Release signing secrets are incomplete; skipping signed release build."
+          fi
+
+      - name: Decode keystore
+        if: steps.signing.outputs.available == 'true'
         run: |
           echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > release-keystore.jks
 
       - name: Build Signed Release APK
-        if: ${{ env.ANDROID_KEYSTORE_BASE64 != '' }}
+        if: steps.signing.outputs.available == 'true'
         run: |
           cd android
           ./gradlew assembleRelease
@@ -78,22 +86,22 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
-      - name: Upload Debug APK (artifact)
+      - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
           name: aide-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
 
-      - name: Upload Release APK (artifact)
-        if: ${{ env.ANDROID_KEYSTORE_BASE64 != '' }}
+      - name: Upload Release APK
+        if: steps.signing.outputs.available == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: aide-release-apk
           path: android/app/build/outputs/apk/release/app-release.apk
           retention-days: 90
 
-      - name: Create GitHub Release and upload APK
+      - name: Create GitHub Release and upload APKs
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
