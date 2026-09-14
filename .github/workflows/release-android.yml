@@ -41,7 +41,6 @@ jobs:
           ./gradlew assembleRelease
 
       - name: Create GitHub Release
-        id: release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag }}
@@ -49,25 +48,3 @@ jobs:
           draft: false
           prerelease: false
           files: android/app/build/outputs/apk/release/app-release-unsigned.apk
-
-      - name: Update latest.json
-        run: |
-          APK_NAME="app-release-unsigned.apk"
-          APK_URL="https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.tag }}/${APK_NAME}"
-
-          cat > public/latest.json << EOF
-          {
-            "version": "${{ steps.version.outputs.version }}",
-            "versionCode": ${{ steps.version.outputs.version_code }},
-            "downloadUrl": "${APK_URL}",
-            "releaseDate": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-            "releaseUrl": "${{ steps.release.outputs.html_url }}"
-          }
-          EOF
-
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git pull --rebase origin master
-          git add public/latest.json
-          git commit -m "chore: update latest.json for ${{ steps.version.outputs.tag }}"
-          git push
