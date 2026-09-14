@@ -1,0 +1,78 @@
+name: Android CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+      - 'feat/**'
+      - 'fix/**'
+
+permissions:
+  contents: read
+
+jobs:
+  web:
+    name: Web lint and build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build web app
+        run: npm run build
+
+  android:
+    name: Android test and debug APK
+    runs-on: ubuntu-latest
+    needs: web
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Sync Capacitor Android project
+        run: npx cap sync android
+
+      - name: Run Android unit tests
+        working-directory: android
+        run: ./gradlew test
+
+      - name: Assemble debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: aide-debug-apk-${{ github.sha }}
+          path: android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
