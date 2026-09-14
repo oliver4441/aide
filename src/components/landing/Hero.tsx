@@ -9,17 +9,17 @@ export default function Hero() {
       <div className="relative z-10 mx-auto max-w-[1180px] text-center">
         <div className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3.5 py-1.5 text-xs font-semibold text-primary">
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
-          Offline-first business software
+          Offline-first business workspace
         </div>
 
         <h1 className="mx-auto max-w-5xl font-headline text-5xl font-bold tracking-[-0.04em] text-on-surface sm:text-6xl md:text-7xl lg:text-[84px] lg:leading-[0.98]">
-          Your business,
+          Run your business.
           <br />
-          <span className="bg-gradient-to-r from-primary to-primary-light bg-clip-text text-transparent">under control.</span>
+          <span className="bg-gradient-to-r from-primary to-primary-light bg-clip-text text-transparent">Even offline.</span>
         </h1>
 
         <p className="mx-auto mt-7 max-w-2xl text-base leading-7 text-on-surface-variant md:text-lg">
-          Aide is a simple business operating system for shops and small businesses. Sell, manage stock, track money and understand your business — even when the internet disappears.
+          Aide brings sales, inventory, receipts, payments and reports into one simple PWA built for small businesses. Open it in your browser, install it on your device, and keep working when the connection drops.
         </p>
 
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -28,18 +28,18 @@ export default function Hero() {
             <span aria-hidden>→</span>
           </Link>
           <a href="#features" className="inline-flex w-full items-center justify-center rounded-xl border border-outline-variant bg-surface-container-low px-6 py-3.5 text-sm font-semibold text-on-surface transition hover:bg-surface-container sm:w-auto">
-            See how it works
+            Explore the product
           </a>
         </div>
 
         <div className="mt-7 flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-on-surface-variant">
           <span>✓ Works offline</span>
+          <span>✓ Installable PWA</span>
           <span>✓ KSh &amp; M-Pesa ready</span>
-          <span>✓ Web + Android roadmap</span>
           <span>✓ Built for small businesses</span>
         </div>
 
-        <div className="relative mx-auto mt-14 max-w-5xl text-left" aria-label="Aide product preview">
+        <div className="relative mx-auto mt-14 max-w-5xl text-left" aria-label="Aide PWA product preview">
           <div className="absolute -inset-8 rounded-[2rem] bg-primary/5 blur-3xl" />
           <div className="relative overflow-hidden rounded-2xl border border-outline-variant bg-surface-container shadow-2xl">
             <div className="flex items-center justify-between border-b border-outline-variant px-4 py-3 md:px-5">
@@ -47,9 +47,9 @@ export default function Hero() {
                 <span className="h-2.5 w-2.5 rounded-full bg-danger/60" />
                 <span className="h-2.5 w-2.5 rounded-full bg-warning/60" />
                 <span className="h-2.5 w-2.5 rounded-full bg-success/60" />
-                <span className="ml-2 font-mono text-[10px] text-on-surface-variant">aide / business</span>
+                <span className="ml-2 font-mono text-[10px] text-on-surface-variant">aide / workspace</span>
               </div>
-              <span className="rounded-full border border-success/20 bg-success/10 px-2.5 py-1 text-[10px] font-medium text-success">local data ready</span>
+              <span className="rounded-full border border-success/20 bg-success/10 px-2.5 py-1 text-[10px] font-medium text-success">offline ready</span>
             </div>
 
             <div className="grid gap-0 md:grid-cols-[180px_1fr]">
@@ -112,7 +112,7 @@ export default function Hero() {
               </div>
             </div>
           </div>
-          <p className="mt-4 text-center font-mono text-[10px] text-on-surface-variant/60">Aide keeps the core workflow usable first, then syncs when connectivity returns.</p>
+          <p className="mt-4 text-center font-mono text-[10px] text-on-surface-variant/60">The PWA keeps the core workflow available locally, then syncs when connectivity returns.</p>
         </div>
       </div>
     </section>
