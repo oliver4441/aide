@@ -4,120 +4,115 @@ import Link from "next/link";
 
 export default function Hero() {
   return (
-    <section className="relative overflow-hidden pt-28 pb-20 md:pt-40 md:pb-28 px-4 md:px-8 max-w-[1440px] mx-auto">
-      <div className="absolute top-16 right-[-12%] w-[520px] h-[520px] rounded-full bg-primary/10 blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-0 left-[-12%] w-[420px] h-[420px] rounded-full bg-primary-container/10 blur-[120px] pointer-events-none" />
-
-      <div className="relative z-10 grid lg:grid-cols-[1fr_0.9fr] items-center gap-12 lg:gap-20">
-        <div className="max-w-2xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold mb-6">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-            Built for everyday business
-          </div>
-
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.05] mb-6 font-headline text-on-surface">
-            Run your business.
-            <br />
-            <span className="bg-gradient-to-r from-primary to-primary-light bg-clip-text text-transparent">
-              Even offline.
-            </span>
-          </h1>
-
-          <p className="text-lg md:text-xl text-on-surface-variant mb-8 max-w-xl leading-relaxed">
-            Aide brings sales, inventory, receipts, reports, and business insights into one simple workspace. Keep working without internet and sync when you are back online.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Link
-              href="/login"
-              className="bg-primary text-on-primary font-semibold px-7 py-4 rounded-xl hover:bg-primary-light transition-colors flex items-center justify-center gap-2 text-sm shadow-lg shadow-primary/10"
-            >
-              Start Free
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-            </Link>
-            <a
-              href="#features"
-              className="border border-outline-variant text-on-surface font-semibold px-7 py-4 rounded-xl hover:bg-surface-container-low transition-colors flex items-center justify-center gap-2 text-sm"
-            >
-              Explore Aide
-            </a>
-          </div>
-
-          <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-on-surface-variant">
-            <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-success" /> Offline-first</span>
-            <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-success" /> M-Pesa, cash & card</span>
-            <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-success" /> Android planned</span>
-          </div>
+    <section id="product" className="relative overflow-hidden px-4 pb-20 pt-32 md:px-8 md:pb-28 md:pt-40">
+      <div className="pointer-events-none absolute left-1/2 top-10 h-[620px] w-[620px] -translate-x-1/2 rounded-full bg-primary/10 blur-[150px]" />
+      <div className="relative z-10 mx-auto max-w-[1180px] text-center">
+        <div className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3.5 py-1.5 text-xs font-semibold text-primary">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
+          Offline-first business software
         </div>
 
-        <div className="relative w-full max-w-xl mx-auto">
-          <div className="absolute -inset-5 rounded-[2rem] bg-primary/5 blur-2xl pointer-events-none" />
-          <div className="relative bg-surface-container border border-outline-variant rounded-[1.5rem] overflow-hidden shadow-2xl shadow-primary/10">
-            <div className="px-4 py-3 border-b border-outline-variant flex items-center justify-between">
+        <h1 className="mx-auto max-w-5xl font-headline text-5xl font-bold tracking-[-0.04em] text-on-surface sm:text-6xl md:text-7xl lg:text-[84px] lg:leading-[0.98]">
+          Your business,
+          <br />
+          <span className="bg-gradient-to-r from-primary to-primary-light bg-clip-text text-transparent">under control.</span>
+        </h1>
+
+        <p className="mx-auto mt-7 max-w-2xl text-base leading-7 text-on-surface-variant md:text-lg">
+          Aide is a simple business operating system for shops and small businesses. Sell, manage stock, track money and understand your business — even when the internet disappears.
+        </p>
+
+        <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <Link href="/login" className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-sm font-semibold text-on-primary shadow-lg shadow-primary/10 transition hover:bg-primary-light sm:w-auto">
+            Start free
+            <span aria-hidden>→</span>
+          </Link>
+          <a href="#features" className="inline-flex w-full items-center justify-center rounded-xl border border-outline-variant bg-surface-container-low px-6 py-3.5 text-sm font-semibold text-on-surface transition hover:bg-surface-container sm:w-auto">
+            See how it works
+          </a>
+        </div>
+
+        <div className="mt-7 flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-on-surface-variant">
+          <span>✓ Works offline</span>
+          <span>✓ KSh &amp; M-Pesa ready</span>
+          <span>✓ Web + Android roadmap</span>
+          <span>✓ Built for small businesses</span>
+        </div>
+
+        <div className="relative mx-auto mt-14 max-w-5xl text-left" aria-label="Aide product preview">
+          <div className="absolute -inset-8 rounded-[2rem] bg-primary/5 blur-3xl" />
+          <div className="relative overflow-hidden rounded-2xl border border-outline-variant bg-surface-container shadow-2xl">
+            <div className="flex items-center justify-between border-b border-outline-variant px-4 py-3 md:px-5">
               <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-danger/60" />
-                <span className="w-2.5 h-2.5 rounded-full bg-warning/60" />
-                <span className="w-2.5 h-2.5 rounded-full bg-success/60" />
+                <span className="h-2.5 w-2.5 rounded-full bg-danger/60" />
+                <span className="h-2.5 w-2.5 rounded-full bg-warning/60" />
+                <span className="h-2.5 w-2.5 rounded-full bg-success/60" />
+                <span className="ml-2 font-mono text-[10px] text-on-surface-variant">aide / business</span>
               </div>
-              <span className="text-[10px] text-on-surface-variant font-mono">aide / overview</span>
+              <span className="rounded-full border border-success/20 bg-success/10 px-2.5 py-1 text-[10px] font-medium text-success">local data ready</span>
             </div>
 
-            <div className="p-4 md:p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-on-surface-variant">Good morning</p>
-                  <h2 className="text-lg font-bold text-on-surface font-headline">Business overview</h2>
-                </div>
-                <div className="text-[10px] px-2.5 py-1 rounded-full bg-success/10 text-success border border-success/20">Offline ready</div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-surface-container-low border border-outline-variant rounded-xl p-4">
-                  <div className="text-[10px] text-on-surface-variant uppercase tracking-wider mb-1">Today&apos;s sales</div>
-                  <div className="text-xl font-bold text-on-surface font-headline">KSh 45,230</div>
-                  <div className="text-[10px] text-success mt-1">+12.4% vs yesterday</div>
-                </div>
-                <div className="bg-surface-container-low border border-outline-variant rounded-xl p-4">
-                  <div className="text-[10px] text-on-surface-variant uppercase tracking-wider mb-1">Stock value</div>
-                  <div className="text-xl font-bold text-primary font-headline">KSh 182K</div>
-                  <div className="text-[10px] text-on-surface-variant mt-1">126 products</div>
-                </div>
-              </div>
-
-              <div className="bg-surface-container-low border border-outline-variant rounded-xl p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-semibold text-on-surface">Sales this week</span>
-                  <span className="text-[10px] text-on-surface-variant">KES</span>
-                </div>
-                <div className="flex items-end gap-1.5 h-24">
-                  {[34, 48, 42, 65, 57, 82, 72, 92, 68, 88, 76, 96].map((height, index) => (
-                    <div
-                      key={index}
-                      className="flex-1 rounded-t bg-primary/25 last:bg-primary/80"
-                      style={{ height: `${height}%` }}
-                    />
+            <div className="grid gap-0 md:grid-cols-[180px_1fr]">
+              <aside className="hidden border-r border-outline-variant bg-surface-container-low p-3 md:block">
+                <div className="mb-5 px-2 text-sm font-bold text-on-surface">Aide</div>
+                <div className="space-y-1 text-xs">
+                  {['Overview', 'Point of sale', 'Inventory', 'Sales', 'Reports'].map((item, index) => (
+                    <div key={item} className={`rounded-lg px-3 py-2 ${index === 0 ? 'bg-primary/10 font-semibold text-primary' : 'text-on-surface-variant'}`}>
+                      {item}
+                    </div>
                   ))}
                 </div>
-              </div>
+              </aside>
 
-              <div className="grid grid-cols-3 gap-2">
-                <div className="rounded-xl bg-surface-container-low p-3 text-center">
-                  <div className="text-sm font-bold text-on-surface">18</div>
-                  <div className="text-[9px] text-on-surface-variant">Orders</div>
+              <div className="p-4 md:p-6">
+                <div className="flex items-end justify-between gap-4">
+                  <div>
+                    <p className="text-xs text-on-surface-variant">Business overview</p>
+                    <h2 className="mt-1 font-headline text-xl font-bold text-on-surface md:text-2xl">Today at a glance</h2>
+                  </div>
+                  <span className="hidden rounded-lg border border-outline-variant px-3 py-2 text-[10px] text-on-surface-variant sm:block">Last 7 days</span>
                 </div>
-                <div className="rounded-xl bg-surface-container-low p-3 text-center">
-                  <div className="text-sm font-bold text-on-surface">4</div>
-                  <div className="text-[9px] text-on-surface-variant">Low stock</div>
+
+                <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+                  {[
+                    ['Sales', 'KSh 45,230', '+12.4%'],
+                    ['Orders', '18', 'Today'],
+                    ['Stock', '126', 'Products'],
+                    ['Low stock', '4', 'Needs attention'],
+                  ].map(([label, value, meta]) => (
+                    <div key={label} className="rounded-xl border border-outline-variant bg-surface-container-low p-3.5">
+                      <div className="text-[10px] uppercase tracking-wider text-on-surface-variant">{label}</div>
+                      <div className="mt-1 text-lg font-bold text-on-surface">{value}</div>
+                      <div className="mt-1 text-[9px] text-success">{meta}</div>
+                    </div>
+                  ))}
                 </div>
-                <div className="rounded-xl bg-surface-container-low p-3 text-center">
-                  <div className="text-sm font-bold text-success">89%</div>
-                  <div className="text-[9px] text-on-surface-variant">Margin</div>
+
+                <div className="mt-3 grid gap-3 lg:grid-cols-[1.4fr_0.6fr]">
+                  <div className="rounded-xl border border-outline-variant bg-surface-container-low p-4">
+                    <div className="mb-4 flex items-center justify-between">
+                      <span className="text-xs font-semibold text-on-surface">Sales activity</span>
+                      <span className="text-[10px] text-on-surface-variant">KES</span>
+                    </div>
+                    <div className="flex h-28 items-end gap-1.5">
+                      {[34, 48, 42, 65, 57, 82, 72, 92, 68, 88, 76, 96].map((height, index) => (
+                        <div key={index} className="flex-1 rounded-t bg-primary/25 last:bg-primary/80" style={{ height: `${height}%` }} />
+                      ))}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-outline-variant bg-surface-container-low p-4">
+                    <div className="text-xs font-semibold text-on-surface">Quick actions</div>
+                    <div className="mt-3 space-y-2 text-[10px]">
+                      <div className="rounded-lg bg-primary/10 px-3 py-2 font-medium text-primary">New sale →</div>
+                      <div className="rounded-lg border border-outline-variant px-3 py-2 text-on-surface-variant">Add product →</div>
+                      <div className="rounded-lg border border-outline-variant px-3 py-2 text-on-surface-variant">View report →</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
+          <p className="mt-4 text-center font-mono text-[10px] text-on-surface-variant/60">Aide keeps the core workflow usable first, then syncs when connectivity returns.</p>
         </div>
       </div>
     </section>
