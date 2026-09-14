@@ -70,19 +70,11 @@ export const viewport = {
   themeColor: "#6f264f",
 };
 
-// Firebase web config used by the Google sign-in popup. Override per
-// environment with NEXT_PUBLIC_FIREBASE_* variables; every domain the app is
-// served from must also be listed under Firebase Console → Authentication →
+// Firebase (Google sign-in) is initialized with the npm SDK in
+// src/lib/firebase.ts — no CDN scripts needed here. Every domain the app is
+// served from must be listed under Firebase Console → Authentication →
 // Settings → Authorized domains or Google sign-in fails with
 // auth/unauthorized-domain.
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ?? "AIzaSyAs7C-OegYfoPxj8LOYNagZgcMi9yo45Zg",
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ?? "omix-systems-cd1af.firebaseapp.com",
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? "omix-systems-cd1af",
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ?? "omix-systems-cd1af.firebasestorage.app",
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID ?? "458479471215",
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID ?? "1:458479471215:web:3f079db61f589afdff5b9a",
-};
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -101,13 +93,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="msapplication-TileColor" content="#6f264f" />
         <meta name="msapplication-tap-highlight" content="no" />
         <link rel="manifest" href="/manifest.webmanifest" />
-        <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-        <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `try{firebase.initializeApp(${JSON.stringify(firebaseConfig)})}catch(e){}`,
-          }}
-        />
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem('theme');if(t==='light'){document.documentElement.classList.remove('dark')}else{document.documentElement.classList.add('dark')}}catch(e){document.documentElement.classList.add('dark')}})()`,

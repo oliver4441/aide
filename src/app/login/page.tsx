@@ -4,7 +4,7 @@ import LoginForm from "./LoginForm";
 export const metadata: Metadata = {
   title: "Sign In — Aide",
   description:
-    "Sign in to your Aide business dashboard. Use your email and password, or continue with Google to manage your business offline.",
+    "Sign in to your Aide business dashboard with Google to manage your business offline.",
   openGraph: {
     title: "Aide — Sign In",
     description: "Sign in to your Aide business dashboard.",

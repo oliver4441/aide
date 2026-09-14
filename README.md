@@ -17,7 +17,7 @@ Multi-business management platform for small shops and businesses.
 
 - **Frontend**: Next.js 14+ (App Router)
 - **Database**: Neon (PostgreSQL)
-- **Auth**: NextAuth.js
+- **Auth**: NextAuth.js + Firebase (Google sign-in only — no email/password)
 - **Hosting**: Vercel
 - **Styling**: Tailwind CSS
 
