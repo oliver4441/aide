@@ -12,18 +12,18 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Aide — Simple business management that works offline",
   description:
-    "Aide gives small businesses an offline-first workspace for sales, inventory, receipts and reporting. Keep working without internet and sync when connectivity returns.",
+    "Aide gives small businesses an offline-first PWA for sales, inventory, receipts and reporting. Open it in your browser, install it, and keep working without internet.",
   openGraph: {
     title: "Aide — Simple business management that works offline",
     description:
-      "Sales, inventory, receipts and reports in one offline-first workspace.",
+      "Sales, inventory, receipts and reports in one offline-first PWA.",
     images: [{ url: "/og.jpg", width: 1200, height: 630, alt: "Aide business management" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Aide — Simple business management that works offline",
     description:
-      "Sales, inventory, receipts and reports in one offline-first workspace.",
+      "Sales, inventory, receipts and reports in one offline-first PWA.",
     images: ["/og.jpg"],
   },
 };
@@ -33,14 +33,14 @@ const structuredData = {
   "@type": "SoftwareApplication",
   name: "Aide",
   applicationCategory: "BusinessApplication",
-  operatingSystem: "Web, Android",
+  operatingSystem: "Web",
   offers: {
     "@type": "Offer",
     price: "0",
     priceCurrency: "KES",
   },
   description:
-    "Offline-first business management software for sales, inventory and reporting.",
+    "Offline-first PWA business management software for sales, inventory and reporting.",
 };
 
 export default function LandingPage() {
@@ -56,9 +56,9 @@ export default function LandingPage() {
           <Hero />
           <SocialProof />
           <Features />
-          <DownloadSection version="1.0.1" />
           <Pricing />
           <FaqSection />
+          <DownloadSection />
           <CtaSection />
         </main>
         <LandingFooter />
