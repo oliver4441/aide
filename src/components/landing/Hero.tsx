@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import Link from "next/link"
+import DownloadButton from "./DownloadButton"
 
 export default function Hero() {
   return (
@@ -37,6 +38,7 @@ export default function Hero() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
             </Link>
+            <DownloadButton />
             <a
               href="#features"
               className="border border-outline-variant text-on-surface-variant font-semibold px-8 py-4 rounded-xl hover:bg-surface-container-low transition-colors flex items-center justify-center gap-2 text-sm"
