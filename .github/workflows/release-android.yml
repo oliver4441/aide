@@ -55,7 +55,7 @@ jobs:
           APK_NAME="app-release-unsigned.apk"
           APK_URL="https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.tag }}/${APK_NAME}"
 
-          cat > public/latest.json << 'EOF'
+          cat > public/latest.json << EOF
           {
             "version": "${{ steps.version.outputs.version }}",
             "versionCode": ${{ steps.version.outputs.version_code }},
@@ -67,6 +67,7 @@ jobs:
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin master
           git add public/latest.json
           git commit -m "chore: update latest.json for ${{ steps.version.outputs.tag }}"
           git push
