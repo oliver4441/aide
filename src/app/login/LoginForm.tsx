@@ -6,6 +6,27 @@ import { useRouter } from "next/navigation";
 import ThemeToggle from "@/components/ThemeToggle";
 import { signInWithGoogle } from "@/lib/firebaseClient";
 
+function googleErrorMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error || "");
+  const codeMatch = message.match(/\((auth\/[^)]+)\)/);
+  const code = codeMatch?.[1];
+
+  switch (code) {
+    case "auth/unauthorized-domain":
+      return "Google sign-in is not enabled for this website yet. Please try again later.";
+    case "auth/popup-blocked":
+      return "Your browser blocked the Google sign-in window. Allow pop-ups for Aide and try again.";
+    case "auth/popup-closed-by-user":
+      return "Google sign-in was cancelled.";
+    case "auth/network-request-failed":
+      return "Google sign-in could not reach the authentication service. Check your connection and try again.";
+    case "auth/operation-not-allowed":
+      return "Google sign-in is not enabled for this Aide account yet.";
+    default:
+      return message || "Google sign-in failed. Please try again.";
+  }
+}
+
 export default function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -37,18 +58,22 @@ export default function LoginForm() {
   const handleGoogle = async () => {
     setError("");
     setGoogleLoading(true);
+
     try {
       const idToken = await signInWithGoogle();
-      const result = await signIn("credentials", { idToken, redirect: false });
+      const result = await signIn("credentials", {
+        idToken,
+        redirect: false,
+      });
+
       if (result?.error) {
-        setError("Google sign-in failed. Try again.");
-      } else {
-        router.push("/dashboard");
+        setError("Google authentication reached Aide, but the server rejected the sign-in. Please try again.");
+        return;
       }
-    } catch (err: any) {
-      if (err?.code !== "auth/popup-closed-by-user") {
-        setError("Google sign-in failed. Try again.");
-      }
+
+      router.push("/dashboard");
+    } catch (err: unknown) {
+      setError(googleErrorMessage(err));
     } finally {
       setGoogleLoading(false);
     }
@@ -92,7 +117,7 @@ export default function LoginForm() {
             className="w-full flex items-center justify-center gap-3 border border-outline-variant bg-surface-container-low text-on-surface font-semibold py-3 rounded-lg hover:bg-surface-container transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-4"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
-              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z" />
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57a5.06 5.06 0 00-3.27-8.1z" />
               <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0012 23z" />
               <path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 010-4.2V7.06H2.18a11 11 0 000 9.88l3.66-2.84z" />
               <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15A11 11 0 002.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
