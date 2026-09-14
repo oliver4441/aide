@@ -14,6 +14,17 @@ export default function LandingNav() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  const navLinks = [
+    { href: "#features", label: "Features" },
+    { href: "#pricing", label: "Pricing" },
+    { href: "/help", label: "Help" },
+  ];
+
+  const externalLinks = [
+    { href: "https://omixsystems.store", label: "About" },
+    { href: "https://blog.omixsystems.store", label: "Blog" },
+  ];
+
   return (
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -23,23 +34,45 @@ export default function LandingNav() {
       }`}
     >
       <div className="max-w-[1440px] mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
+        <Link href="/" className="flex items-center gap-2.5">
           <img src="/logo.jpg" alt="Aide logo" className="w-8 h-8 rounded-lg object-cover shadow-sm" />
           <span className="text-xl font-bold text-on-surface font-headline">Aide</span>
-          <span className="text-[10px] font-bold bg-warning/20 text-warning px-2 py-0.5 rounded-full ml-2">BETA</span>
         </Link>
 
         <div className="hidden md:flex items-center gap-8 text-sm text-on-surface-variant">
-          <a href="#features" className="hover:text-on-surface transition-colors">Features</a>
-          <a href="#pricing" className="hover:text-on-surface transition-colors">Pricing</a>
-          <a href="https://omixsystems.store" target="_blank" rel="noopener noreferrer" className="hover:text-on-surface transition-colors">About</a>
-          <a href="/help" className="hover:text-on-surface transition-colors">Help</a>
-          <a href="https://omixsystems.store" target="_blank" rel="noopener noreferrer" className="hover:text-on-surface transition-colors">API Docs</a>
-          <a href="https://blog.omixsystems.store" target="_blank" rel="noopener noreferrer" className="hover:text-on-surface transition-colors">Blog</a>
+          {navLinks.map((link) => (
+            <a
+              key={link.href}
+              href={link.href}
+              className="hover:text-on-surface transition-colors"
+            >
+              {link.label}
+            </a>
+          ))}
+          {externalLinks.map((link) => (
+            <a
+              key={link.href}
+              href={link.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-on-surface transition-colors"
+            >
+              {link.label}
+            </a>
+          ))}
         </div>
 
         <div className="hidden md:flex items-center gap-3">
           <ThemeToggle />
+          <Link
+            href="/api/latest-release"
+            className="text-sm font-medium text-on-surface-variant hover:text-on-surface transition-colors px-3 py-2 flex items-center gap-1.5"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Download
+          </Link>
           <Link
             href="/login"
             className="text-sm font-medium text-on-surface-variant hover:text-on-surface transition-colors px-3 py-2"
@@ -72,14 +105,42 @@ export default function LandingNav() {
       </div>
 
       {mobileOpen && (
-        <div className="md:hidden bg-surface-container-low border-b border-outline-variant px-4 pb-4 space-y-3">
-          <a href="#features" onClick={() => setMobileOpen(false)} className="block py-2 text-sm text-on-surface-variant hover:text-on-surface">Features</a>
-          <a href="#pricing" onClick={() => setMobileOpen(false)} className="block py-2 text-sm text-on-surface-variant hover:text-on-surface">Pricing</a>
-          <a href="https://omixsystems.store" target="_blank" rel="noopener noreferrer" onClick={() => setMobileOpen(false)} className="block py-2 text-sm text-on-surface-variant hover:text-on-surface">About</a>
-          <a href="/help" onClick={() => setMobileOpen(false)} className="block py-2 text-sm text-on-surface-variant hover:text-on-surface">Help</a>
-          <a href="https://omixsystems.store" target="_blank" rel="noopener noreferrer" onClick={() => setMobileOpen(false)} className="block py-2 text-sm text-on-surface-variant hover:text-on-surface">API Docs</a>
-          <a href="https://blog.omixsystems.store" target="_blank" rel="noopener noreferrer" onClick={() => setMobileOpen(false)} className="block py-2 text-sm text-on-surface-variant hover:text-on-surface">Blog</a>
-          <div className="flex items-center gap-3 pt-2 border-t border-outline-variant">
+        <div className="md:hidden bg-surface-container-low border-b border-outline-variant px-4 pb-4 space-y-1">
+          {navLinks.map((link) => (
+            <a
+              key={link.href}
+              href={link.href}
+              onClick={() => setMobileOpen(false)}
+              className="block py-2.5 text-sm text-on-surface-variant hover:text-on-surface"
+            >
+              {link.label}
+            </a>
+          ))}
+          <div className="border-t border-outline-variant my-2" />
+          {externalLinks.map((link) => (
+            <a
+              key={link.href}
+              href={link.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setMobileOpen(false)}
+              className="block py-2.5 text-sm text-on-surface-variant hover:text-on-surface"
+            >
+              {link.label}
+            </a>
+          ))}
+          <div className="border-t border-outline-variant my-2" />
+          <Link
+            href="/api/latest-release"
+            onClick={() => setMobileOpen(false)}
+            className="flex items-center gap-2 py-2.5 text-sm text-on-surface-variant hover:text-on-surface"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Download Android App
+          </Link>
+          <div className="flex items-center gap-3 pt-2">
             <ThemeToggle />
             <Link href="/login" onClick={() => setMobileOpen(false)} className="text-sm font-medium text-on-surface-variant hover:text-on-surface">
               Sign In
@@ -88,7 +149,7 @@ export default function LandingNav() {
           <Link
             href="/login"
             onClick={() => setMobileOpen(false)}
-            className="block text-center bg-primary text-on-primary text-sm font-semibold px-5 py-2.5 rounded-xl"
+            className="block text-center bg-primary text-on-primary text-sm font-semibold px-5 py-2.5 rounded-xl mt-3"
           >
             Get Started
           </Link>
