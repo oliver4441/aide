@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "versionCode": 1,
-  "downloadUrl": "${APK_URL}",
-  "releaseDate": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-  "releaseUrl": ""
+  "downloadUrl": "https://github.com/marvel-254/aide/releases/download/v1.0.0+1/app-release-unsigned.apk",
+  "releaseDate": "2026-09-14T14:43:37Z",
+  "releaseUrl": "https://github.com/marvel-254/aide/releases/tag/v1.0.0+1"
 }
