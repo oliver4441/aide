@@ -9,62 +9,78 @@ export default function LandingNav() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", onScroll);
+    const onScroll = () => setScrolled(window.scrollY > 16);
+    window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  const close = () => setMobileOpen(false);
+
   return (
     <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled ? "bg-surface-container-low/90 backdrop-blur-xl border-b border-outline-variant shadow-lg" : "bg-transparent"
+      className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
+        scrolled
+          ? "border-b border-outline-variant bg-surface/90 shadow-lg backdrop-blur-xl"
+          : "bg-transparent"
       }`}
     >
-      <div className="max-w-[1440px] mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
-          <img src="/logo.jpg" alt="Aide logo" className="w-8 h-8 rounded-lg object-cover shadow-sm" />
-          <span className="text-xl font-bold text-on-surface font-headline">Aide</span>
-          <span className="text-[10px] font-bold bg-warning/20 text-warning px-2 py-0.5 rounded-full ml-1">BETA</span>
+      <div className="mx-auto flex h-[68px] max-w-[1440px] items-center justify-between px-4 md:px-8">
+        <Link href="/" className="flex items-center gap-2.5" onClick={close}>
+          <img src="/logo.jpg" alt="Aide" className="h-8 w-8 rounded-lg object-cover" />
+          <span className="font-headline text-lg font-bold tracking-tight text-on-surface">Aide</span>
+          <span className="rounded-full border border-warning/25 bg-warning/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-warning">
+            beta
+          </span>
         </Link>
 
-        <div className="hidden md:flex items-center gap-7 text-sm text-on-surface-variant">
-          <a href="#features" className="hover:text-on-surface transition-colors">Features</a>
-          <a href="#download" className="hover:text-on-surface transition-colors">Android</a>
-          <a href="#pricing" className="hover:text-on-surface transition-colors">Pricing</a>
-          <a href="/help" className="hover:text-on-surface transition-colors">Help</a>
+        <div className="hidden items-center gap-7 text-sm md:flex">
+          <a href="#product" className="text-on-surface-variant transition-colors hover:text-on-surface">Product</a>
+          <a href="#features" className="text-on-surface-variant transition-colors hover:text-on-surface">Features</a>
+          <a href="#download" className="text-on-surface-variant transition-colors hover:text-on-surface">Android</a>
+          <a href="#pricing" className="text-on-surface-variant transition-colors hover:text-on-surface">Pricing</a>
+          <Link href="/help" className="text-on-surface-variant transition-colors hover:text-on-surface">Docs</Link>
         </div>
 
-        <div className="hidden md:flex items-center gap-3">
+        <div className="hidden items-center gap-2 md:flex">
           <ThemeToggle />
-          <Link href="/login" className="text-sm font-medium text-on-surface-variant hover:text-on-surface transition-colors px-3 py-2">Sign In</Link>
-          <Link href="/login" className="bg-primary text-on-primary text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-primary-light transition-colors">Start Free</Link>
+          <Link href="/login" className="rounded-lg px-3 py-2 text-sm font-medium text-on-surface-variant transition-colors hover:text-on-surface">
+            Sign in
+          </Link>
+          <Link href="/login" className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-on-primary shadow-sm transition-colors hover:bg-primary-light">
+            Open Aide
+          </Link>
         </div>
 
         <button
-          onClick={() => setMobileOpen(!mobileOpen)}
-          className="md:hidden p-2 text-on-surface-variant hover:text-on-surface transition-colors"
-          aria-label="Toggle menu"
+          onClick={() => setMobileOpen((open) => !open)}
+          className="rounded-lg p-2 text-on-surface-variant md:hidden"
+          aria-label="Toggle navigation"
           aria-expanded={mobileOpen}
         >
-          {mobileOpen ? (
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-          ) : (
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9h16.5m-16.5 6.75h16.5" /></svg>
-          )}
+          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            {mobileOpen ? (
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9h16.5M3.75 15.75h16.5" />
+            )}
+          </svg>
         </button>
       </div>
 
       {mobileOpen && (
-        <div className="md:hidden bg-surface-container-low border-b border-outline-variant px-4 pb-4 space-y-2">
-          <a href="#features" onClick={() => setMobileOpen(false)} className="block py-2.5 text-sm text-on-surface-variant">Features</a>
-          <a href="#download" onClick={() => setMobileOpen(false)} className="block py-2.5 text-sm text-on-surface-variant">Android</a>
-          <a href="#pricing" onClick={() => setMobileOpen(false)} className="block py-2.5 text-sm text-on-surface-variant">Pricing</a>
-          <a href="/help" onClick={() => setMobileOpen(false)} className="block py-2.5 text-sm text-on-surface-variant">Help</a>
-          <div className="flex items-center gap-3 pt-2 border-t border-outline-variant">
-            <ThemeToggle />
-            <Link href="/login" onClick={() => setMobileOpen(false)} className="text-sm font-medium text-on-surface-variant">Sign In</Link>
+        <div className="border-b border-outline-variant bg-surface/95 px-4 pb-5 backdrop-blur-xl md:hidden">
+          <div className="space-y-1 pt-2">
+            <a href="#product" onClick={close} className="block rounded-lg px-3 py-2.5 text-sm text-on-surface-variant">Product</a>
+            <a href="#features" onClick={close} className="block rounded-lg px-3 py-2.5 text-sm text-on-surface-variant">Features</a>
+            <a href="#download" onClick={close} className="block rounded-lg px-3 py-2.5 text-sm text-on-surface-variant">Android</a>
+            <a href="#pricing" onClick={close} className="block rounded-lg px-3 py-2.5 text-sm text-on-surface-variant">Pricing</a>
+            <Link href="/help" onClick={close} className="block rounded-lg px-3 py-2.5 text-sm text-on-surface-variant">Docs</Link>
           </div>
-          <Link href="/login" onClick={() => setMobileOpen(false)} className="block text-center bg-primary text-on-primary text-sm font-semibold px-5 py-2.5 rounded-xl">Start Free</Link>
+          <div className="mt-3 flex items-center gap-3 border-t border-outline-variant pt-4">
+            <ThemeToggle />
+            <Link href="/login" onClick={close} className="text-sm font-medium text-on-surface-variant">Sign in</Link>
+            <Link href="/login" onClick={close} className="ml-auto rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-on-primary">Open Aide</Link>
+          </div>
         </div>
       )}
     </nav>
