@@ -10,20 +10,20 @@ import DownloadSection from "@/components/landing/DownloadSection";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Offline-First POS, Inventory & Analytics — Aide",
+  title: "Aide — Simple business management that works offline",
   description:
-    "Aide gives Kenyan businesses an offline-first POS, inventory management and live analytics. Add products, sell on the POS, print receipts, export sales — works without internet and syncs when online.",
+    "Aide gives small businesses an offline-first workspace for sales, inventory, receipts and reporting. Keep working without internet and sync when connectivity returns.",
   openGraph: {
-    title: "Aide — Offline-First POS, Inventory & Analytics",
+    title: "Aide — Simple business management that works offline",
     description:
-      "Add products, sell on the POS, print receipts, export sales — works without internet and syncs when online.",
-    images: [{ url: "/og.jpg", width: 1200, height: 630, alt: "Aide landing page" }],
+      "Sales, inventory, receipts and reports in one offline-first workspace.",
+    images: [{ url: "/og.jpg", width: 1200, height: 630, alt: "Aide business management" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Aide — Offline-First POS, Inventory & Analytics",
+    title: "Aide — Simple business management that works offline",
     description:
-      "Add products, sell on the POS, print receipts, export sales — works without internet and syncs when online.",
+      "Sales, inventory, receipts and reports in one offline-first workspace.",
     images: ["/og.jpg"],
   },
 };
@@ -33,20 +33,14 @@ const structuredData = {
   "@type": "SoftwareApplication",
   name: "Aide",
   applicationCategory: "BusinessApplication",
-  operatingSystem: "Android",
+  operatingSystem: "Web, Android",
   offers: {
     "@type": "Offer",
     price: "0",
     priceCurrency: "KES",
   },
-  aggregateRating: {
-    "@type": "AggregateRating",
-    ratingValue: "4.8",
-    bestRating: "5",
-    ratingCount: "214",
-  },
   description:
-    "Offline-first POS, inventory and reporting for Kenyan businesses. Works without internet, prints receipts, syncs when online.",
+    "Offline-first business management software for sales, inventory and reporting.",
 };
 
 export default function LandingPage() {
@@ -58,14 +52,16 @@ export default function LandingPage() {
       />
       <div className="min-h-screen bg-surface text-on-surface">
         <LandingNav />
-        <Hero />
-        <SocialProof />
-        <Features />
-        <FaqSection />
-        <Pricing />
-        <CtaSection />
+        <main>
+          <Hero />
+          <SocialProof />
+          <Features />
+          <DownloadSection version="1.0.1" />
+          <Pricing />
+          <FaqSection />
+          <CtaSection />
+        </main>
         <LandingFooter />
-        <DownloadSection version="1.0.1" />
       </div>
     </>
   );
