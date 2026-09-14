@@ -3,6 +3,8 @@ import CredentialsProvider from "next-auth/providers/credentials"
 import { prisma } from "./prisma"
 import bcrypt from "bcryptjs"
 
+const FIREBASE_PROJECT_ID = process.env.FIREBASE_PROJECT_ID || "omix-systems-cd1af"
+
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -10,22 +12,37 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        idToken: { label: "Google ID token", type: "text" },
       },
       async authorize(credentials) {
-        // Google sign-in: verify Firebase ID token server-side
+        // Google sign-in: verify the Firebase ID token server-side.
         const idToken = (credentials as any)?.idToken
         if (idToken) {
           try {
-            const res = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`)
-            if (!res.ok) throw new Error("Invalid Google token")
+            const res = await fetch(
+              `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`,
+              { cache: "no-store" },
+            )
+            if (!res.ok) throw new Error("Google token verification failed")
+
             const info = await res.json()
-            if (info.aud !== "omix-systems-cd1af" || info.email_verified !== "true") {
-              throw new Error("Invalid token audience")
+            const emailVerified = info.email_verified === true || info.email_verified === "true"
+            const issuer = `https://securetoken.google.com/${FIREBASE_PROJECT_ID}`
+
+            if (
+              info.aud !== FIREBASE_PROJECT_ID ||
+              !emailVerified ||
+              info.iss !== issuer ||
+              !info.email
+            ) {
+              throw new Error("Google token claims are invalid")
             }
+
             let u = await prisma.user.findUnique({
               where: { email: info.email },
               include: { businesses: { include: { business: true } } },
             })
+
             if (!u) {
               const randomHash = await bcrypt.hash(crypto.randomUUID(), 10)
               u = await prisma.user.create({
@@ -37,6 +54,7 @@ export const authOptions: NextAuthOptions = {
                 include: { businesses: { include: { business: true } } },
               })
             }
+
             return {
               id: u.id,
               email: u.email,
@@ -45,7 +63,8 @@ export const authOptions: NextAuthOptions = {
               businessId: u.businesses[0]?.businessId || null,
             }
           } catch (e) {
-            throw new Error("Google sign-in failed")
+            console.error("Google authentication error:", e)
+            throw new Error("Google sign-in failed. Please try again.")
           }
         }
 
