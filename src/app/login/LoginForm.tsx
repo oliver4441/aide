@@ -13,7 +13,7 @@ function googleErrorMessage(error: unknown): string {
 
   switch (code) {
     case "auth/unauthorized-domain":
-      return "Google sign-in is not enabled for this website yet. Please try again later.";
+      return "Google sign-in isn't available on this domain yet. Please sign in with your email and password instead.";
     case "auth/popup-blocked":
       return "Your browser blocked the Google sign-in window. Allow pop-ups for Aide and try again.";
     case "auth/popup-closed-by-user":

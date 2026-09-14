@@ -1,5 +1,13 @@
 apply plugin: 'com.android.application'
 
+// Release signing inputs. file() resolves relative paths against this project
+// directory (android/app), so ANDROID_KEYSTORE_PATH must either be absolute or
+// point into android/app. The CI workflow decodes the keystore to
+// android/app/release-keystore.jks and validates it with keytool before
+// requesting a signed release build.
+def releaseKeystoreFile = file(System.getenv('ANDROID_KEYSTORE_PATH') ?: 'release-keystore.jks')
+def canSignRelease = releaseKeystoreFile.exists()
+
 android {
     namespace = "com.omixsystems.aide"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -18,15 +26,19 @@ android {
     }
     signingConfigs {
         release {
-            storeFile file(System.getenv('ANDROID_KEYSTORE_PATH') ?: 'release-keystore.jks')
-            storePassword System.getenv('ANDROID_STORE_PASSWORD') ?: ''
-            keyAlias System.getenv('ANDROID_KEY_ALIAS') ?: 'aide-release'
-            keyPassword System.getenv('ANDROID_KEY_PASSWORD') ?: ''
+            if (canSignRelease) {
+                storeFile releaseKeystoreFile
+                storePassword System.getenv('ANDROID_STORE_PASSWORD') ?: ''
+                keyAlias System.getenv('ANDROID_KEY_ALIAS') ?: 'aide-release'
+                keyPassword System.getenv('ANDROID_KEY_PASSWORD') ?: ''
+            }
         }
     }
     buildTypes {
         release {
-            signingConfig signingConfigs.release
+            // Fall back to debug signing when no valid release keystore is
+            // present so the build cannot hard-fail on signing configuration.
+            signingConfig canSignRelease ? signingConfigs.release : signingConfigs.debug
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

@@ -3,7 +3,13 @@ import CredentialsProvider from "next-auth/providers/credentials"
 import { prisma } from "./prisma"
 import bcrypt from "bcryptjs"
 
-const FIREBASE_PROJECT_ID = process.env.FIREBASE_PROJECT_ID || "omix-systems-cd1af"
+// Must match the Firebase project the client initializes with (see
+// NEXT_PUBLIC_FIREBASE_* in src/app/layout.tsx) or Google ID token
+// verification will reject otherwise valid sign-ins.
+const FIREBASE_PROJECT_ID =
+  process.env.FIREBASE_PROJECT_ID ||
+  process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ||
+  "omix-systems-cd1af"
 
 export const authOptions: NextAuthOptions = {
   providers: [
