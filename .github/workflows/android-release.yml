@@ -55,6 +55,13 @@ jobs:
       - name: Sync Capacitor web assets to Android
         run: npx cap sync android
 
+      - name: Ensure cordova variables file exists
+        run: |
+          mkdir -p android/capacitor-cordova-android-plugins
+          if [ ! -f android/capacitor-cordova-android-plugins/cordova.variables.gradle ]; then
+            echo "// No Cordova plugins used" > android/capacitor-cordova-android-plugins/cordova.variables.gradle
+          fi
+
       - name: Build Debug APK
         run: cd android && ./gradlew assembleDebug
 

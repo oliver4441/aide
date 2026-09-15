@@ -2,6 +2,7 @@ import { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { prisma } from "./prisma"
 import bcrypt from "bcryptjs"
+import { OAuth2Client } from "google-auth-library"
 
 // Must match the Firebase project the client initializes with (see
 // src/lib/firebase.ts) or Google ID token verification will reject otherwise
@@ -16,6 +17,8 @@ const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "kipkiruigideon890@gmail.com")
   .split(",")
   .map((email) => email.trim().toLowerCase())
   .filter(Boolean)
+
+const googleClient = new OAuth2Client(FIREBASE_PROJECT_ID)
 
 // Sign-in is Google-only: the client signs in with a Firebase Google popup
 // and passes the resulting ID token here for server-side verification.
@@ -34,27 +37,27 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
-          const res = await fetch(
-            `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`,
-            { cache: "no-store" },
-          )
-          if (!res.ok) throw new Error("Google token verification failed")
+          // Verify the Firebase ID token using Google's public keys.
+          // This checks the signature, audience, issuer, and expiration.
+          const ticket = await googleClient.verifyIdToken({
+            idToken,
+            audience: FIREBASE_PROJECT_ID,
+          })
 
-          const info = await res.json()
-          const emailVerified = info.email_verified === true || info.email_verified === "true"
-          const issuer = `https://securetoken.google.com/${FIREBASE_PROJECT_ID}`
-
-          if (
-            info.aud !== FIREBASE_PROJECT_ID ||
-            !emailVerified ||
-            info.iss !== issuer ||
-            !info.email
-          ) {
+          const payload = ticket.getPayload()
+          if (!payload || !payload.email) {
             throw new Error("Google token claims are invalid")
           }
 
+          const emailVerified = payload.email_verified === true
+          if (!emailVerified) {
+            throw new Error("Google account email is not verified")
+          }
+
+          const email = payload.email
+
           let u = await prisma.user.findUnique({
-            where: { email: info.email },
+            where: { email },
             include: { businesses: { include: { business: true } } },
           })
 
@@ -64,8 +67,8 @@ export const authOptions: NextAuthOptions = {
             const randomHash = await bcrypt.hash(crypto.randomUUID(), 10)
             u = await prisma.user.create({
               data: {
-                email: info.email,
-                name: info.name || info.email.split("@")[0],
+                email,
+                name: payload.name || email.split("@")[0],
                 passwordHash: randomHash,
               },
               include: { businesses: { include: { business: true } } },
@@ -76,7 +79,7 @@ export const authOptions: NextAuthOptions = {
             id: u.id,
             email: u.email,
             name: u.name,
-            role: (ADMIN_EMAILS.includes(info.email.toLowerCase())
+            role: (ADMIN_EMAILS.includes(email.toLowerCase())
               ? "admin"
               : "user") as "admin" | "user",
             businessId: u.businesses[0]?.businessId || null,
