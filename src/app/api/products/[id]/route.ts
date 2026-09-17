@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -7,8 +9,14 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const product = await prisma.product.findUnique({
-    where: { id: params.id },
+  const session = await getServerSession(authOptions);
+  const businessId = (session?.user as any)?.businessId;
+  if (!session?.user || !businessId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const product = await prisma.product.findFirst({
+    where: { id: params.id, businessId },
     include: { category: true },
   });
 
@@ -23,6 +31,20 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const session = await getServerSession(authOptions);
+  const businessId = (session?.user as any)?.businessId;
+  if (!session?.user || !businessId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const existing = await prisma.product.findFirst({
+    where: { id: params.id, businessId },
+  });
+
+  if (!existing) {
+    return NextResponse.json({ error: "Product not found" }, { status: 404 });
+  }
+
   const body = await request.json();
 
   const data: any = {};
@@ -50,6 +72,20 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const session = await getServerSession(authOptions);
+  const businessId = (session?.user as any)?.businessId;
+  if (!session?.user || !businessId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const existing = await prisma.product.findFirst({
+    where: { id: params.id, businessId },
+  });
+
+  if (!existing) {
+    return NextResponse.json({ error: "Product not found" }, { status: 404 });
+  }
+
   // Soft delete
   await prisma.product.update({
     where: { id: params.id },
