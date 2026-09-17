@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useProducts } from "@/hooks/useProducts";
 import { useSales } from "@/hooks/useSales";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
@@ -30,11 +30,17 @@ export default function POSPage() {
   const [lastSale, setLastSale] = useState<(SaleRecord & { items: SaleItemRecord[] }) | null>(null);
 
   const allProducts = products ?? [];
-  const filtered = allProducts.filter(
-    (p) =>
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      (p.sku && p.sku.toLowerCase().includes(search.toLowerCase()))
-  );
+
+  // Performance optimization: Memoize filtered product search to prevent re-filtering
+  // on every cart interaction, payment selection, or checkout modal input change.
+  const filtered = useMemo(() => {
+    const term = search.toLowerCase();
+    return allProducts.filter(
+      (p) =>
+        p.name.toLowerCase().includes(term) ||
+        (p.sku && p.sku.toLowerCase().includes(term))
+    );
+  }, [allProducts, search]);
 
   const addToCart = (product: any) => {
     setCart((prev) => {
