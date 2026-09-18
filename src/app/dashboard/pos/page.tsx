@@ -31,14 +31,16 @@ export default function POSPage() {
 
   const allProducts = products ?? [];
 
-  // Performance optimization: Memoize filtered product search to prevent re-filtering
-  // on every cart interaction, payment selection, or checkout modal input change.
+  // Performance optimization (Bolt ⚡):
+  // Memoize filtered products list to avoid executing string lowercasing and array filtering
+  // on every render (e.g. typing in checkout amount, updating cart items, switching payment method).
   const filtered = useMemo(() => {
-    const term = search.toLowerCase();
+    const query = search.trim().toLowerCase();
+    if (!query) return allProducts;
     return allProducts.filter(
       (p) =>
-        p.name.toLowerCase().includes(term) ||
-        (p.sku && p.sku.toLowerCase().includes(term))
+        p.name.toLowerCase().includes(query) ||
+        (p.sku && p.sku.toLowerCase().includes(query))
     );
   }, [allProducts, search]);
 
@@ -75,8 +77,18 @@ export default function POSPage() {
     }
   };
 
-  const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const cost = cart.reduce((sum, item) => sum + item.cost * item.quantity, 0);
+  // Performance optimization (Bolt ⚡):
+  // Single-pass memoized cart totals calculation, only recomputed when cart items change.
+  const { total, cost } = useMemo(() => {
+    let total = 0;
+    let cost = 0;
+    for (let i = 0; i < cart.length; i++) {
+      const item = cart[i];
+      total += item.price * item.quantity;
+      cost += item.cost * item.quantity;
+    }
+    return { total, cost };
+  }, [cart]);
   const paid = parseFloat(paidAmount) || 0;
   const change = paid - total;
 
