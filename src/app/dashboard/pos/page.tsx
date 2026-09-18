@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useProducts } from "@/hooks/useProducts";
 import { useSales } from "@/hooks/useSales";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
@@ -30,11 +30,19 @@ export default function POSPage() {
   const [lastSale, setLastSale] = useState<(SaleRecord & { items: SaleItemRecord[] }) | null>(null);
 
   const allProducts = products ?? [];
-  const filtered = allProducts.filter(
-    (p) =>
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      (p.sku && p.sku.toLowerCase().includes(search.toLowerCase()))
-  );
+
+  // Performance optimization (Bolt ⚡):
+  // Memoize filtered products list to avoid executing string lowercasing and array filtering
+  // on every render (e.g. typing in checkout amount, updating cart items, switching payment method).
+  const filtered = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return allProducts;
+    return allProducts.filter(
+      (p) =>
+        p.name.toLowerCase().includes(query) ||
+        (p.sku && p.sku.toLowerCase().includes(query))
+    );
+  }, [allProducts, search]);
 
   const addToCart = (product: any) => {
     setCart((prev) => {
@@ -69,8 +77,18 @@ export default function POSPage() {
     }
   };
 
-  const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const cost = cart.reduce((sum, item) => sum + item.cost * item.quantity, 0);
+  // Performance optimization (Bolt ⚡):
+  // Single-pass memoized cart totals calculation, only recomputed when cart items change.
+  const { total, cost } = useMemo(() => {
+    let total = 0;
+    let cost = 0;
+    for (let i = 0; i < cart.length; i++) {
+      const item = cart[i];
+      total += item.price * item.quantity;
+      cost += item.cost * item.quantity;
+    }
+    return { total, cost };
+  }, [cart]);
   const paid = parseFloat(paidAmount) || 0;
   const change = paid - total;
 
