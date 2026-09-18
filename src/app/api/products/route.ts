@@ -5,16 +5,16 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  const businessId = (session?.user as any)?.businessId;
-  if (!session?.user || !businessId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+async function getDefaultBusinessId(): Promise<string> {
+  const business = await prisma.business.findFirst({ orderBy: { createdAt: "asc" } });
+  return business?.id ?? "";
+}
 
+export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const categoryId = searchParams.get("categoryId");
   const search = searchParams.get("search");
+  const businessId = await getDefaultBusinessId();
 
   const where: any = { businessId, isActive: true };
   if (categoryId) where.categoryId = categoryId;
@@ -30,13 +30,14 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  // Require authentication before allowing product creation
   const session = await getServerSession(authOptions);
-  const businessId = (session?.user as any)?.businessId;
-  if (!session?.user || !businessId) {
+  if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const body = await request.json();
+  const businessId = (session.user as any).businessId || (await getDefaultBusinessId());
 
   const product = await prisma.product.create({
     data: {
