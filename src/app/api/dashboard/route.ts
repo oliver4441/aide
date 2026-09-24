@@ -9,7 +9,14 @@ export async function GET() {
 
   const businessId = await getDefaultBusinessId();
 
-  const [todaySales, totalProducts, lowStockItems, recentSales] = await Promise.all([
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  // Performance optimization (Bolt ⚡):
+  // 1. Removed dead-code DB query (`stockValue` aggregate was executed sequentially but never used or returned).
+  // 2. Parallelized `yesterdaySales` aggregate query into single `Promise.all` instead of sequential execution.
+  // Reduces 3 sequential DB roundtrips to 1 single parallel roundtrip on GET /api/dashboard.
+  const [todaySales, totalProducts, lowStockItems, recentSales, yesterdaySales] = await Promise.all([
     prisma.sale.aggregate({
       where: { businessId, createdAt: { gte: today } },
       _sum: { total: true, profit: true },
@@ -23,7 +30,7 @@ export async function GET() {
         businessId,
         isActive: true,
         isService: false,
-        quantity: { lte: prisma.product.fields?.lowStock as any ?? 5 },
+        quantity: { lte: (prisma.product.fields?.lowStock as any) ?? 5 },
       },
       orderBy: { quantity: "asc" },
       take: 5,
@@ -34,21 +41,11 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
       take: 5,
     }),
+    prisma.sale.aggregate({
+      where: { businessId, createdAt: { gte: yesterday, lt: today } },
+      _sum: { total: true },
+    }),
   ]);
-
-  // Calculate total stock value
-  const stockValue = await prisma.product.aggregate({
-    where: { businessId, isActive: true, isService: false },
-    _sum: { sellingPrice: true },
-  });
-
-  // Yesterday comparison
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdaySales = await prisma.sale.aggregate({
-    where: { businessId, createdAt: { gte: yesterday, lt: today } },
-    _sum: { total: true },
-  });
 
   const todayTotal = todaySales._sum.total ?? 0;
   const yesterdayTotal = yesterdaySales._sum.total ?? 0;

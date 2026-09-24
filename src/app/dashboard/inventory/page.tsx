@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { useProducts } from "@/hooks/useProducts";
 import { useCategories } from "@/hooks/useCategories";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
@@ -93,14 +93,20 @@ export default function InventoryPage() {
   const allProducts = products ?? [];
   const allCategories = categories ?? [];
 
-  const filtered = allProducts.filter((p) => {
-    const matchCategory = !selectedCategory || p.categoryId === selectedCategory;
-    const matchSearch =
-      !search ||
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      (p.sku && p.sku.toLowerCase().includes(search.toLowerCase()));
-    return matchCategory && matchSearch && !p.deletedAt;
-  });
+  // Performance optimization (Bolt ⚡):
+  // Memoize product filter calculation to avoid unnecessary array processing and
+  // string conversions on unrelated renders (modal state updates, form changes, etc.).
+  const filtered = useMemo(() => {
+    const searchLower = search.trim().toLowerCase();
+    return allProducts.filter((p) => {
+      const matchCategory = !selectedCategory || p.categoryId === selectedCategory;
+      const matchSearch =
+        !searchLower ||
+        p.name.toLowerCase().includes(searchLower) ||
+        (p.sku && p.sku.toLowerCase().includes(searchLower));
+      return matchCategory && matchSearch && !p.deletedAt;
+    });
+  }, [allProducts, selectedCategory, search]);
 
   const openAdd = () => {
     setEditing(null);
