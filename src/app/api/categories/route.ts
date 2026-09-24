@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +11,10 @@ async function getDefaultBusinessId(): Promise<string> {
 }
 
 export async function GET() {
-  const businessId = await getDefaultBusinessId();
+  const session = await getServerSession(authOptions);
+  const userBusinessId = (session?.user as any)?.businessId;
+  const businessId = userBusinessId || (await getDefaultBusinessId());
+
   const categories = await prisma.category.findMany({
     where: { businessId },
     orderBy: { sortOrder: "asc" },
@@ -19,13 +24,26 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  // Security: Require active session authentication to create categories
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const body = await request.json();
-  const businessId = await getDefaultBusinessId();
+  const name = typeof body?.name === "string" ? body.name.trim() : "";
+  if (!name) {
+    return NextResponse.json({ error: "Category name required" }, { status: 400 });
+  }
+
+  // Security: Scope category creation to the authenticated user's business
+  const userBusinessId = (session.user as any).businessId;
+  const businessId = userBusinessId || (await getDefaultBusinessId());
 
   const category = await prisma.category.create({
     data: {
-      name: body.name,
-      sortOrder: body.sortOrder || 0,
+      name,
+      sortOrder: typeof body.sortOrder === "number" ? body.sortOrder : parseInt(body.sortOrder, 10) || 0,
       businessId,
     },
   });
