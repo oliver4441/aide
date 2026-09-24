@@ -61,75 +61,105 @@ export default function ReportsPage() {
   const { data: business } = useBusinessSettings();
   const [showQR, setShowQR] = useState(false);
 
+  // Performance optimization (Bolt ⚡):
+  // Collapse ~15 separate array traversals (.filter / .reduce) and thousands of
+  // redundant Date object allocations into a single pass O(N) loop over sales data.
   const reportData = useMemo(() => {
     const sales = allSales ?? [];
 
-    const totalRevenue = sales.reduce((s, sale) => s + sale.total, 0);
-    const totalCost = sales.reduce((s, sale) => s + sale.cost, 0);
-    const totalProfit = sales.reduce((s, sale) => s + sale.profit, 0);
-    const totalTransactions = sales.length;
-    const avgSale = totalTransactions > 0 ? totalRevenue / totalTransactions : 0;
+    const weekStartMs = getStartOfPeriod("week").getTime();
+    const monthStartMs = getStartOfPeriod("month").getTime();
 
-    // Week stats
-    const weekStart = getStartOfPeriod("week");
-    const weekSales = sales.filter((s) => new Date(s.createdAt) >= weekStart);
-    const weekRevenue = weekSales.reduce((s, sale) => s + sale.total, 0);
-    const weekCost = weekSales.reduce((s, sale) => s + sale.cost, 0);
-    const weekProfit = weekSales.reduce((s, sale) => s + sale.profit, 0);
-
-    // Month stats
-    const monthStart = getStartOfPeriod("month");
-    const monthSales = sales.filter((s) => new Date(s.createdAt) >= monthStart);
-    const monthRevenue = monthSales.reduce((s, sale) => s + sale.total, 0);
-    const monthCost = monthSales.reduce((s, sale) => s + sale.cost, 0);
-    const monthProfit = monthSales.reduce((s, sale) => s + sale.profit, 0);
-
-    // Last 7 days chart data
-    const last7Days: { date: string; label: string; total: number }[] = [];
+    // Prepare 7-day chart buckets (last 7 days including today)
+    const last7DaysBuckets: { date: string; label: string; total: number; startMs: number; endMs: number }[] = [];
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
       d.setHours(0, 0, 0, 0);
       const nextD = new Date(d);
       nextD.setDate(nextD.getDate() + 1);
-      const dayTotal = sales
-        .filter((s) => {
-          const sd = new Date(s.createdAt);
-          return sd >= d && sd < nextD;
-        })
-        .reduce((sum, s) => sum + s.total, 0);
-      last7Days.push({
+      last7DaysBuckets.push({
         date: d.toISOString().slice(0, 10),
         label: d.toLocaleDateString("en-KE", { weekday: "short" }),
-        total: dayTotal,
+        total: 0,
+        startMs: d.getTime(),
+        endMs: nextD.getTime(),
       });
     }
 
-    // Top products
+    let totalRevenue = 0;
+    let totalCost = 0;
+    let totalProfit = 0;
+
+    let weekRevenue = 0;
+    let weekCost = 0;
+    let weekProfit = 0;
+
+    let monthRevenue = 0;
+    let monthCost = 0;
+    let monthProfit = 0;
+
     const prodMap: Record<string, { quantity: number; revenue: number }> = {};
-    sales.forEach((sale) => {
+    const payMap: Record<string, { count: number; total: number }> = {};
+
+    for (let i = 0; i < sales.length; i++) {
+      const sale = sales[i];
+      const rev = sale.total || 0;
+      const cst = sale.cost || 0;
+      const prf = sale.profit || 0;
+
+      totalRevenue += rev;
+      totalCost += cst;
+      totalProfit += prf;
+
+      const saleMs = Date.parse(sale.createdAt);
+
+      if (saleMs >= weekStartMs) {
+        weekRevenue += rev;
+        weekCost += cst;
+        weekProfit += prf;
+      }
+
+      if (saleMs >= monthStartMs) {
+        monthRevenue += rev;
+        monthCost += cst;
+        monthProfit += prf;
+      }
+
+      for (let k = 0; k < last7DaysBuckets.length; k++) {
+        if (saleMs >= last7DaysBuckets[k].startMs && saleMs < last7DaysBuckets[k].endMs) {
+          last7DaysBuckets[k].total += rev;
+          break;
+        }
+      }
+
       const items = (sale as any).items || [];
-      items.forEach((item: any) => {
+      for (let j = 0; j < items.length; j++) {
+        const item = items[j];
         if (!prodMap[item.name]) prodMap[item.name] = { quantity: 0, revenue: 0 };
         prodMap[item.name].quantity += item.quantity;
         prodMap[item.name].revenue += item.price * item.quantity;
-      });
-    });
+      }
+
+      const method = sale.paymentMethod || "UNKNOWN";
+      if (!payMap[method]) payMap[method] = { count: 0, total: 0 };
+      payMap[method].count += 1;
+      payMap[method].total += rev;
+    }
+
+    const totalTransactions = sales.length;
+    const avgSale = totalTransactions > 0 ? totalRevenue / totalTransactions : 0;
+
     const topProducts = Object.entries(prodMap)
       .map(([name, d]) => ({ name, ...d }))
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 5);
 
-    // Payment breakdown
-    const payMap: Record<string, { count: number; total: number }> = {};
-    sales.forEach((sale) => {
-      if (!payMap[sale.paymentMethod]) payMap[sale.paymentMethod] = { count: 0, total: 0 };
-      payMap[sale.paymentMethod].count += 1;
-      payMap[sale.paymentMethod].total += sale.total;
-    });
     const paymentBreakdown = Object.entries(payMap)
       .map(([method, d]) => ({ method, ...d }))
       .sort((a, b) => b.total - a.total);
+
+    const last7Days = last7DaysBuckets.map(({ date, label, total }) => ({ date, label, total }));
 
     return {
       totalRevenue,
