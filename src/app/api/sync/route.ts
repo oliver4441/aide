@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { resolveConflict, checkStockOversell } from "@/lib/conflicts";
 
@@ -219,12 +221,25 @@ async function handleSaleMutation(
 }
 
 export async function GET(request: NextRequest) {
+  // Security: Require active session authentication for data sync pull
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { searchParams } = new URL(request.url);
   const since = searchParams.get("since") || "0";
   const businessId = searchParams.get("businessId");
 
   if (!businessId) {
     return NextResponse.json({ error: "businessId required" }, { status: 400 });
+  }
+
+  // Security: Enforce tenant isolation by verifying user business authorization
+  const userBusinessId = (session.user as any).businessId;
+  const userRole = (session.user as any).role;
+  if (userRole !== "admin" && userRole !== "SUPER_ADMIN" && userBusinessId !== businessId) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const sinceDate = new Date(since);
