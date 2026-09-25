@@ -94,16 +94,26 @@ export default function InventoryPage() {
   const allCategories = categories ?? [];
 
   // Performance optimization (Bolt ⚡):
-  // Memoize product filter calculation to avoid unnecessary array processing and
-  // string conversions on unrelated renders (modal state updates, form changes, etc.).
+  // 1. Memoize category lookup Map to turn O(C) array scans inside product table rows into O(1) Map lookups.
+  const categoryMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (let i = 0; i < allCategories.length; i++) {
+      map.set(allCategories[i].id, allCategories[i].name);
+    }
+    return map;
+  }, [allCategories]);
+
+  // Performance optimization (Bolt ⚡):
+  // 2. Memoize filtered products list to avoid string lowercasing and array re-filtering on every
+  // component re-render (e.g. typing in modal form inputs, uploading photos, toggling modal state).
   const filtered = useMemo(() => {
-    const searchLower = search.trim().toLowerCase();
+    const query = search.trim().toLowerCase();
     return allProducts.filter((p) => {
       const matchCategory = !selectedCategory || p.categoryId === selectedCategory;
       const matchSearch =
-        !searchLower ||
-        p.name.toLowerCase().includes(searchLower) ||
-        (p.sku && p.sku.toLowerCase().includes(searchLower));
+        !query ||
+        p.name.toLowerCase().includes(query) ||
+        (p.sku && p.sku.toLowerCase().includes(query));
       return matchCategory && matchSearch && !p.deletedAt;
     });
   }, [allProducts, selectedCategory, search]);
@@ -291,7 +301,7 @@ export default function InventoryPage() {
                       </div>
                     </td>
                     <td className="px-5 py-3 text-sm text-on-surface-variant hidden md:table-cell">
-                      {allCategories.find((c) => c.id === p.categoryId)?.name || "—"}
+                      {(p.categoryId && categoryMap.get(p.categoryId)) || "—"}
                     </td>
                     <td className="px-5 py-3 text-sm text-on-surface-variant text-right whitespace-nowrap">
                       {formatMoney(p.buyingPrice)}
