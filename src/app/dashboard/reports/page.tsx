@@ -62,15 +62,16 @@ export default function ReportsPage() {
   const [showQR, setShowQR] = useState(false);
 
   // Performance optimization (Bolt ⚡):
-  // Collapse ~15 separate array traversals (.filter / .reduce) and thousands of
-  // redundant Date object allocations into a single pass O(N) loop over sales data.
+  // Compute report metrics in a single pass over sales, avoiding 16+ redundant array
+  // traversals and 15x Date object allocations per sale record on re-render.
   const reportData = useMemo(() => {
     const sales = allSales ?? [];
+    const totalTransactions = sales.length;
 
     const weekStartMs = getStartOfPeriod("week").getTime();
     const monthStartMs = getStartOfPeriod("month").getTime();
 
-    // Prepare 7-day chart buckets (last 7 days including today)
+    // Precalculate time bounds for last 7 days chart buckets
     const last7DaysBuckets: { date: string; label: string; total: number; startMs: number; endMs: number }[] = [];
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
@@ -90,11 +91,9 @@ export default function ReportsPage() {
     let totalRevenue = 0;
     let totalCost = 0;
     let totalProfit = 0;
-
     let weekRevenue = 0;
     let weekCost = 0;
     let weekProfit = 0;
-
     let monthRevenue = 0;
     let monthCost = 0;
     let monthProfit = 0;
@@ -102,53 +101,63 @@ export default function ReportsPage() {
     const prodMap: Record<string, { quantity: number; revenue: number }> = {};
     const payMap: Record<string, { count: number; total: number }> = {};
 
-    for (let i = 0; i < sales.length; i++) {
+    for (let i = 0; i < totalTransactions; i++) {
       const sale = sales[i];
-      const rev = sale.total || 0;
-      const cst = sale.cost || 0;
-      const prf = sale.profit || 0;
+      const saleTotal = sale.total || 0;
+      const saleCost = sale.cost || 0;
+      const saleProfit = sale.profit || 0;
 
-      totalRevenue += rev;
-      totalCost += cst;
-      totalProfit += prf;
+      totalRevenue += saleTotal;
+      totalCost += saleCost;
+      totalProfit += saleProfit;
 
-      const saleMs = Date.parse(sale.createdAt);
+      const saleTime = new Date(sale.createdAt).getTime();
 
-      if (saleMs >= weekStartMs) {
-        weekRevenue += rev;
-        weekCost += cst;
-        weekProfit += prf;
+      if (saleTime >= weekStartMs) {
+        weekRevenue += saleTotal;
+        weekCost += saleCost;
+        weekProfit += saleProfit;
       }
 
-      if (saleMs >= monthStartMs) {
-        monthRevenue += rev;
-        monthCost += cst;
-        monthProfit += prf;
+      if (saleTime >= monthStartMs) {
+        monthRevenue += saleTotal;
+        monthCost += saleCost;
+        monthProfit += saleProfit;
       }
 
-      for (let k = 0; k < last7DaysBuckets.length; k++) {
-        if (saleMs >= last7DaysBuckets[k].startMs && saleMs < last7DaysBuckets[k].endMs) {
-          last7DaysBuckets[k].total += rev;
+      for (let j = 0; j < 7; j++) {
+        const bucket = last7DaysBuckets[j];
+        if (saleTime >= bucket.startMs && saleTime < bucket.endMs) {
+          bucket.total += saleTotal;
           break;
         }
       }
 
-      const items = (sale as any).items || [];
-      for (let j = 0; j < items.length; j++) {
-        const item = items[j];
-        if (!prodMap[item.name]) prodMap[item.name] = { quantity: 0, revenue: 0 };
-        prodMap[item.name].quantity += item.quantity;
-        prodMap[item.name].revenue += item.price * item.quantity;
+      const items = (sale as any).items;
+      if (items && Array.isArray(items)) {
+        for (let j = 0; j < items.length; j++) {
+          const item = items[j];
+          let p = prodMap[item.name];
+          if (!p) {
+            p = { quantity: 0, revenue: 0 };
+            prodMap[item.name] = p;
+          }
+          p.quantity += item.quantity;
+          p.revenue += item.price * item.quantity;
+        }
       }
 
-      const method = sale.paymentMethod || "UNKNOWN";
-      if (!payMap[method]) payMap[method] = { count: 0, total: 0 };
-      payMap[method].count += 1;
-      payMap[method].total += rev;
+      const method = sale.paymentMethod;
+      if (method) {
+        let pm = payMap[method];
+        if (!pm) {
+          pm = { count: 0, total: 0 };
+          payMap[method] = pm;
+        }
+        pm.count += 1;
+        pm.total += saleTotal;
+      }
     }
-
-    const totalTransactions = sales.length;
-    const avgSale = totalTransactions > 0 ? totalRevenue / totalTransactions : 0;
 
     const topProducts = Object.entries(prodMap)
       .map(([name, d]) => ({ name, ...d }))
@@ -159,6 +168,7 @@ export default function ReportsPage() {
       .map(([method, d]) => ({ method, ...d }))
       .sort((a, b) => b.total - a.total);
 
+    const avgSale = totalTransactions > 0 ? totalRevenue / totalTransactions : 0;
     const last7Days = last7DaysBuckets.map(({ date, label, total }) => ({ date, label, total }));
 
     return {
