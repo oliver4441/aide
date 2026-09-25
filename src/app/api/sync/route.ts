@@ -7,6 +7,16 @@ import { resolveConflict, checkStockOversell } from "@/lib/conflicts";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
+  // Security: Require active session authentication to push sync mutations
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const userBusinessId = (session.user as any).businessId;
+  const userRole = (session.user as any).role;
+  const isAdmin = userRole === "admin" || userRole === "SUPER_ADMIN";
+
   try {
     const body = await request.json();
     const { mutations, deviceId } = body;
@@ -23,11 +33,11 @@ export async function POST(request: NextRequest) {
 
       try {
         if (table === "products") {
-          await handleProductMutation(action, recordId, data, deviceId, conflicts);
+          await handleProductMutation(action, recordId, data, deviceId, conflicts, userBusinessId, isAdmin);
         } else if (table === "categories") {
-          await handleCategoryMutation(action, recordId, data);
+          await handleCategoryMutation(action, recordId, data, userBusinessId, isAdmin);
         } else if (table === "sales") {
-          await handleSaleMutation(action, recordId, data, deviceId, conflicts);
+          await handleSaleMutation(action, recordId, data, deviceId, conflicts, userBusinessId, isAdmin);
         }
         synced++;
       } catch (err: any) {
@@ -46,9 +56,15 @@ async function handleProductMutation(
   recordId: string,
   data: any,
   deviceId: string,
-  conflicts: any[]
+  conflicts: any[],
+  userBusinessId?: string,
+  isAdmin?: boolean
 ) {
   if (action === "delete") {
+    const existing = await prisma.product.findUnique({ where: { id: recordId } });
+    if (!existing) return;
+    if (!isAdmin && userBusinessId && existing.businessId !== userBusinessId) return;
+
     await prisma.product.update({
       where: { id: recordId },
       data: { isActive: false },
@@ -59,6 +75,8 @@ async function handleProductMutation(
   const existing = await prisma.product.findUnique({ where: { id: recordId } });
 
   if (existing) {
+    if (!isAdmin && userBusinessId && existing.businessId !== userBusinessId) return;
+
     if (new Date(existing.updatedAt).getTime() !== new Date(data.updatedAt).getTime()) {
       const result = resolveConflict({
         entityType: "product",
@@ -76,7 +94,7 @@ async function handleProductMutation(
             serverData: existing,
             resolution: "manual-review",
             status: "PENDING_OWNER",
-            businessId: data.businessId,
+            businessId: existing.businessId,
           },
         });
         conflicts.push(conflict);
@@ -100,6 +118,9 @@ async function handleProductMutation(
       },
     });
   } else {
+    const businessId = (!isAdmin && userBusinessId) ? userBusinessId : (data.businessId || userBusinessId);
+    if (!businessId) return;
+
     await prisma.product.create({
       data: {
         id: recordId,
@@ -111,14 +132,24 @@ async function handleProductMutation(
         lowStock: data.lowStock,
         isService: data.isService,
         categoryId: data.categoryId,
-        businessId: data.businessId,
+        businessId,
       },
     });
   }
 }
 
-async function handleCategoryMutation(action: string, recordId: string, data: any) {
+async function handleCategoryMutation(
+  action: string,
+  recordId: string,
+  data: any,
+  userBusinessId?: string,
+  isAdmin?: boolean
+) {
   if (action === "delete") {
+    const existing = await prisma.category.findUnique({ where: { id: recordId } });
+    if (!existing) return;
+    if (!isAdmin && userBusinessId && existing.businessId !== userBusinessId) return;
+
     await prisma.category.delete({ where: { id: recordId } }).catch(() => {});
     return;
   }
@@ -126,17 +157,22 @@ async function handleCategoryMutation(action: string, recordId: string, data: an
   const existing = await prisma.category.findUnique({ where: { id: recordId } });
 
   if (existing) {
+    if (!isAdmin && userBusinessId && existing.businessId !== userBusinessId) return;
+
     await prisma.category.update({
       where: { id: recordId },
       data: { name: data.name, sortOrder: data.sortOrder },
     });
   } else {
+    const businessId = (!isAdmin && userBusinessId) ? userBusinessId : (data.businessId || userBusinessId);
+    if (!businessId) return;
+
     await prisma.category.create({
       data: {
         id: recordId,
         name: data.name,
         sortOrder: data.sortOrder || 0,
-        businessId: data.businessId,
+        businessId,
       },
     });
   }
@@ -147,13 +183,17 @@ async function handleSaleMutation(
   recordId: string,
   data: any,
   deviceId: string,
-  conflicts: any[]
+  conflicts: any[],
+  userBusinessId?: string,
+  isAdmin?: boolean
 ) {
   const existing = await prisma.sale.findUnique({ where: { id: recordId } });
   if (existing) return;
 
   const saleData = data.sale || data;
   const items = data.items || [];
+  const businessId = (!isAdmin && userBusinessId) ? userBusinessId : (saleData.businessId || userBusinessId);
+  if (!businessId) return;
 
   await prisma.$transaction(async (tx) => {
     const created = await tx.sale.create({
@@ -169,7 +209,7 @@ async function handleSaleMutation(
         paymentMethod: saleData.paymentMethod || "CASH",
         notes: saleData.notes,
         cashier: saleData.cashier,
-        businessId: saleData.businessId,
+        businessId,
       },
     });
 
@@ -190,7 +230,7 @@ async function handleSaleMutation(
     for (const item of items) {
       if (item.productId) {
         const product = await tx.product.findUnique({ where: { id: item.productId } });
-        if (product) {
+        if (product && (isAdmin || !userBusinessId || product.businessId === userBusinessId)) {
           const movements = items
             .filter((i: any) => i.productId === item.productId)
             .map((i: any) => ({ delta: -i.quantity, timestamp: saleData.createdAt || new Date().toISOString() }));
@@ -205,7 +245,7 @@ async function handleSaleMutation(
                 serverData: { quantity: product.quantity },
                 resolution: "manual-review",
                 status: "PENDING_OWNER",
-                businessId: saleData.businessId,
+                businessId,
               },
             });
             conflicts.push(conflict);
