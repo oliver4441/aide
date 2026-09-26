@@ -78,16 +78,18 @@ export default function POSPage() {
   };
 
   // Performance optimization (Bolt ⚡):
-  // Single-pass memoized cart totals calculation, only recomputed when cart items change.
-  const { total, cost } = useMemo(() => {
+  // Single-pass memoized cart totals & count calculation, only recomputed when cart items change.
+  const { total, cost, cartCount } = useMemo(() => {
     let total = 0;
     let cost = 0;
+    let cartCount = 0;
     for (let i = 0; i < cart.length; i++) {
       const item = cart[i];
       total += item.price * item.quantity;
       cost += item.cost * item.quantity;
+      cartCount += item.quantity;
     }
-    return { total, cost };
+    return { total, cost, cartCount };
   }, [cart]);
   const paid = parseFloat(paidAmount) || 0;
   const change = paid - total;
@@ -215,7 +217,7 @@ export default function POSPage() {
         <div className="bg-surface-container-low border border-outline-variant rounded-xl overflow-hidden flex flex-col h-fit lg:sticky lg:top-4">
           <div className="px-5 py-4 border-b border-outline-variant">
             <h2 className="text-lg font-bold text-on-surface font-headline">
-              Cart ({cart.reduce((s, c) => s + c.quantity, 0)})
+              Cart ({cartCount})
             </h2>
           </div>
 

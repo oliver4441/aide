@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useSales } from "@/hooks/useSales";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 import { formatMoney } from "@/lib/format";
@@ -45,8 +45,20 @@ export default function SalesPage() {
   const [exportMenu, setExportMenu] = useState(false);
 
   const sales = allSales ?? [];
-  const total = sales.length;
-  const totalRevenue = sales.reduce((s, sale) => s + sale.total, 0);
+
+  // Performance optimization (Bolt ⚡):
+  // Memoize revenue summary calculation in a single O(N) loop to avoid re-executing
+  // .reduce() over sales whenever local component state (like exportMenu) toggles.
+  const { total, totalRevenue } = useMemo(() => {
+    let sum = 0;
+    for (let i = 0; i < sales.length; i++) {
+      sum += sales[i].total || 0;
+    }
+    return {
+      total: sales.length,
+      totalRevenue: sum,
+    };
+  }, [sales]);
 
   return (
     <div className="space-y-6">
