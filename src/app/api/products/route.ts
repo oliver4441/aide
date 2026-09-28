@@ -11,10 +11,28 @@ async function getDefaultBusinessId(): Promise<string> {
 }
 
 export async function GET(request: NextRequest) {
+  // Security: Require active session authentication to access product catalog
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { searchParams } = new URL(request.url);
   const categoryId = searchParams.get("categoryId");
   const search = searchParams.get("search");
-  const businessId = await getDefaultBusinessId();
+
+  // Security: Scope product listing to the authenticated user's business (tenant isolation)
+  const userBusinessId = (session.user as any).businessId;
+  const userRole = (session.user as any).role;
+  const isAdmin = userRole === "admin" || userRole === "SUPER_ADMIN";
+
+  const businessId = isAdmin
+    ? searchParams.get("businessId") || userBusinessId || (await getDefaultBusinessId())
+    : userBusinessId || (await getDefaultBusinessId());
+
+  if (!businessId) {
+    return NextResponse.json([]);
+  }
 
   const where: any = { businessId, isActive: true };
   if (categoryId) where.categoryId = categoryId;
