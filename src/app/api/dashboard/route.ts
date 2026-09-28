@@ -1,13 +1,35 @@
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  // Security: Require active session authentication to access dashboard metrics
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const businessId = await getDefaultBusinessId();
+  // Security: Enforce tenant isolation using the authenticated user's business ID
+  const userBusinessId = (session.user as any).businessId;
+  const businessId = userBusinessId || (await getDefaultBusinessId());
+
+  if (!businessId) {
+    return NextResponse.json({
+      todaySales: 0,
+      todayProfit: 0,
+      salesCount: 0,
+      totalProducts: 0,
+      lowStockItems: [],
+      recentSales: [],
+      salesChange: 0,
+    });
+  }
 
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
