@@ -1,4 +1,5 @@
 "use client";
+import { useMemo } from "react";
 import db from "@/lib/db";
 import { useLiveQuery } from "dexie-react-hooks";
 
@@ -38,19 +39,47 @@ export function useDashboard(businessId?: string): DashboardData {
     []
   );
 
-  const loading = todaySales === undefined || products === undefined;
+  // ⚡ Bolt Optimization: Memoize metrics computation and collapse multiple array
+  // traversals into a single pass to eliminate redundant computations and object
+  // allocations on component re-renders when underlying IndexedDB data hasn't changed.
+  return useMemo(() => {
+    const loading = todaySales === undefined || products === undefined;
 
-  const activeProducts = (products || []).filter((p) => !p.deletedAt);
-  const lowStock = activeProducts.filter((p) => p.quantity <= p.lowStock && !p.isService);
+    let activeCount = 0;
+    let lowStockCount = 0;
+    if (products) {
+      for (let i = 0; i < products.length; i++) {
+        const p = products[i];
+        if (!p.deletedAt) {
+          activeCount++;
+          if (!p.isService && p.quantity <= p.lowStock) {
+            lowStockCount++;
+          }
+        }
+      }
+    }
 
-  return {
-    todaySalesCount: (todaySales || []).length,
-    todayRevenue: (todaySales || []).reduce((sum: number, s: any) => sum + s.total, 0),
-    todayProfit: (todaySales || []).reduce((sum: number, s: any) => sum + s.profit, 0),
-    todayCost: (todaySales || []).reduce((sum: number, s: any) => sum + s.cost, 0),
-    lowStockProducts: lowStock.length,
-    totalProducts: activeProducts.length,
-    recentSales: (todaySales || []).slice(-10).reverse(),
-    loading,
-  };
+    let todayRevenue = 0;
+    let todayProfit = 0;
+    let todayCost = 0;
+    const salesList = todaySales || [];
+
+    for (let i = 0; i < salesList.length; i++) {
+      const s = salesList[i];
+      todayRevenue += s.total || 0;
+      todayProfit += s.profit || 0;
+      todayCost += s.cost || 0;
+    }
+
+    return {
+      todaySalesCount: salesList.length,
+      todayRevenue,
+      todayProfit,
+      todayCost,
+      lowStockProducts: lowStockCount,
+      totalProducts: activeCount,
+      recentSales: salesList.slice(-10).reverse(),
+      loading,
+    };
+  }, [todaySales, products]);
 }

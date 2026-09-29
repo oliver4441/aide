@@ -1,0 +1,50 @@
+name: Android APK Release
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build Release APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x android/gradlew
+
+      - name: Extract version info
+        id: version
+        run: |
+          VERSION_NAME=$(grep -E 'versionName\s*=' android/app/build.gradle.kts | grep -oE '"[^"]+"' | tr -d '"')
+          VERSION_CODE=$(grep -E 'versionCode\s*=' android/app/build.gradle.kts | grep -oE '[0-9]+')
+          echo "version=${VERSION_NAME}" >> $GITHUB_OUTPUT
+          echo "version_code=${VERSION_CODE}" >> $GITHUB_OUTPUT
+          echo "tag=v${VERSION_NAME}+${VERSION_CODE}" >> $GITHUB_OUTPUT
+
+      - name: Build Release APK
+        run: |
+          cd android
+          ./gradlew assembleRelease
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: "Aide v${{ steps.version.outputs.version }} (${{ steps.version.outputs.version_code }})"
+          draft: false
+          prerelease: false
+          files: android/app/build/outputs/apk/release/app-release-unsigned.apk

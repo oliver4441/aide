@@ -2,92 +2,64 @@ import { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { prisma } from "./prisma"
 import bcrypt from "bcryptjs"
-import { OAuth2Client } from "google-auth-library"
 
-// Must match the Firebase project the client initializes with (see
-// src/lib/firebase.ts) or Google ID token verification will reject otherwise
-// valid sign-ins.
-const FIREBASE_PROJECT_ID =
-  process.env.FIREBASE_PROJECT_ID ||
-  process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ||
-  "omix-systems-cd1af"
-
-// Google accounts that get the admin role on sign-in (comma-separated).
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "kipkiruigideon890@gmail.com")
-  .split(",")
-  .map((email) => email.trim().toLowerCase())
-  .filter(Boolean)
-
-const googleClient = new OAuth2Client(FIREBASE_PROJECT_ID)
-
-// Sign-in is Google-only: the client signs in with a Firebase Google popup
-// and passes the resulting ID token here for server-side verification.
-// Email/password accounts are no longer accepted.
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: "credentials",
       credentials: {
-        idToken: { label: "Google ID token", type: "text" },
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        const idToken = (credentials as any)?.idToken
-        if (!idToken) {
-          throw new Error("Please sign in with Google.")
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error("Invalid credentials")
         }
 
-        try {
-          // Verify the Firebase ID token using Google's public keys.
-          // This checks the signature, audience, issuer, and expiration.
-          const ticket = await googleClient.verifyIdToken({
-            idToken,
-            audience: FIREBASE_PROJECT_ID,
+        // Check User table first
+        const user = await prisma.user.findUnique({
+          where: { email: credentials.email },
+          include: { businesses: { include: { business: true } } },
+        })
+
+        if (user?.passwordHash) {
+          const isValid = await bcrypt.compare(credentials.password, user.passwordHash)
+          if (!isValid) throw new Error("Invalid credentials")
+
+          const businessId = user.businesses[0]?.businessId || null
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: "user" as const,
+            businessId,
+          }
+        }
+
+        // Check Admin table
+        const admin = await prisma.admin.findUnique({
+          where: { email: credentials.email },
+        })
+
+        if (admin?.passwordHash) {
+          const isValid = await bcrypt.compare(credentials.password, admin.passwordHash)
+          if (!isValid) throw new Error("Invalid credentials")
+
+          // Admin gets access to first business they created
+          const firstBusiness = await prisma.business.findFirst({
+            where: { adminId: admin.id },
           })
-
-          const payload = ticket.getPayload()
-          if (!payload || !payload.email) {
-            throw new Error("Google token claims are invalid")
-          }
-
-          const emailVerified = payload.email_verified === true
-          if (!emailVerified) {
-            throw new Error("Google account email is not verified")
-          }
-
-          const email = payload.email
-
-          let u = await prisma.user.findUnique({
-            where: { email },
-            include: { businesses: { include: { business: true } } },
-          })
-
-          if (!u) {
-            // passwordHash is a required column; Google-only users get a random
-            // unusable hash since passwords are never checked anymore.
-            const randomHash = await bcrypt.hash(crypto.randomUUID(), 10)
-            u = await prisma.user.create({
-              data: {
-                email,
-                name: payload.name || email.split("@")[0],
-                passwordHash: randomHash,
-              },
-              include: { businesses: { include: { business: true } } },
-            })
-          }
 
           return {
-            id: u.id,
-            email: u.email,
-            name: u.name,
-            role: (ADMIN_EMAILS.includes(email.toLowerCase())
-              ? "admin"
-              : "user") as "admin" | "user",
-            businessId: u.businesses[0]?.businessId || null,
+            id: admin.id,
+            email: admin.email,
+            name: admin.name,
+            role: "admin" as const,
+            businessId: firstBusiness?.id || null,
           }
-        } catch (e) {
-          console.error("Google authentication error:", e)
-          throw new Error("Google sign-in failed. Please try again.")
         }
+
+        throw new Error("Invalid credentials")
       },
     }),
   ],
