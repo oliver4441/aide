@@ -1,0 +1,95 @@
+{
+  "name": "aide",
+  "version": "1.0.0",
+  "description": "Aide - Offline-first Business Management Platform",
+  "main": "./main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win --x64",
+    "build:mac": "electron-builder --mac --x64 --arm64",
+    "build:linux": "electron-builder --linux --x64 --arm64"
+  },
+  "keywords": [
+    "business",
+    "pos",
+    "inventory",
+    "offline-first"
+  ],
+  "author": "Omix Systems",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1"
+  },
+  "build": {
+    "appId": "com.omixsystems.aide",
+    "productName": "Aide",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "logo.jpg",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "signingHashAlgorithms": ["sha256"],
+      "sign": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Aide",
+      "uninstallDisplayName": "Aide",
+      "displayLanguageSelector": false,
+      "installerIcon": "logo.jpg",
+      "uninstallerIcon": "logo.jpg",
+      "installerHeader": "logo.jpg",
+      "installerHeaderIcon": "logo.jpg",
+      "warningsAsErrors": false
+    },
+    "mac": {
+      "target": ["dmg", "zip"],
+      "category": "public.app-category.business",
+      "icon": "logo.jpg"
+    },
+    "linux": {
+      "target": ["deb", "AppImage", "zip"],
+      "category": "Office",
+      "icon": "logo.jpg",
+      "description": "Aide is an offline-first business management platform with POS, inventory, and analytics.",
+      "maintainer": "Omix Systems <info@omixsystems.store>",
+      "vendor": "Omix Systems",
+      "deb": {
+        "depends": [
+          "libnotify4",
+          "libxtst6",
+          "libnss3",
+          "libxshmfence1",
+          "libasound2"
+        ],
+        "packageCategory": "office",
+        "fpm": {
+          "rpm": {
+            "depends": [
+              "libnotify",
+              "libXtst",
+              "nss",
+              "libxshmfence",
+              "alsa-lib"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

@@ -26,26 +26,7 @@ class AuthRepository(
                 Result.failure(Exception("Invalid email or password"))
             }
         } catch (e: Exception) {
-            // Offline fallback for demo / test credentials if matches
-            if (email == "oliver@aide.co.ke" && password == "password123") {
-                val demoUser = UserDto(
-                    id = "user-oliver-1",
-                    email = "oliver@aide.co.ke",
-                    name = "Oliver",
-                    role = "OWNER",
-                    businessId = "bus-demo-1"
-                )
-                sessionManager.saveSession(
-                    token = demoUser.id,
-                    userId = demoUser.id,
-                    businessId = demoUser.businessId,
-                    userEmail = demoUser.email,
-                    userName = demoUser.name
-                )
-                Result.success(demoUser)
-            } else {
-                Result.failure(Exception(e.message ?: "Authentication failed"))
-            }
+            Result.failure(Exception(e.message ?: "Authentication failed"))
         }
     }
 
