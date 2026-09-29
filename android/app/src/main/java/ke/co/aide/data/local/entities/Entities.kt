@@ -45,7 +45,6 @@ data class SaleEntity(
     val paymentMethod: String = "CASH",
     val notes: String? = null,
     val createdAt: String,
-    val isSynced: Boolean = false
 )
 
 @Entity(tableName = "sale_items")
@@ -59,14 +58,3 @@ data class SaleItemEntity(
     val cost: Double
 )
 
-@Entity(tableName = "sync_mutations")
-data class SyncMutationEntity(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val table: String,
-    val action: String, // "create", "update", "delete"
-    val recordId: String,
-    val dataJson: String,
-    val timestamp: Long = System.currentTimeMillis(),
-    val attempts: Int = 0,
-    val lastError: String? = null
-)

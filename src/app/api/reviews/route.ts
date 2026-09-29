@@ -5,26 +5,60 @@ import { authOptions } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-async function getDefaultBusinessId(): Promise<string> {
-  const business = await prisma.business.findFirst({ orderBy: { createdAt: "asc" } });
-  return business?.id ?? "";
+/**
+ * Anonymous reviewers still need a businessId (the column is required), so we
+ * keep one dedicated platform row for them instead of attributing the review
+ * to whichever real tenant happens to be oldest in the database.
+ */
+const PLATFORM_SLUG = "aide-platform-reviews";
+
+async function getPlatformBusinessId(): Promise<string> {
+  const existing = await prisma.business.findUnique({
+    where: { slug: PLATFORM_SLUG },
+    select: { id: true },
+  });
+  if (existing) return existing.id;
+
+  const created = await prisma.business.create({
+    data: {
+      name: "Aide (platform reviews)",
+      type: "OTHER",
+      slug: PLATFORM_SLUG,
+    },
+  });
+  return created.id;
 }
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const businessId = await getDefaultBusinessId();
+
+  const rating = parseInt(body.rating, 10);
+  if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
+    return NextResponse.json({ error: "rating must be 1-5" }, { status: 400 });
+  }
 
   const session = await getServerSession(authOptions);
-  const userId = (session?.user as any)?.id ?? null;
+  const user = session?.user as any;
+
+  // Anonymous reviews still need a businessId, so fall back to a platform
+  // placeholder rather than attaching them to an arbitrary real tenant.
+  const memberBusinessId = user?.id
+    ? (await prisma.businessMembership.findFirst({
+        where: { userId: user.id },
+        select: { businessId: true },
+      }))?.businessId
+    : undefined;
+
+  const businessId = memberBusinessId ?? (await getPlatformBusinessId());
 
   const review = await prisma.review.create({
     data: {
-      rating: body.rating,
-      categories: body.categories,
+      rating,
+      categories: body.categories ?? [],
       comment: body.comment || null,
       contactEmail: body.contactEmail || null,
       businessId,
-      userId,
+      userId: user?.id ?? null,
     },
   });
 

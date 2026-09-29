@@ -15,19 +15,13 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
 import ke.co.aide.data.local.AideDatabase
-import ke.co.aide.data.remote.api.AideApiService
-import ke.co.aide.data.remote.auth.SessionManager
-import ke.co.aide.data.repository.*
-import ke.co.aide.sync.SyncEngine
+import ke.co.aide.data.local.LocalBusinessStore
+import ke.co.aide.data.repository.ProductRepository
+import ke.co.aide.data.repository.SaleRepository
 import ke.co.aide.ui.navigation.Screen
 import ke.co.aide.ui.screens.*
 import ke.co.aide.ui.theme.AideTheme
 import ke.co.aide.ui.viewmodel.*
-import retrofit2.converter.kotlinx.serialization.asConverterFactory
-import kotlinx.serialization.json.Json
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import retrofit2.Retrofit
 
 class MainActivity : ComponentActivity() {
 
@@ -35,44 +29,24 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         val database = AideDatabase.getDatabase(applicationContext)
-        val sessionManager = SessionManager(applicationContext)
+        val businessStore = LocalBusinessStore(applicationContext)
 
-        val json = Json { ignoreUnknownKeys = true }
-        val retrofit = Retrofit.Builder()
-            .baseUrl("https://aide.omixsystems.store")
-            .client(OkHttpClient())
-            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
-            .build()
+        // Everything below reads and writes Room on this device only — there is
+        // no account, no server, and no sync.
+        val businessId = businessStore.getBusinessId()
 
-        val apiService = retrofit.create(AideApiService::class.java)
-
-        val authRepository = AuthRepository(apiService, sessionManager)
         val productRepository = ProductRepository(
-            database.productDao(),
-            database.categoryDao(),
-            database.syncMutationDao()
+            productDao = database.productDao(),
+            categoryDao = database.categoryDao()
         )
         val saleRepository = SaleRepository(
-            database.saleDao(),
-            database.productDao(),
-            database.syncMutationDao()
-        )
-        val syncEngine = SyncEngine(
-            context = applicationContext,
-            apiService = apiService,
-            productDao = database.productDao(),
-            categoryDao = database.categoryDao(),
             saleDao = database.saleDao(),
-            syncMutationDao = database.syncMutationDao(),
-            sessionManager = sessionManager
+            productDao = database.productDao()
         )
 
-        val authViewModel = AuthViewModel(authRepository)
-        val activeBusinessId = sessionManager.getBusinessId() ?: "bus-demo-1"
-        val homeViewModel = HomeViewModel(productRepository, saleRepository, activeBusinessId)
-        val sellViewModel = SellViewModel(productRepository, saleRepository, activeBusinessId)
-        val stockViewModel = StockViewModel(productRepository, activeBusinessId)
-        val syncViewModel = SyncViewModel(syncEngine)
+        val homeViewModel = HomeViewModel(productRepository, saleRepository, businessId)
+        val sellViewModel = SellViewModel(productRepository, saleRepository, businessId)
+        val stockViewModel = StockViewModel(productRepository, businessId)
 
         setContent {
             AideTheme {
@@ -115,26 +89,14 @@ class MainActivity : ComponentActivity() {
                 ) { innerPadding ->
                     NavHost(
                         navController = navController,
-                        startDestination = if (sessionManager.isLoggedIn()) Screen.Home.route else Screen.Login.route,
+                        startDestination = Screen.Home.route,
                         modifier = Modifier.padding(innerPadding)
                     ) {
-                        composable(Screen.Login.route) {
-                            LoginScreen(
-                                authViewModel = authViewModel,
-                                onLoginSuccess = {
-                                    navController.navigate(Screen.Home.route) {
-                                        popUpTo(Screen.Login.route) { inclusive = true }
-                                    }
-                                }
-                            )
-                        }
-
                         composable(Screen.Home.route) {
                             HomeScreen(
                                 homeViewModel = homeViewModel,
                                 onNavigateToSell = { navController.navigate(Screen.Sell.route) },
-                                onNavigateToStock = { navController.navigate(Screen.Stock.route) },
-                                onNavigateToSync = { navController.navigate(Screen.SyncCenter.route) }
+                                onNavigateToStock = { navController.navigate(Screen.Stock.route) }
                             )
                         }
 
@@ -153,18 +115,8 @@ class MainActivity : ComponentActivity() {
 
                         composable(Screen.More.route) {
                             MoreScreen(
-                                onNavigateToSync = { navController.navigate(Screen.SyncCenter.route) },
-                                onLogout = {
-                                    authViewModel.logout()
-                                    navController.navigate(Screen.Login.route) {
-                                        popUpTo(0)
-                                    }
-                                }
+                                businessName = businessStore.getBusinessName()
                             )
-                        }
-
-                        composable(Screen.SyncCenter.route) {
-                            SyncCenterScreen(syncViewModel = syncViewModel)
                         }
 
                         composable(

@@ -4,57 +4,71 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import ThemeToggle from "@/components/ThemeToggle";
-import { signInWithGoogle } from "@/lib/firebaseClient";
 
-function googleErrorMessage(error: unknown): string {
-  const message = error instanceof Error ? error.message : String(error || "");
-  const codeMatch = message.match(/\(auth\/[^)]+\)/);
-  const code = codeMatch?.[1];
-
-  switch (code) {
-    case "auth/unauthorized-domain":
-      return "Google sign-in isn't available on this domain yet. Please use aide.omixsystems.store or contact support.";
-    case "auth/popup-blocked":
-      return "Your browser blocked the Google sign-in window. Allow pop-ups for Aide and try again.";
-    case "auth/popup-closed-by-user":
-      return "Google sign-in was cancelled.";
-    case "auth/network-request-failed":
-      return "Google sign-in could not reach the authentication service. Check your connection and try again.";
-    case "auth/operation-not-allowed":
-      return "Google sign-in is not enabled for this Aide account yet.";
-    default:
-      return message || "Google sign-in failed. Please try again.";
-  }
-}
+type Mode = "signin" | "signup";
 
 export default function LoginForm() {
+  const [mode, setMode] = useState<Mode>("signin");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [businessName, setBusinessName] = useState("");
   const [error, setError] = useState("");
-  const [googleLoading, setGoogleLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const handleGoogle = async () => {
-    setError("");
-    setGoogleLoading(true);
+  const isSignUp = mode === "signup";
 
-    try {
-      const idToken = await signInWithGoogle();
-      const result = await signIn("credentials", {
-        idToken,
-        redirect: false,
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    if (isSignUp && password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+
+    setLoading(true);
+
+    if (isSignUp) {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          businessName: businessName || undefined,
+        }),
       });
 
-      if (result?.error) {
-        setError("Google authentication reached Aide, but the server rejected the sign-in. Please try again.");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setLoading(false);
+        setError(data.error || "Could not create your account.");
         return;
       }
-
-      router.push("/dashboard");
-    } catch (err: unknown) {
-      setError(googleErrorMessage(err));
-    } finally {
-      setGoogleLoading(false);
     }
+
+    const result = await signIn("credentials", {
+      email,
+      password,
+      redirect: false,
+    });
+
+    setLoading(false);
+
+    if (result?.error) {
+      setError("Invalid email or password.");
+      return;
+    }
+
+    router.push("/dashboard");
+    router.refresh();
   };
+
+  const inputClass =
+    "w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface-container-low text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors";
 
   return (
     <div className="min-h-screen bg-surface flex items-center justify-center p-4 relative">
@@ -62,24 +76,29 @@ export default function LoginForm() {
         <ThemeToggle />
       </div>
 
+      {/* Background blobs */}
       <div className="fixed top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
         <div className="absolute top-[-10%] right-[-5%] w-[40vw] h-[40vw] rounded-full bg-primary-container opacity-10 blur-[100px]" />
         <div className="absolute bottom-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-primary opacity-5 blur-[120px]" />
       </div>
 
       <div className="w-full max-w-md">
+        {/* Logo */}
         <div className="flex items-center justify-center gap-3 mb-8">
           <img src="/logo.jpg" alt="Aide logo" className="w-10 h-10 rounded-xl object-cover shadow-md" />
           <span className="text-2xl font-bold text-primary font-headline">Aide</span>
           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-warning/20 text-warning border border-warning/30">BETA</span>
         </div>
 
+        {/* Card */}
         <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant shadow-lg p-8">
           <h1 className="text-2xl font-bold text-on-surface mb-2 text-center font-headline">
-            Welcome
+            {isSignUp ? "Create your account" : "Welcome back"}
           </h1>
           <p className="text-on-surface-variant text-center mb-8 text-sm">
-            Sign in or create your business account with Google
+            {isSignUp
+              ? "Set up your business space in under a minute"
+              : "Sign in to your business dashboard"}
           </p>
 
           {error && (
@@ -88,23 +107,98 @@ export default function LoginForm() {
             </div>
           )}
 
-          <button
-            onClick={handleGoogle}
-            disabled={googleLoading}
-            className="w-full flex items-center justify-center gap-3 border border-outline-variant bg-surface-container-low text-on-surface font-semibold py-3 rounded-lg hover:bg-surface-container transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <svg className="w-5 h-5" viewBox="0 0 24 24">
-              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57a5.06 5.06 0 00-3.27-8.1z" />
-              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0012 23z" />
-              <path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 010-4.2V7.06H2.18a11 11 0 000 9.88l3.66-2.84z" />
-              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15A11 11 0 002.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-            </svg>
-            {googleLoading ? "Connecting..." : "Continue with Google"}
-          </button>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {isSignUp && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-on-surface mb-1.5" htmlFor="name">
+                    Your name
+                  </label>
+                  <input
+                    id="name"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    className={inputClass}
+                    placeholder="Jane Wanjiru"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-on-surface mb-1.5" htmlFor="businessName">
+                    Business name <span className="text-on-surface-variant font-normal">(optional)</span>
+                  </label>
+                  <input
+                    id="businessName"
+                    type="text"
+                    value={businessName}
+                    onChange={(e) => setBusinessName(e.target.value)}
+                    className={inputClass}
+                    placeholder="Wanjiru General Shop"
+                  />
+                </div>
+              </>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-on-surface mb-1.5" htmlFor="email">
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+                className={inputClass}
+                placeholder="you@example.com"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-on-surface mb-1.5" htmlFor="password">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={isSignUp ? 8 : undefined}
+                autoComplete={isSignUp ? "new-password" : "current-password"}
+                className={inputClass}
+                placeholder={isSignUp ? "At least 8 characters" : "••••••••"}
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-primary text-on-primary font-semibold py-3 rounded-lg hover:bg-primary-light transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? (isSignUp ? "Creating account..." : "Signing in...") : isSignUp ? "Create Account" : "Sign In"}
+            </button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <button
+              type="button"
+              onClick={() => {
+                setMode(isSignUp ? "signin" : "signup");
+                setError("");
+              }}
+              className="text-sm text-primary hover:underline font-medium"
+            >
+              {isSignUp ? "Already have an account? Sign in" : "New here? Create an account"}
+            </button>
+          </div>
         </div>
 
         <p className="text-center text-xs text-on-surface-variant mt-6">
-          New here? Continue with Google to create your business space instantly.
+          Your data stays on this device and syncs when you&apos;re online.
         </p>
       </div>
     </div>

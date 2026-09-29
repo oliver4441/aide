@@ -20,16 +20,12 @@ import ke.co.aide.ui.viewmodel.HomeViewModel
 fun HomeScreen(
     homeViewModel: HomeViewModel,
     onNavigateToSell: () -> Unit,
-    onNavigateToStock: () -> Unit,
-    onNavigateToSync: () -> Unit
+    onNavigateToStock: () -> Unit
 ) {
     val uiState by homeViewModel.uiState.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize()) {
-        AideSyncIndicator(
-            pendingCount = 0,
-            onSyncClick = onNavigateToSync
-        )
+        AideLocalOnlyBanner()
 
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(16.dp),

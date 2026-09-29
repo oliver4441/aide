@@ -12,10 +12,9 @@ import ke.co.aide.data.local.entities.*
         ProductEntity::class,
         CategoryEntity::class,
         SaleEntity::class,
-        SaleItemEntity::class,
-        SyncMutationEntity::class
+        SaleItemEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AideDatabase : RoomDatabase() {
@@ -23,7 +22,6 @@ abstract class AideDatabase : RoomDatabase() {
     abstract fun productDao(): ProductDao
     abstract fun categoryDao(): CategoryDao
     abstract fun saleDao(): SaleDao
-    abstract fun syncMutationDao(): SyncMutationDao
 
     companion object {
         @Volatile

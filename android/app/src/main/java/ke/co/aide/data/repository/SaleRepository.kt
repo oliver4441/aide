@@ -1,28 +1,22 @@
 package ke.co.aide.data.repository
 
-import ke.co.aide.data.local.dao.*
-import ke.co.aide.data.local.entities.*
-import ke.co.aide.data.remote.dto.SaleDto
-import ke.co.aide.data.remote.dto.SaleItemDto
+import ke.co.aide.data.local.dao.ProductDao
+import ke.co.aide.data.local.dao.SaleDao
+import ke.co.aide.data.local.dao.SaleWithItems
+import ke.co.aide.data.local.entities.SaleEntity
+import ke.co.aide.data.local.entities.SaleItemEntity
 import kotlinx.coroutines.flow.Flow
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import java.text.SimpleDateFormat
 import java.util.*
 
-@Serializable
-private data class SaleMutationPayload(
-    val sale: SaleDto,
-    val items: List<SaleItemDto>
-)
-
+/**
+ * Local-only sales storage: records the sale, writes its items, and decrements
+ * stock, all inside this device's database.
+ */
 class SaleRepository(
     private val saleDao: SaleDao,
-    private val productDao: ProductDao,
-    private val syncMutationDao: SyncMutationDao
+    private val productDao: ProductDao
 ) {
-    private val json = Json { ignoreUnknownKeys = true }
 
     fun getSales(businessId: String): Flow<List<SaleWithItems>> =
         saleDao.getSalesWithItems(businessId)
@@ -63,8 +57,7 @@ class SaleRepository(
             cashier = cashier,
             paymentMethod = paymentMethod,
             notes = notes,
-            createdAt = now,
-            isSynced = false
+            createdAt = now
         )
 
         val saleItemsWithId = items.map { item ->
@@ -80,44 +73,6 @@ class SaleRepository(
                 productDao.decrementStock(pid, item.quantity)
             }
         }
-
-        val saleDto = SaleDto(
-            id = saleId,
-            total = total,
-            cost = cost,
-            profit = profit,
-            paid = paid,
-            change = change,
-            tax = tax,
-            taxRate = taxRate,
-            cashier = cashier,
-            paymentMethod = paymentMethod,
-            notes = notes,
-            businessId = businessId,
-            createdAt = now
-        )
-
-        val itemDtos = saleItemsWithId.map { item ->
-            SaleItemDto(
-                id = item.id,
-                name = item.name,
-                quantity = item.quantity,
-                price = item.price,
-                cost = item.cost,
-                productId = item.productId
-            )
-        }
-
-        val payload = SaleMutationPayload(sale = saleDto, items = itemDtos)
-
-        syncMutationDao.insertMutation(
-            SyncMutationEntity(
-                table = "sales",
-                action = "create",
-                recordId = saleId,
-                dataJson = json.encodeToString(payload)
-            )
-        )
 
         return sale
     }

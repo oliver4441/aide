@@ -162,7 +162,7 @@ export default function SharedReceiptPage() {
             </button>
 
             <p className="text-center text-xs text-on-surface-variant mt-3">
-              Tap "Download / Save PDF" and choose "Save as PDF" to keep your receipt.
+              Tap &quot;Download / Save PDF&quot; and choose &quot;Save as PDF&quot; to keep your receipt.
             </p>
           </>
         )}

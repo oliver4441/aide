@@ -70,11 +70,7 @@ export const viewport = {
   themeColor: "#6f264f",
 };
 
-// Firebase (Google sign-in) is initialized with the npm SDK in
-// src/lib/firebase.ts — no CDN scripts needed here. Every domain the app is
-// served from must be listed under Firebase Console → Authentication →
-// Settings → Authorized domains or Google sign-in fails with
-// auth/unauthorized-domain.
+// Sign-in is email + password handled by NextAuth (see src/lib/auth.ts).
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

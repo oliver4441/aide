@@ -31,7 +31,7 @@ export default function NotFound() {
           Page not found
         </h1>
         <p className="text-on-surface-variant text-lg mb-8">
-          This page isn't available. It may have been moved or doesn't exist.
+          This page isn&apos;t available. It may have been moved or doesn&apos;t exist.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link

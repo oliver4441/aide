@@ -71,27 +71,5 @@ interface SaleDao {
         insertSaleItems(items)
     }
 
-    @Query("UPDATE sales SET isSynced = 1 WHERE id = :saleId")
-    suspend fun markSynced(saleId: String)
 }
 
-@Dao
-interface SyncMutationDao {
-    @Query("SELECT * FROM sync_mutations ORDER BY id ASC")
-    fun getAllMutations(): Flow<List<SyncMutationEntity>>
-
-    @Query("SELECT * FROM sync_mutations ORDER BY id ASC")
-    suspend fun getPendingMutations(): List<SyncMutationEntity>
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertMutation(mutation: SyncMutationEntity)
-
-    @Query("DELETE FROM sync_mutations WHERE id = :id")
-    suspend fun deleteMutation(id: Long)
-
-    @Query("DELETE FROM sync_mutations WHERE id IN (:ids)")
-    suspend fun deleteMutations(ids: List<Long>)
-
-    @Query("UPDATE sync_mutations SET attempts = attempts + 1, lastError = :error WHERE id = :id")
-    suspend fun recordAttemptFailed(id: Long, error: String)
-}

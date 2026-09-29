@@ -138,38 +138,25 @@ fun AideSearchBar(
 }
 
 @Composable
-fun AideSyncIndicator(
-    pendingCount: Int,
-    onSyncClick: () -> Unit
-) {
+fun AideLocalOnlyBanner() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(if (pendingCount > 0) WarningAmber.copy(alpha = 0.15f) else PrimaryGreen.copy(alpha = 0.15f))
-            .clickable { onSyncClick() }
+            .background(PrimaryGreen.copy(alpha = 0.15f))
             .padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = Icons.Default.Sync,
-                contentDescription = "Sync",
-                tint = if (pendingCount > 0) WarningAmber else PrimaryGreen,
-                modifier = Modifier.size(18.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = if (pendingCount > 0) "$pendingCount offline changes waiting to sync" else "All data synced",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        }
+        Icon(
+            imageVector = Icons.Default.PhoneAndroid,
+            contentDescription = "Local only",
+            tint = PrimaryGreen,
+            modifier = Modifier.size(18.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
         Text(
-            text = "Sync Now",
+            text = "Data is stored only on this device",
             style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Bold,
-            color = if (pendingCount > 0) WarningAmber else PrimaryGreen
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }
