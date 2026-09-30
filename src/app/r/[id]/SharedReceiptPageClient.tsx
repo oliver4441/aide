@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import ReceiptDocument from "@/components/receipt/ReceiptDocument";
 import db, { BusinessRecord } from "@/lib/db";
+import UiSpinner from "@/components/ui/UiSpinner";
 
 interface SaleData {
   id: string;
@@ -110,7 +111,7 @@ export default function SharedReceiptPage() {
 
         {loading && (
           <div className="flex justify-center py-16">
-            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            <UiSpinner size={32} className="text-primary" />
           </div>
         )}
 

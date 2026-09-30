@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import UiButton from "@/components/ui/UiButton";
 
 export default function Hero() {
   return (
@@ -23,13 +23,13 @@ export default function Hero() {
         </p>
 
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <Link href="/login" className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-sm font-semibold text-on-primary shadow-lg shadow-primary/10 transition hover:bg-primary-light sm:w-auto">
+          <UiButton href="/login" className="w-full sm:w-auto">
             Start free
             <span aria-hidden>→</span>
-          </Link>
-          <a href="#features" className="inline-flex w-full items-center justify-center rounded-xl border border-outline-variant bg-surface-container-low px-6 py-3.5 text-sm font-semibold text-on-surface transition hover:bg-surface-container sm:w-auto">
+          </UiButton>
+          <UiButton href="#features" variant="outline" className="w-full sm:w-auto">
             Explore the product
-          </a>
+          </UiButton>
         </div>
 
         <div className="mt-7 flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-on-surface-variant">

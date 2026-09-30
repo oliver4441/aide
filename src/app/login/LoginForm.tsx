@@ -4,6 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import ThemeToggle from "@/components/ThemeToggle";
+import UiButton from "@/components/ui/UiButton";
 
 type Mode = "signin" | "signup";
 
@@ -174,13 +175,16 @@ export default function LoginForm() {
               />
             </div>
 
-            <button
+            <UiButton
               type="submit"
               disabled={loading}
-              className="w-full bg-primary text-on-primary font-semibold py-3 rounded-lg hover:bg-primary-light transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+              loading={loading}
+              className="w-full"
             >
-              {loading ? (isSignUp ? "Creating account..." : "Signing in...") : isSignUp ? "Create Account" : "Sign In"}
-            </button>
+              {loading
+                ? (isSignUp ? "Creating account..." : "Signing in...")
+                : (isSignUp ? "Create Account" : "Sign In")}
+            </UiButton>
           </form>
 
           <div className="mt-6 text-center">

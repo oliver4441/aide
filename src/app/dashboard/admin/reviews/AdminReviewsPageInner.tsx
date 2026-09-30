@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import UiSpinner from "@/components/ui/UiSpinner";
 
 interface Review {
   id: string;
@@ -59,7 +60,7 @@ export default function AdminReviewsPage() {
   if (status === "loading" || loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        <UiSpinner size={32} className="text-primary" />
       </div>
     );
   }

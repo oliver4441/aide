@@ -98,3 +98,40 @@
 .animate-fade-in {
   animation: fadeIn 0.3s ease-out;
 }
+
+/* ---- uiverse-style micro-interactions ---- */
+
+/* Gradient ring loader (uiverse-style) */
+.ui-spinner {
+  border-radius: 9999px;
+  background: conic-gradient(from 0deg, transparent 15%, currentColor 100%);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  animation: ui-spin 0.7s linear infinite;
+}
+@keyframes ui-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Shiny sweep button (uiverse-style sheen) */
+.ui-btn {
+  position: relative;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+.ui-btn::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -160%;
+  width: 45%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.38), transparent);
+  transform: skewX(-20deg);
+  animation: ui-sheen 3s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes ui-sheen {
+  0%, 60% { left: -160%; }
+  100% { left: 160%; }
+}

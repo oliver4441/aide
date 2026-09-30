@@ -99,6 +99,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           dangerouslySetInnerHTML={{
             __html: `
               var Tawk_API=Tawk_API||{};
+              // Position the widget at the right-center ("equator") of the mobile
+              // view so it clears the fixed bottom nav bar. Desktop stays bottom-right.
+              Tawk_API.customStyle = {
+                visibility: {
+                  desktop: { position: 'br', xOffset: 8, yOffset: 96 },
+                  mobile:  { position: 'cr', xOffset: 8, yOffset: 0 },
+                },
+              };
               (function(){
               var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
               s1.async=true;
