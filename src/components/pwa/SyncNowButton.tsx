@@ -6,7 +6,7 @@ import db from "@/lib/db";
 import { syncEngine } from "@/lib/sync";
 import { sounds } from "@/lib/sounds";
 import UiSpinner from "@/components/ui/UiSpinner";
-import { addNotification } from "@/lib/notifications";
+import { addNotification, syncNotificationsWithServer } from "@/lib/notifications";
 
 export default function SyncNowButton() {
   const [online, setOnline] = useState(true);
@@ -32,6 +32,7 @@ export default function SyncNowButton() {
     const count = pending;
     try {
       await syncEngine.sync();
+      await syncNotificationsWithServer();
       sounds.sync();
       await addNotification({
         type: "system",

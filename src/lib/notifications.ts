@@ -82,3 +82,62 @@ export async function deleteNotification(id: string) {
 export async function clearNotifications() {
   await db.notifications.clear();
 }
+
+const LAST_SYNC_KEY = "aide_notif_last_sync";
+
+/**
+ * Reconcile local notification state with the server:
+ *  - push locally-read server notifications so reads propagate across devices
+ *  - pull server-born notifications created since our last sync
+ */
+export async function syncNotificationsWithServer(): Promise<number> {
+  try {
+    const businessId = typeof localStorage !== "undefined" ? localStorage.getItem("aide_business_id") || undefined : undefined;
+
+    // Locally-read server notifications (idempotent — server just re-marks read).
+    const locals = await db.notifications.filter((n) => n.channel === "server" && n.read).toArray();
+    const readIds = locals.map((n) => n.id);
+    const deletedIds: string[] = [];
+
+    const lastSync = typeof localStorage !== "undefined" ? localStorage.getItem(LAST_SYNC_KEY) : null;
+    const since = lastSync || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+    const res = await fetch("/api/notifications/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ readIds, deletedIds, since, businessId }),
+    });
+    if (!res.ok) return 0;
+
+    const data = await res.json();
+    const incoming: NotificationRecord[] = data.notifications ?? [];
+
+    let added = 0;
+    for (const n of incoming) {
+      const exists = await db.notifications.get(n.id);
+      if (exists) continue;
+      await db.notifications.add({
+        id: n.id,
+        businessId: n.businessId,
+        type: n.type,
+        channel: n.channel ?? "server",
+        title: n.title,
+        message: n.message,
+        data: n.data ?? undefined,
+        read: Boolean(n.read),
+        createdAt: n.createdAt,
+        expiresAt: n.expiresAt ?? undefined,
+        deletedAt: n.deletedAt ?? undefined,
+      });
+      added++;
+    }
+
+    if (data.serverNow && typeof localStorage !== "undefined") {
+      localStorage.setItem(LAST_SYNC_KEY, data.serverNow);
+    }
+    return added;
+  } catch {
+    return 0;
+  }
+}
