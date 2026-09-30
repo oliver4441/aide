@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bell, Check, CheckCheck, Trash2, X } from "lucide-react";
+import Link from "next/link";
 import { useNotifications } from "@/hooks/useNotifications";
 import { clearNotifications } from "@/lib/notifications";
 import { NotificationType } from "@/lib/db";
@@ -135,12 +136,21 @@ export default function NotificationBell() {
 
               {/* Footer */}
               {items.length > 0 && (
-                <button
-                  onClick={() => clearNotifications()}
-                  className="flex w-full items-center justify-center gap-1.5 border-t border-outline-variant py-2.5 text-xs font-medium text-on-surface-variant hover:text-danger hover:bg-surface-container/50 transition-colors"
-                >
-                  <Trash2 className="w-3.5 h-3.5" /> Clear all notifications
-                </button>
+                <div className="border-t border-outline-variant">
+                  <Link
+                    href="/dashboard/notifications"
+                    onClick={() => setOpen(false)}
+                    className="flex w-full items-center justify-center gap-1.5 border-b border-outline-variant py-2.5 text-xs font-medium text-primary hover:bg-surface-container/50 transition-colors"
+                  >
+                    <Check className="w-3.5 h-3.5" /> View all notifications
+                  </Link>
+                  <button
+                    onClick={() => clearNotifications()}
+                    className="flex w-full items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-on-surface-variant hover:text-danger hover:bg-surface-container/50 transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> Clear all notifications
+                  </button>
+                </div>
               )}
             </motion.div>
           </>

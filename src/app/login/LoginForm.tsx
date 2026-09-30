@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import UiButton from "@/components/ui/UiButton";
 
@@ -76,6 +78,15 @@ export default function LoginForm() {
       <div className="absolute top-4 right-4">
         <ThemeToggle />
       </div>
+
+      {/* Back to home */}
+      <Link
+        href="/"
+        className="absolute top-4 left-4 inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-on-surface-variant hover:text-on-surface hover:bg-surface-container/60 transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back to Home
+      </Link>
 
       {/* Background blobs */}
       <div className="fixed top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
