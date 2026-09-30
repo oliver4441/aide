@@ -1,88 +1,114 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { X } from "lucide-react";
+
+const DISMISS_KEY = "aide_install_dismissed";
 
 export default function InstallPrompt() {
   const [deferred, setDeferred] = useState<any>(null);
   const [visible, setVisible] = useState(false);
   const [installed, setInstalled] = useState(true);
+  const [showInstructions, setShowInstructions] = useState(false);
 
   useEffect(() => {
-    const standalone =
+    const isStandalone =
       window.matchMedia("(display-mode: standalone)").matches ||
       (window.navigator as any).standalone === true;
-    if (!standalone) setInstalled(false);
+    if (!isStandalone) setInstalled(false);
 
-    const handler = (e: Event) => {
+    const onBeforeInstall = (e: Event) => {
       e.preventDefault();
       setDeferred(e);
       setVisible(true);
     };
-    window.addEventListener("beforeinstallprompt", handler);
-
-    const installedHandler = () => {
+    const onInstalled = () => {
       setInstalled(true);
       setVisible(false);
     };
-    window.addEventListener("appinstalled", installedHandler);
+    window.addEventListener("beforeinstallprompt", onBeforeInstall);
+    window.addEventListener("appinstalled", onInstalled);
 
-    // Show a soft nudge even without the native prompt on mobile
-    if (!standalone && !localStorage.getItem("aide_install_dismissed")) {
+    // Soft nudge for browsers without a native prompt (e.g. iOS Safari).
+    if (!isStandalone && !localStorage.getItem(DISMISS_KEY)) {
       const t = setTimeout(() => setVisible(true), 4000);
       return () => {
         clearTimeout(t);
-        window.removeEventListener("beforeinstallprompt", handler);
-        window.removeEventListener("appinstalled", installedHandler);
+        window.removeEventListener("beforeinstallprompt", onBeforeInstall);
+        window.removeEventListener("appinstalled", onInstalled);
       };
     }
+
     return () => {
-      window.removeEventListener("beforeinstallprompt", handler);
-      window.removeEventListener("appinstalled", installedHandler);
+      window.removeEventListener("beforeinstallprompt", onBeforeInstall);
+      window.removeEventListener("appinstalled", onInstalled);
     };
   }, []);
+
+  const dismiss = () => {
+    setVisible(false);
+    localStorage.setItem(DISMISS_KEY, "1");
+  };
 
   const install = async () => {
     if (deferred) {
       deferred.prompt();
       const res = await deferred.userChoice;
-      if (res?.outcome === "accepted") setVisible(false);
+      if (res?.outcome === "accepted") {
+        setVisible(false);
+        setInstalled(true);
+      }
       setDeferred(null);
     } else {
-      alert(
-        "To install: Android Chrome — menu (3 dots) > Add to Home screen.\nDesktop Chrome/Edge — install icon in the address bar.\niPhone Safari — Share > Add to Home Screen."
-      );
+      setShowInstructions(true);
     }
   };
 
   if (installed || !visible) return null;
 
   return (
-    <div className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-[60] w-[92%] max-w-sm">
-      <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-lg px-4 py-3 flex items-center gap-3">
-        <img src="/logo.jpg" alt="" className="w-9 h-9 rounded-lg object-cover shrink-0" />
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-on-surface">Install Aide</p>
-          <p className="text-[11px] text-on-surface-variant truncate">Works offline, on your home screen</p>
-        </div>
-        <button
-          onClick={install}
-          className="bg-primary text-on-primary text-xs font-semibold px-3 py-2 rounded-lg hover:bg-primary-light transition-colors shrink-0"
+    <AnimatePresence>
+      {visible && (
+        <motion.div
+          className="fixed left-1/2 -translate-x-1/2 z-[60] w-[94%] max-w-sm bottom-16 md:bottom-6"
+          initial={{ y: 80, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: 80, opacity: 0 }}
+          transition={{ type: "spring", stiffness: 300, damping: 28 }}
         >
-          Install
-        </button>
-        <button
-          onClick={() => {
-            setVisible(false);
-            localStorage.setItem("aide_install_dismissed", "1");
-          }}
-          className="text-on-surface-variant/60 hover:text-on-surface p-1 shrink-0"
-          aria-label="Dismiss"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-    </div>
+          <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl shadow-2xl overflow-hidden">
+            <div className="flex items-center gap-3 p-4">
+              <img src="/logo.jpg" alt="" className="w-11 h-11 rounded-xl object-cover shrink-0 shadow-sm" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-on-surface">Install Aide</p>
+                <p className="text-[11px] text-on-surface-variant leading-snug">
+                  {showInstructions
+                    ? "Android/Chrome: menu ⋮ → Add to Home screen. iOS Safari: Share → Add to Home Screen."
+                    : "Works offline and lives right on your home screen."}
+                </p>
+              </div>
+              <button
+                onClick={dismiss}
+                className="text-on-surface-variant/60 hover:text-on-surface p-1.5 shrink-0 rounded-lg hover:bg-surface-container transition-colors"
+                aria-label="Dismiss"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            {!showInstructions && (
+              <div className="px-4 pb-4">
+                <button
+                  onClick={install}
+                  className="w-full bg-primary text-on-primary text-sm font-semibold py-2.5 rounded-xl hover:bg-primary-light transition-colors active:scale-[0.99]"
+                >
+                  Install
+                </button>
+              </div>
+            )}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

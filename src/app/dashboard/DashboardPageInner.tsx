@@ -8,6 +8,15 @@ import { useDashboard } from "@/hooks/useDashboard";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 import { formatMoney } from "@/lib/format";
 
+function getGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 5) return "Good night";
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  if (h < 21) return "Good evening";
+  return "Good night";
+}
+
 export default function DashboardPageInner() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -47,7 +56,7 @@ export default function DashboardPageInner() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-outline-variant pb-6">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-on-surface mb-1 font-headline">
-            Good business, Manager
+            {getGreeting()}, Manager
           </h1>
           <p className="text-on-surface-variant text-sm">
             Here is what&apos;s happening at {business?.name ?? "your business"} today.

@@ -16,6 +16,11 @@ export default function CtaSection() {
             }}
           />
           <div className="relative z-10">
+            <img
+              src="/logo.jpg"
+              alt="Aide logo"
+              className="w-16 h-16 md:w-20 md:h-20 mx-auto mb-5 rounded-2xl object-cover shadow-lg ring-4 ring-on-primary/20"
+            />
             <h2 className="text-3xl md:text-4xl font-bold text-on-primary mb-4 font-headline">
               Ready to take control?
             </h2>
