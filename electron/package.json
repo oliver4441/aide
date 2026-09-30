@@ -29,7 +29,7 @@
     },
     "files": [
       "main.js",
-      "logo.jpg",
+      "icon.png",
       "package.json"
     ],
     "win": {
@@ -51,21 +51,21 @@
       "shortcutName": "Aide",
       "uninstallDisplayName": "Aide",
       "displayLanguageSelector": false,
-      "installerIcon": "logo.jpg",
-      "uninstallerIcon": "logo.jpg",
-      "installerHeader": "logo.jpg",
-      "installerHeaderIcon": "logo.jpg",
+      "installerIcon": "icon.png",
+      "uninstallerIcon": "icon.png",
+      "installerHeader": "icon.png",
+      "installerHeaderIcon": "icon.png",
       "warningsAsErrors": false
     },
     "mac": {
       "target": ["dmg", "zip"],
       "category": "public.app-category.business",
-      "icon": "logo.jpg"
+      "icon": "icon.png"
     },
     "linux": {
       "target": ["deb", "AppImage", "zip"],
       "category": "Office",
-      "icon": "logo.jpg",
+      "icon": "icon.png",
       "description": "Aide is an offline-first business management platform with POS, inventory, and analytics.",
       "maintainer": "Omix Systems <info@omixsystems.store>",
       "vendor": "Omix Systems",

@@ -1,10 +1,14 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage, shell, ipcMain } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, shell } = require('electron');
 const path = require('path');
-const url = require('url');
 
 let mainWindow;
 let tray = null;
 const isMac = process.platform === 'darwin';
+
+// The desktop shell hosts the live Aide PWA. There is no bundled index.html —
+// Aide is a Next.js app, so the renderer always loads the deployed URL.
+const APP_URL = process.env.ELECTRON_START_URL || 'https://aide.omixsystems.store';
+const ICON_PATH = path.join(__dirname, 'icon.png');
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -16,31 +20,28 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      enableRemoteModule: false,
       webSecurity: true,
     },
-    icon: path.join(__dirname, 'logo.jpg'),
+    icon: ICON_PATH,
   });
 
-  // Load the app
-  const startUrl = process.env.ELECTRON_START_URL || 
-    url.format({
-      pathname: path.join(__dirname, '../../index.html'),
-      protocol: 'file:',
-      slashes: true,
-    });
+  mainWindow.loadURL(APP_URL);
 
-  mainWindow.loadURL(startUrl);
-
-  // Open DevTools in development
   if (process.env.NODE_ENV === 'development') {
     mainWindow.webContents.openDevTools();
   }
 
-  // Open external links in browser
+  // Open external links (anything off the app origin) in the real browser.
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
     return { action: 'deny' };
+  });
+
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    if (!url.startsWith(APP_URL)) {
+      event.preventDefault();
+      shell.openExternal(url);
+    }
   });
 
   mainWindow.on('closed', () => {
@@ -48,63 +49,51 @@ function createWindow() {
   });
 }
 
+function showWindow() {
+  if (!mainWindow) return;
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
+}
+
 function createTray() {
-  const iconPath = path.join(__dirname, 'logo.jpg');
-  const image = nativeImage.createFromPath(iconPath);
-  const resizedImage = image.resize({ width: 16, height: 16 });
+  const image = nativeImage.createFromPath(ICON_PATH).resize({ width: 16, height: 16 });
 
-  tray = new Tray(resizedImage);
-  tray.setContextMenu(Menu.buildFromTemplate([
-    {
-      label: 'Open Aide',
-      click: () => {
-        if (mainWindow) {
-          if (mainWindow.isMinimized()) mainWindow.restore();
-          mainWindow.show();
-        }
+  tray = new Tray(image);
+  tray.setToolTip('Aide');
+  tray.setContextMenu(
+    Menu.buildFromTemplate([
+      { label: 'Open Aide', click: showWindow },
+      { type: 'separator' },
+      {
+        label: 'Visit Website',
+        click: () => shell.openExternal('https://aide.omixsystems.store'),
       },
-    },
-    { type: 'separator' },
-    {
-      label: 'Visit Website',
-      click: () => shell.openExternal('https://aide.omixsystems.store'),
-    },
-    { type: 'separator' },
-    {
-      label: 'Quit',
-      click: () => app.quit(),
-    },
-  ]));
+      { type: 'separator' },
+      { label: 'Quit', click: () => app.quit() },
+    ])
+  );
 
-  tray.setIgnoreDoubleClickEvents(true);
-  tray.on('click', () => {
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.show();
-    }
+  tray.on('click', showWindow);
+}
+
+// Only one copy of Aide at a time; a second launch focuses the existing window.
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) {
+  app.quit();
+} else {
+  app.on('second-instance', showWindow);
+
+  app.whenReady().then(() => {
+    createWindow();
+    createTray();
+
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    });
   });
 }
 
-app.whenReady().then(() => {
-  createWindow();
-  createTray();
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    }
-  });
-});
-
 app.on('window-all-closed', () => {
-  if (!isMac) {
-    app.quit();
-  }
-});
-
-app.on('second-instance', () => {
-  if (mainWindow) {
-    if (mainWindow.isMinimized()) mainWindow.restore();
-    mainWindow.focus();
-  }
+  if (!isMac) app.quit();
 });
