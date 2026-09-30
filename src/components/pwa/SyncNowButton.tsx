@@ -6,6 +6,7 @@ import db from "@/lib/db";
 import { syncEngine } from "@/lib/sync";
 import { sounds } from "@/lib/sounds";
 import UiSpinner from "@/components/ui/UiSpinner";
+import { addNotification } from "@/lib/notifications";
 
 export default function SyncNowButton() {
   const [online, setOnline] = useState(true);
@@ -28,10 +29,22 @@ export default function SyncNowButton() {
   const sync = async () => {
     if (syncing || !online) return;
     setSyncing(true);
+    const count = pending;
     try {
       await syncEngine.sync();
       sounds.sync();
-    } catch {}
+      await addNotification({
+        type: "system",
+        title: "Sync completed",
+        message: `${count} record${count === 1 ? "" : "s"} synchronized`,
+      });
+    } catch {
+      await addNotification({
+        type: "system",
+        title: "Sync failed",
+        message: "Could not sync your changes to the cloud",
+      });
+    }
     setSyncing(false);
   };
 

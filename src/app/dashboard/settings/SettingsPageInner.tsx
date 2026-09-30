@@ -5,6 +5,46 @@ import { useSession } from "next-auth/react";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 import db from "@/lib/db";
 import { liveQuery } from "dexie";
+import {
+  isNotificationsEnabled,
+  setNotificationsEnabled,
+  isCategoryEnabled,
+  setCategoryEnabled,
+  NOTIFICATION_CATEGORIES,
+  type NotificationType,
+} from "@/lib/notifications";
+
+function ToggleRow({
+  label,
+  desc,
+  value,
+  onChange,
+}: {
+  label: string;
+  desc: string;
+  value: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <label className="flex items-center justify-between gap-4">
+      <div>
+        <div className="text-sm text-on-surface">{label}</div>
+        <div className="text-xs text-on-surface-variant">{desc}</div>
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={value}
+        onClick={() => onChange(!value)}
+        className={`h-6 w-11 shrink-0 rounded-full relative transition-colors ${value ? "bg-primary" : "bg-surface-container-high"}`}
+      >
+        <span
+          className={`absolute top-0.5 h-5 w-5 rounded-full shadow transition-all ${value ? "right-0.5 bg-on-primary" : "left-0.5 bg-on-surface"}`}
+        />
+      </button>
+    </label>
+  );
+}
 
 export default function SettingsPage() {
   const { data: session } = useSession();
@@ -12,6 +52,32 @@ export default function SettingsPage() {
   const [conflicts, setConflicts] = useState<any[]>([]);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [newCategory, setNewCategory] = useState("");
+  const [notifEnabled, setNotifEnabledState] = useState(true);
+  const [notifCats, setNotifCats] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const en = await isNotificationsEnabled();
+      if (!active) return;
+      setNotifEnabledState(en);
+      const map: Record<string, boolean> = {};
+      for (const c of NOTIFICATION_CATEGORIES) map[c.type] = await isCategoryEnabled(c.type);
+      if (active) setNotifCats(map);
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const setNotifEnabled = async (v: boolean) => {
+    await setNotificationsEnabled(v);
+    setNotifEnabledState(v);
+  };
+  const setNotifCat = async (t: NotificationType, v: boolean) => {
+    await setCategoryEnabled(t, v);
+    setNotifCats((m) => ({ ...m, [t]: v }));
+  };
 
   const [form, setForm] = useState({
     name: "",
@@ -271,28 +337,29 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Notification Preferences */}
+      {/* In-app Notifications */}
       <div className="bg-surface-container-low border border-outline-variant rounded-xl p-6">
-        <h2 className="text-lg font-bold text-on-surface font-headline mb-4">Preferences</h2>
-        <div className="space-y-4">
-          <label className="flex items-center justify-between">
-            <div>
-              <div className="text-sm text-on-surface">Low Stock Alerts</div>
-              <div className="text-xs text-on-surface-variant">Get notified when products run low</div>
-            </div>
-            <div className="w-11 h-6 bg-surface-container-high rounded-full relative cursor-pointer">
-              <div className="w-5 h-5 bg-on-surface rounded-full absolute top-0.5 left-0.5 transition-transform" />
-            </div>
-          </label>
-          <label className="flex items-center justify-between">
-            <div>
-              <div className="text-sm text-on-surface">Daily Summary Email</div>
-              <div className="text-xs text-on-surface-variant">Receive end-of-day sales summary</div>
-            </div>
-            <div className="w-11 h-6 bg-primary rounded-full relative cursor-pointer">
-              <div className="w-5 h-5 bg-on-primary rounded-full absolute top-0.5 right-0.5 transition-transform" />
-            </div>
-          </label>
+        <h2 className="text-lg font-bold text-on-surface font-headline mb-4">In-app Notifications</h2>
+        <p className="text-xs text-on-surface-variant mb-4">
+          Alerts appear inside Aide&apos;s notification centre — no browser push permission needed, and they work offline.
+        </p>
+        <div className="space-y-3">
+          <ToggleRow
+            label="Enable in-app notifications"
+            desc="Show alerts in the notification bell"
+            value={notifEnabled}
+            onChange={setNotifEnabled}
+          />
+          <div className="my-3 border-t border-outline-variant" />
+          {NOTIFICATION_CATEGORIES.map((cat) => (
+            <ToggleRow
+              key={cat.type}
+              label={cat.label}
+              desc={cat.hint}
+              value={notifCats[cat.type] ?? true}
+              onChange={(v) => setNotifCat(cat.type, v)}
+            />
+          ))}
         </div>
       </div>
 

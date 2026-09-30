@@ -92,6 +92,27 @@ export interface BusinessRecord {
   logoUrl?: string;
 }
 
+export type NotificationType = "sales" | "inventory" | "customers" | "system" | "business";
+
+export interface NotificationRecord {
+  id: string;
+  businessId?: string;
+  type: NotificationType;
+  channel: "local" | "server";
+  title: string;
+  message: string;
+  data?: any;
+  read: boolean;
+  createdAt: string;
+  expiresAt?: string;
+  deletedAt?: string;
+}
+
+export interface NotificationPrefRecord {
+  key: string; // "enabled" | "sales" | "inventory" | ...
+  value: boolean;
+}
+
 interface AideDB {
   products: Table<ProductRecord>;
   categories: Table<CategoryRecord>;
@@ -100,6 +121,8 @@ interface AideDB {
   businesses: Table<BusinessRecord>;
   syncQueue: Table<SyncQueueItem>;
   syncConflicts: Table<SyncConflictRecord>;
+  notifications: Table<NotificationRecord>;
+  notificationPrefs: Table<NotificationPrefRecord>;
 }
 
 const db = new Dexie('AideDB') as Dexie & AideDB;
@@ -112,6 +135,18 @@ db.version(1).stores({
   businesses: 'id, slug',
   syncQueue: '++key, action, table, recordId, timestamp',
   syncConflicts: 'id, entityType, entityId, status, createdAt',
+});
+
+db.version(2).stores({
+  products: 'id, businessId, categoryId, name, syncStatus, updatedAt',
+  categories: 'id, businessId, name, syncStatus',
+  sales: 'id, businessId, createdAt, syncStatus, deviceId',
+  saleItems: 'id, saleId, productId',
+  businesses: 'id, slug',
+  syncQueue: '++key, action, table, recordId, timestamp',
+  syncConflicts: 'id, entityType, entityId, status, createdAt',
+  notifications: 'id, businessId, type, read, createdAt',
+  notificationPrefs: 'key',
 });
 
 export default db;

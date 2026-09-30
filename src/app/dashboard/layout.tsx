@@ -8,6 +8,8 @@ import ReviewPrompt from "@/components/reviews/ReviewPrompt";
 import InstallPrompt from "@/components/pwa/InstallPrompt";
 import UpdatePrompt from "@/components/pwa/UpdatePrompt";
 import SyncNowButton from "@/components/pwa/SyncNowButton";
+import NotificationBell from "@/components/notifications/NotificationBell";
+import NotificationPermissionPrompt from "@/components/notifications/NotificationPermissionPrompt";
 import Link from "next/link";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -16,6 +18,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <DashboardInit />
       <OnboardingFlow />
       <BusinessGate />
+      {/* Top-right notification bell */}
+      <div className="fixed top-4 right-4 z-[60]">
+        <NotificationBell />
+      </div>
       <Sidebar />
       <div className="md:ml-[260px] pt-2 pb-24 md:pb-6">
         <AdBanner />
@@ -33,6 +39,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <InstallPrompt />
       <UpdatePrompt />
       <SyncNowButton />
+      <NotificationPermissionPrompt />
     </div>
   );
 }
