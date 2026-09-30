@@ -2,6 +2,10 @@
   "name": "aide",
   "version": "1.0.0",
   "description": "Aide - Offline-first Business Management Platform",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/oliver4441/aide.git"
+  },
   "main": "./main.js",
   "scripts": {
     "start": "electron .",
@@ -90,6 +94,7 @@
         "libasound2"
       ],
       "packageCategory": "office"
-    }
+    },
+    "publish": null
   }
 }
