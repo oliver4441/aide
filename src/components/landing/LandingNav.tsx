@@ -36,7 +36,8 @@ export default function LandingNav() {
         <div className="hidden items-center gap-7 text-sm md:flex">
           <a href="#product" className="text-on-surface-variant transition-colors hover:text-on-surface">Product</a>
           <a href="#features" className="text-on-surface-variant transition-colors hover:text-on-surface">Features</a>
-          <a href="#pricing" className="text-on-surface-variant transition-colors hover:text-on-surface">Pricing</a>
+          <a href="#pricing" className="text-on-surface-variant transition-colors hover:text-on-surface">Variants</a>
+          <Link href="/downloads" className="text-on-surface-variant transition-colors hover:text-on-surface">Get the app</Link>
           <Link href="/help" className="text-on-surface-variant transition-colors hover:text-on-surface">Docs</Link>
         </div>
 
@@ -71,7 +72,8 @@ export default function LandingNav() {
           <div className="space-y-1 pt-2">
             <a href="#product" onClick={close} className="block rounded-lg px-3 py-2.5 text-sm text-on-surface-variant">Product</a>
             <a href="#features" onClick={close} className="block rounded-lg px-3 py-2.5 text-sm text-on-surface-variant">Features</a>
-            <a href="#pricing" onClick={close} className="block rounded-lg px-3 py-2.5 text-sm text-on-surface-variant">Pricing</a>
+            <a href="#pricing" onClick={close} className="block rounded-lg px-3 py-2.5 text-sm text-on-surface-variant">Variants</a>
+            <Link href="/downloads" onClick={close} className="block rounded-lg px-3 py-2.5 text-sm text-on-surface-variant">Get the app</Link>
             <Link href="/help" onClick={close} className="block rounded-lg px-3 py-2.5 text-sm text-on-surface-variant">Docs</Link>
           </div>
           <div className="mt-3 flex items-center gap-3 border-t border-outline-variant pt-4">

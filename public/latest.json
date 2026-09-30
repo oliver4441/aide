@@ -1,7 +1,10 @@
 {
-  "version": "1.0.0",
+  "version": "1.0.1",
   "versionCode": 1,
-  "downloadUrl": "https://github.com/marvel-254/aide/releases/download/v1.0.0+1/app-release-unsigned.apk",
-  "releaseDate": "2026-09-14T14:43:37Z",
-  "releaseUrl": "https://github.com/marvel-254/aide/releases/tag/v1.0.0+1"
+  "tag": "v1.0.1",
+  "downloadUrl": "https://github.com/oliver4441/aide/releases/download/v1.0.1/app-debug.apk",
+  "apkName": "app-debug.apk",
+  "sizeBytes": 4726784,
+  "releaseDate": "2026-09-07T13:23:26Z",
+  "releaseUrl": "https://github.com/oliver4441/aide/releases/tag/v1.0.1"
 }

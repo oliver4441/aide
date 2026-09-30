@@ -1,0 +1,12 @@
+{
+  "_comment": "SHA-256 checksums of published Aide APK assets, keyed by release tag then asset filename.",
+  "releases": {
+    "v1.0.1": {
+      "app-debug.apk": "95245516301e84d4a29294272c40a23bd363e4661067be9a7a90c0a738e12822"
+    },
+    "v1.0.0": {
+      "aide-release.apk": "371c147f2782dddb2524650d8805a2be80630d07cf4fc1d8af7a11cd0cc65944",
+      "app-debug.apk": "e0b63299435f93a2fb165c0027cc3a0c0c09b562c202f6ca021b37f15bb3a66c"
+    }
+  }
+}
