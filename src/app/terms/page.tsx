@@ -5,7 +5,7 @@ import { ArrowLeft } from "lucide-react";
 export const metadata: Metadata = {
   title: "Terms of Service",
   description:
-    "The terms that govern your use of Aide, the offline-first POS and business management app from OmixSystems. Covers your account, acceptable use, your data, payments, liability and termination.",
+    "The terms that govern your use of Aide, the offline-first POS and business management app from Omix Digital Solutions. Covers your account, acceptable use, your data, payments, liability and termination.",
   alternates: { canonical: "https://aide.omixsystems.store/terms" },
   openGraph: {
     title: "Terms of Service — Aide",
@@ -54,7 +54,7 @@ export default function TermsPage() {
         <p className="mt-2 text-sm text-on-surface-variant">Last updated: {UPDATED}</p>
         <p className="mt-4 text-on-surface-variant">
           These Terms govern your use of Aide, the offline-first point-of-sale,
-          inventory and reporting software provided by OmixSystems (&quot;Aide&quot;, &quot;the
+          inventory and reporting software provided by Omix Digital Solutions (&quot;Aide&quot;, &quot;the
           Service&quot;). By creating an account or using Aide, you agree to these Terms. If
           you do not agree, please do not use the Service.
         </p>
@@ -144,7 +144,7 @@ export default function TermsPage() {
         <Section title="8. Our intellectual property">
           <p>
             Aide, including its software, design, branding and documentation, belongs to
-            OmixSystems or its licensors. We grant you a personal, non-exclusive,
+            Omix Digital Solutions or its licensors. We grant you a personal, non-exclusive,
             non-transferable licence to use the Service as intended. These Terms grant
             no right to our trade marks beyond using the Service as a user.
           </p>
@@ -170,7 +170,7 @@ export default function TermsPage() {
 
         <Section title="11. Limitation of liability">
           <p>
-            To the fullest extent permitted by law, OmixSystems is not liable for lost
+            To the fullest extent permitted by law, Omix Digital Solutions is not liable for lost
             profits, lost revenue, lost business, loss of goodwill, or any indirect or
             consequential loss arising from your use of the Service. Our total aggregate
             liability to you for all claims relating to the Service is limited to the
@@ -185,7 +185,7 @@ export default function TermsPage() {
 
         <Section title="12. Indemnity">
           <p>
-            You agree to indemnify and hold harmless OmixSystems against any claim,
+            You agree to indemnify and hold harmless Omix Digital Solutions against any claim,
             demand, loss or expense (including reasonable legal fees) arising from your
             use of the Service, your breach of these Terms, or your violation of any
             law or the rights of a third party.
@@ -222,16 +222,34 @@ export default function TermsPage() {
 
         <Section title="16. Contact">
           <p>
-            Questions about these Terms: contact OmixSystems at{" "}
-            <a
-              href="https://omixsystems.store"
-              className="text-primary hover:underline"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              omixsystems.store
-            </a>
-            .
+            <p>
+              Omix Digital Solutions, a company registered in the Republic of Kenya.
+            </p>
+            <ul className="mt-3 space-y-1">
+              <li>
+                <span className="font-semibold text-on-surface">Email:</span>{" "}
+                <a href="mailto:omixsystems@gmail.com" className="text-primary hover:underline">
+                  omixsystems@gmail.com
+                </a>
+              </li>
+              <li>
+                <span className="font-semibold text-on-surface">Phone:</span>{" "}
+                <a href="tel:+254768213649" className="text-primary hover:underline">
+                  +254 768 213 649
+                </a>
+              </li>
+              <li>
+                <span className="font-semibold text-on-surface">Website:</span>{" "}
+                <a
+                  href="https://omixsystems.store"
+                  className="text-primary hover:underline"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  omixsystems.store
+                </a>
+              </li>
+            </ul>
           </p>
         </Section>
 

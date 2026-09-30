@@ -53,10 +53,10 @@ export default function PrivacyPolicyPage() {
         <h1 className="text-3xl md:text-4xl font-bold text-on-surface font-headline">Privacy Policy</h1>
         <p className="mt-2 text-sm text-on-surface-variant">Last updated: {UPDATED}</p>
         <p className="mt-4 text-on-surface-variant">
-          OmixSystems (&quot;we&quot;, &quot;us&quot;) operates Aide, an offline-first point-of-sale, inventory
-          and reporting application. This policy explains what data Aide handles, why, and
-          the choices you have. It applies to the Aide web app (PWA), the Android app, and
-          the Windows desktop app.
+          Omix Digital Solutions (&quot;we&quot;, &quot;us&quot;) operates Aide, an offline-first
+          point-of-sale, inventory and reporting application. This policy explains what
+          data Aide handles, why, and the choices you have. It applies to the Aide web
+          app (PWA), the Android app, and the Windows desktop app.
         </p>
 
         <Section title="1. The short version">
@@ -69,12 +69,37 @@ export default function PrivacyPolicyPage() {
 
         <Section title="2. Who is responsible">
           <p>
-            Aide is operated by OmixSystems, a software company registered in Kenya. For
-            questions about this policy or your data, contact us at{" "}
-            <a href="https://omixsystems.store" className="text-primary hover:underline" rel="noopener noreferrer" target="_blank">
-              omixsystems.store
-            </a>
-            .
+            Aide is operated by <strong>Omix Digital Solutions</strong>, a software company
+            registered in the Republic of Kenya.
+          </p>
+          <ul className="mt-3 space-y-1">
+            <li>
+              <span className="font-semibold text-on-surface">Email:</span>{" "}
+              <a href="mailto:omixsystems@gmail.com" className="text-primary hover:underline">
+                omixsystems@gmail.com
+              </a>
+            </li>
+            <li>
+              <span className="font-semibold text-on-surface">Phone:</span>{" "}
+              <a href="tel:+254768213649" className="text-primary hover:underline">
+                +254 768 213 649
+              </a>
+            </li>
+            <li>
+              <span className="font-semibold text-on-surface">Website:</span>{" "}
+              <a
+                href="https://omixsystems.store"
+                className="text-primary hover:underline"
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                omixsystems.store
+              </a>
+            </li>
+          </ul>
+          <p className="mt-3">
+            Use the email address above for any privacy question, access request or
+            erasure request. We will respond to verifiable requests.
           </p>
         </Section>
 
@@ -157,8 +182,11 @@ export default function PrivacyPolicyPage() {
             <li><strong>Withdraw consent / object</strong> — stop syncing by signing out, or contact us.</li>
           </ul>
           <p>
-            To have your account and synced data erased from our servers, contact us
-            through the address above. We will confirm the deletion with you.
+            To have your account and synced data erased from our servers, email{" "}
+            <a href="mailto:omixsystems@gmail.com" className="text-primary hover:underline">
+              omixsystems@gmail.com
+            </a>
+            . We will verify your request and confirm the deletion with you.
           </p>
         </Section>
 
