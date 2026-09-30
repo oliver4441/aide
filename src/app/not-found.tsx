@@ -1,4 +1,5 @@
 import Link from "next/link";
+import UiButton from "@/components/ui/UiButton";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -20,32 +21,26 @@ export const metadata: Metadata = {
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen bg-surface flex flex-col items-center justify-center p-6">
-      <div className="w-full max-w-md text-center">
+    <div className="min-h-screen bg-surface flex flex-col items-center justify-center p-6 relative overflow-hidden">
+      {/* Background glow */}
+      <div className="pointer-events-none absolute left-1/2 top-1/2 h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/10 blur-[130px]" />
+
+      <div className="relative z-10 w-full max-w-md text-center">
         <div className="flex justify-center mb-6">
-          <div className="w-20 h-20 rounded-2xl bg-primary flex items-center justify-center shadow-lg">
-            <span className="text-4xl font-bold text-on-primary font-headline">404</span>
-          </div>
+          <img src="/logo.jpg" alt="Aide logo" className="w-20 h-20 rounded-2xl object-cover shadow-lg ring-4 ring-primary/10" />
         </div>
-        <h1 className="text-3xl font-bold text-on-surface font-headline mb-3">
-          Page not found
-        </h1>
-        <p className="text-on-surface-variant text-lg mb-8">
+        <div className="text-7xl font-bold text-primary/80 font-headline tracking-tight">404</div>
+        <h1 className="mt-2 text-3xl font-bold text-on-surface font-headline">Page not found</h1>
+        <p className="text-on-surface-variant text-lg mt-3 mb-8">
           This page isn&apos;t available. It may have been moved or doesn&apos;t exist.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Link
-            href="/"
-            className="bg-primary text-on-primary font-semibold py-3 rounded-xl hover:bg-primary-light transition-colors px-6 shadow-md"
-          >
+          <UiButton href="/" className="w-full sm:w-auto">
             Go home
-          </Link>
-          <Link
-            href="/help"
-            className="bg-surface-container border border-outline-variant text-on-surface font-semibold py-3 rounded-xl hover:bg-surface-container-high transition-colors px-6"
-          >
+          </UiButton>
+          <UiButton href="/help" variant="outline" className="w-full sm:w-auto">
             Help center
-          </Link>
+          </UiButton>
         </div>
         <p className="text-xs text-on-surface-variant mt-8">
           Aide · Offline-First Business Management
