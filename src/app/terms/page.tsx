@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { ArrowLeft } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Terms of Service — Aide",
+  title: "Terms of Service",
   description:
     "The terms that govern your use of Aide, the offline-first POS and business management app from OmixSystems. Covers your account, acceptable use, your data, payments, liability and termination.",
   alternates: { canonical: "https://aide.omixsystems.store/terms" },

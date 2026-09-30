@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { ArrowLeft } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — Aide",
+  title: "Privacy Policy",
   description:
     "How Aide collects, stores, syncs and protects your data. Covers on-device storage, cloud sync, third-party processors, your rights under Kenyan law, and how to delete your data.",
   alternates: { canonical: "https://aide.omixsystems.store/privacy" },
