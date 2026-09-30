@@ -36,10 +36,14 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
-      "signingHashAlgorithms": ["sha256"],
+      "signingHashAlgorithms": [
+        "sha256"
+      ],
       "sign": false
     },
     "nsis": {
@@ -58,38 +62,34 @@
       "warningsAsErrors": false
     },
     "mac": {
-      "target": ["dmg", "zip"],
+      "target": [
+        "dmg",
+        "zip"
+      ],
       "category": "public.app-category.business",
       "icon": "icon.png"
     },
     "linux": {
-      "target": ["deb", "AppImage", "zip"],
+      "target": [
+        "deb",
+        "AppImage",
+        "zip"
+      ],
       "category": "Office",
       "icon": "icon.png",
       "description": "Aide is an offline-first business management platform with POS, inventory, and analytics.",
-      "maintainer": "Omix Systems <info@omixsystems.store>",
-      "vendor": "Omix Systems",
-      "deb": {
-        "depends": [
-          "libnotify4",
-          "libxtst6",
-          "libnss3",
-          "libxshmfence1",
-          "libasound2"
-        ],
-        "packageCategory": "office",
-        "fpm": {
-          "rpm": {
-            "depends": [
-              "libnotify",
-              "libXtst",
-              "nss",
-              "libxshmfence",
-              "alsa-lib"
-            ]
-          }
-        }
-      }
+      "maintainer": "Omix Digital Solutions <omixsystems@gmail.com>",
+      "vendor": "Omix Digital Solutions"
+    },
+    "deb": {
+      "depends": [
+        "libnotify4",
+        "libxtst6",
+        "libnss3",
+        "libxshmfence1",
+        "libasound2"
+      ],
+      "packageCategory": "office"
     }
   }
 }
