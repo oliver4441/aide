@@ -36,8 +36,8 @@ export default function LandingFooter() {
             <h4 className="text-xs font-bold text-on-surface uppercase tracking-wider mb-4">Company</h4>
             <ul className="space-y-2 text-sm text-on-surface-variant">
               <li><a href="https://omixsystems.store" target="_blank" rel="noopener noreferrer" className="hover:text-on-surface transition-colors">About</a></li>
-              <li><a href="https://omixsystems.store" target="_blank" rel="noopener noreferrer" className="hover:text-on-surface transition-colors">Privacy Policy</a></li>
-              <li><a href="https://omixsystems.store" target="_blank" rel="noopener noreferrer" className="hover:text-on-surface transition-colors">Terms of Service</a></li>
+              <li><a href="/privacy" className="hover:text-on-surface transition-colors">Privacy Policy</a></li>
+              <li><a href="/terms" className="hover:text-on-surface transition-colors">Terms of Service</a></li>
               <li><a href="https://omixsystems.store" target="_blank" rel="noopener noreferrer" className="hover:text-on-surface transition-colors">Contact</a></li>
             </ul>
           </div>
