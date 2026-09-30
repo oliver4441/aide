@@ -45,10 +45,7 @@
           ]
         }
       ],
-      "signingHashAlgorithms": [
-        "sha256"
-      ],
-      "sign": false
+      "icon": "icon.png"
     },
     "nsis": {
       "oneClick": false,
@@ -59,10 +56,6 @@
       "shortcutName": "Aide",
       "uninstallDisplayName": "Aide",
       "displayLanguageSelector": false,
-      "installerIcon": "icon.png",
-      "uninstallerIcon": "icon.png",
-      "installerHeader": "icon.png",
-      "installerHeaderIcon": "icon.png",
       "warningsAsErrors": false
     },
     "mac": {
