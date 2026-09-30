@@ -109,7 +109,7 @@ export default function DownloadsClient() {
 
       if (!active) return;
       setRelease(latest);
-      setReleases(sums?.releases ?? list?.releases ?? []);
+      setReleases(Array.isArray(list?.releases) ? list.releases : []);
       setChecksums(sums?.releases ?? {});
       setLoading(false);
     })();
