@@ -1,6 +1,7 @@
 package ke.co.aide.data.local.entities
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(tableName = "products")
@@ -56,5 +57,26 @@ data class SaleItemEntity(
     val quantity: Int,
     val price: Double,
     val cost: Double
+)
+
+/**
+ * A notification that has been shown on this device.
+ *
+ * Doubles as the idempotency log and the in-app notification inbox: the primary
+ * key is the event id, so inserting the same business event twice is a no-op and
+ * the notification is never displayed twice.
+ */
+@Entity(
+    tableName = "notified_events",
+    indices = [Index("createdAt"), Index("read")]
+)
+data class NotifiedEventEntity(
+    @PrimaryKey val eventId: String,
+    val channel: String,
+    val title: String,
+    val message: String,
+    val route: String? = null,
+    val read: Boolean = false,
+    val createdAt: Long
 )
 

@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import ke.co.aide.ui.components.AideCard
+import ke.co.aide.ui.components.NotificationSettingsCard
 
 @Composable
 fun MoreScreen(
@@ -28,6 +29,10 @@ fun MoreScreen(
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
+        }
+
+        item {
+            NotificationSettingsCard()
         }
 
         item {
