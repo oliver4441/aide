@@ -1,6 +1,7 @@
 "use client";
 
 import ScrollFadeIn from "./ScrollFadeIn";
+import Container from "@/components/ui/Container";
 
 const features = [
   {
@@ -61,9 +62,10 @@ const features = [
 
 export default function Features() {
   return (
-    <section id="features" className="py-24 px-4 md:px-8 max-w-[1440px] mx-auto">
-      <ScrollFadeIn>
-        <div className="text-center max-w-2xl mx-auto mb-16">
+    <section id="features" className="py-24">
+      <Container wide>
+        <ScrollFadeIn>
+        <div className="mx-auto mb-16 max-w-2xl text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-on-surface mb-4 font-headline">
             Everything You Need
           </h2>
@@ -86,6 +88,7 @@ export default function Features() {
           </ScrollFadeIn>
         ))}
       </div>
+      </Container>
     </section>
   );
 }

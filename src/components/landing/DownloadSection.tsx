@@ -1,7 +1,8 @@
+import Container from "@/components/ui/Container";
 export default function DownloadSection() {
   return (
-    <section className="border-y border-outline-variant bg-surface-container-low py-20" id="android">
-      <div className="mx-auto max-w-6xl px-4">
+    <section className="border-y border-outline-variant bg-surface-container-low py-24" id="android">
+      <Container wide>
         <div className="grid items-center gap-10 lg:grid-cols-[1fr_0.7fr]">
           <div>
             <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-outline-variant bg-surface px-3 py-1.5 text-xs font-semibold text-on-surface-variant">
@@ -69,7 +70,7 @@ export default function DownloadSection() {
         <p className="mt-10 text-center text-xs text-on-surface-variant/50">
           Android is an additional client for Aide — not a replacement for the web/PWA experience.
         </p>
-      </div>
+      </Container>
     </section>
   );
 }

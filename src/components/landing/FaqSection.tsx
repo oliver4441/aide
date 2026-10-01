@@ -3,6 +3,7 @@
 import { useState } from "react";
 import ScrollFadeIn from "./ScrollFadeIn";
 import { LANDING_FAQS, FAQS } from "@/lib/faqs";
+import Container from "@/components/ui/Container";
 
 /**
  * Structured data for Google. Built from the same source the UI renders, so the
@@ -22,7 +23,8 @@ export default function FaqSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
-    <section id="faq" className="mx-auto max-w-[1180px] px-4 py-24 md:px-8">
+    <section id="faq" className="py-24">
+      <Container>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
@@ -82,6 +84,7 @@ export default function FaqSection() {
           Visit the Help Centre
         </a>
       </p>
+      </Container>
     </section>
   );
 }

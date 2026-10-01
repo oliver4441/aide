@@ -1,12 +1,13 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/site";
 import { ArrowLeft } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
   description:
     "The terms that govern your use of Aide, the offline-first POS and business management app from Omix Digital Solutions. Covers your account, acceptable use, your data, payments, liability and termination.",
-  alternates: { canonical: "https://aide.omixsystems.store/terms" },
+  alternates: { canonical: `${SITE_URL}/terms` },
   openGraph: {
     title: "Terms of Service — Aide",
     description: "The terms that govern your use of Aide.",

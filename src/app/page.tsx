@@ -8,6 +8,7 @@ import CtaSection from "@/components/landing/CtaSection";
 import LandingFooter from "@/components/landing/LandingFooter";
 import DownloadSection from "@/components/landing/DownloadSection";
 import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Aide — Simple business management that works offline",
@@ -25,6 +26,9 @@ export const metadata: Metadata = {
     description:
       "Sales, inventory, receipts and reports in one offline-first PWA.",
     images: ["/og.jpg"],
+  },
+  alternates: {
+    canonical: SITE_URL,
   },
 };
 

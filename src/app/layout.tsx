@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import Providers from "@/components/Providers";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import { SITE_URL, COMPANY_NAME, SUPPORT_EMAIL } from "@/lib/site";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -58,9 +59,6 @@ export const metadata: Metadata = {
     "msapplication-TileColor": "#6f264f",
     "msapplication-tap-highlight": "no",
     "theme-color": "#6f264f",
-  },
-  alternates: {
-    canonical: "https://aide.omixsystems.store",
   },
 };
 
@@ -126,13 +124,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "Organization",
-              name: "OmixSystems",
+              name: COMPANY_NAME,
               description:
                 "Kenyan software company building offline-first business tools — Aide POS, inventory and analytics for salons, shops, restaurants and pharmacies.",
-              url: "https://aide.omixsystems.store",
-              logo: "/logo.jpg",
+              url: SITE_URL,
+              logo: `${SITE_URL}/logo.jpg`,
+              email: SUPPORT_EMAIL,
+              telephone: "+254768213649",
+              areaServed: "KE",
               sameAs: [
                 "https://github.com/oliver4441/aide",
+                "https://omixsystems.store",
               ],
             }),
           }}
@@ -142,22 +144,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
               "@context": "https://schema.org",
-              "@type": "LocalBusiness",
-              name: "OmixSystems — Aide",
+              "@type": "WebSite",
+              name: "Aide",
+              url: SITE_URL,
               description:
-                "Offline-first POS, inventory and reporting software for Kenyan businesses.",
-              url: "https://aide.omixsystems.store",
-              logo: "/logo.jpg",
-              address: {
-                "@type": "PostalAddress",
-                addressCountry: "KE",
-                addressLocality: "Nairobi",
-              },
-              areaServed: "KE",
-              provider: {
+                "Offline-first POS, inventory and reporting app for Kenyan businesses.",
+              inLanguage: "en-KE",
+              publisher: {
                 "@type": "Organization",
-                name: "OmixSystems",
-                url: "https://aide.omixsystems.store",
+                name: COMPANY_NAME,
+                url: SITE_URL,
               },
             }),
           }}

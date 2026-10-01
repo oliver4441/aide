@@ -1,8 +1,13 @@
 User-agent: *
 Allow: /
 
-# Host
-Host: https://aide.omixsystems.store
+# Private surfaces: the dashboard is behind NextAuth and the API routes are
+# not content. Everything else, including /_next/ assets, stays crawlable.
+Disallow: /dashboard
+Disallow: /api/
+
+# Do not let crawlers index the sign-in screen; it is a thin auth page.
+Disallow: /login
 
 # Sitemap
 Sitemap: https://aide.omixsystems.store/sitemap.xml

@@ -1,12 +1,13 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/site";
 import { ArrowLeft } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
   description:
     "How Aide collects, stores, syncs and protects your data. Covers on-device storage, cloud sync, third-party processors, your rights under Kenyan law, and how to delete your data.",
-  alternates: { canonical: "https://aide.omixsystems.store/privacy" },
+  alternates: { canonical: `${SITE_URL}/privacy` },
   openGraph: {
     title: "Privacy Policy — Aide",
     description: "How Aide collects, stores, syncs and protects your data.",

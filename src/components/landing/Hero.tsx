@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import UiButton from "@/components/ui/UiButton";
+import Container from "@/components/ui/Container";
 
 /**
  * Hero framing knob.
@@ -17,7 +18,7 @@ export default function Hero() {
   return (
     <section
       id="product"
-      className="relative isolate overflow-hidden px-4 pb-20 pt-32 md:px-8 md:pb-28 md:pt-40"
+      className="relative isolate overflow-hidden pb-20 pt-32 md:pb-28 md:pt-40"
     >
       {/* ---- Background photo: tea plantation ---- */}
       <Image
@@ -48,7 +49,7 @@ export default function Hero() {
       {/* ---- Soft brand glow ---- */}
       <div className="pointer-events-none absolute left-1/2 top-10 -z-10 h-[620px] w-[620px] -translate-x-1/2 rounded-full bg-primary/10 blur-[150px]" />
 
-      <div className="relative z-10 mx-auto max-w-[1180px] text-center">
+      <Container className="relative z-10 text-center">
         <div className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3.5 py-1.5 text-xs font-semibold text-primary backdrop-blur-sm">
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
           Offline-first business workspace
@@ -156,7 +157,7 @@ export default function Hero() {
           </div>
           <p className="mt-4 text-center font-mono text-[10px] text-on-surface-variant/60">The PWA keeps the core workflow available locally, then syncs when connectivity returns.</p>
         </div>
-      </div>
+      </Container>
     </section>
   );
 }

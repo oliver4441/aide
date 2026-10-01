@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import ScrollFadeIn from "./ScrollFadeIn";
+import Container from "@/components/ui/Container";
 
 export default function CtaSection() {
   return (
-    <section className="py-24 px-4 md:px-8 max-w-4xl mx-auto">
+    <section className="py-24">
+      <Container>
       <ScrollFadeIn>
         <div className="bg-primary rounded-2xl p-8 md:p-16 text-center relative overflow-hidden">
           <div
@@ -40,6 +42,7 @@ export default function CtaSection() {
           </div>
         </div>
       </ScrollFadeIn>
+      </Container>
     </section>
   );
 }
