@@ -24,7 +24,7 @@ interface PrintBusiness {
   receiptFooter?: string;
 }
 
-export function printReceipt(sale: PrintSale, business: PrintBusiness) {
+export function printReceipt(sale: PrintSale, business: PrintBusiness, shareUrl?: string) {
   const w = window.open("", "_blank", "width=400,height=600");
   if (!w) return;
 
@@ -66,7 +66,7 @@ export function printReceipt(sale: PrintSale, business: PrintBusiness) {
   if (rootEl) {
     const root = createRoot(rootEl);
     root.render(
-      <ReceiptDocument sale={sale} business={business} />
+      <ReceiptDocument sale={sale} business={business} shareUrl={shareUrl} />
     );
   }
 }

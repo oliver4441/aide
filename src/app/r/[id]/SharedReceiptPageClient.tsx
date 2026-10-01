@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
 import ReceiptDocument from "@/components/receipt/ReceiptDocument";
 import db, { BusinessRecord } from "@/lib/db";
 import UiSpinner from "@/components/ui/UiSpinner";
@@ -25,9 +24,13 @@ interface SaleData {
   };
 }
 
-export default function SharedReceiptPage() {
-  const params = useParams();
-  const id = params?.id as string;
+export default function SharedReceiptPage({
+  id,
+  token,
+}: {
+  id: string;
+  token?: string;
+}) {
   const [sale, setSale] = useState<SaleData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -36,13 +39,16 @@ export default function SharedReceiptPage() {
   useEffect(() => {
     if (!id) return;
     (async () => {
+      const query = token ? `?t=${encodeURIComponent(token)}` : "";
       try {
-        const res = await fetch(`/api/receipts/${id}`);
+        const res = await fetch(`/api/public/receipts/${id}${query}`);
         if (!res.ok) throw new Error("not found");
         const data = await res.json();
         setSale(data.sale);
       } catch {
-        // Offline fallback — read the receipt from local IndexedDB
+        // Offline fallback — read the receipt from the viewer's own local DB.
+        // This only resolves on a device that actually holds the sale, so it is
+        // a convenience for the owner, not the QR-scanning customer.
         try {
           const local = await db.sales.get(id);
           if (!local) throw new Error("local missing");
@@ -81,7 +87,7 @@ export default function SharedReceiptPage() {
       }
       setLoading(false);
     })();
-  }, [id]);
+  }, [id, token]);
 
   const share = async () => {
     if (!sale) return;
@@ -139,6 +145,9 @@ export default function SharedReceiptPage() {
                   ...sale.business,
                   receiptFooter: sale.business.receiptFooter || undefined,
                 }}
+                shareUrl={`${window.location.origin}/r/${sale.id}${
+                  token ? `?t=${encodeURIComponent(token)}` : ""
+                }`}
               />
             </div>
 

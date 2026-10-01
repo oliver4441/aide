@@ -28,6 +28,7 @@ export default function POSPage() {
   const [paidAmount, setPaidAmount] = useState("");
   const [processing, setProcessing] = useState(false);
   const [lastSale, setLastSale] = useState<(SaleRecord & { items: SaleItemRecord[] }) | null>(null);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
 
   const allProducts = products ?? [];
   const filtered = allProducts.filter(
@@ -113,6 +114,29 @@ export default function POSPage() {
       }));
 
       await createSale(sale, items);
+
+      // Mint the signed link while we are online, then cache it against the
+      // sale so an offline reprint can still put a working QR on the paper.
+      // The HMAC key lives on the server, so this is the only way to get one.
+      let url: string | null = null;
+      try {
+        const res = await fetch(`/api/sales/${saleId}/share`);
+        if (res.ok) {
+          url = (await res.json()).url ?? null;
+          if (url) localStorage.setItem(`aide_share_${saleId}`, url);
+        }
+      } catch {
+        /* offline — fall back to the cache below */
+      }
+      if (!url) {
+        try {
+          url = localStorage.getItem(`aide_share_${saleId}`);
+        } catch {
+          /* storage unavailable */
+        }
+      }
+      setShareUrl(url);
+
       setLastSale({ ...sale, items });
       setCart([]);
       setShowCheckout(false);
@@ -334,7 +358,7 @@ export default function POSPage() {
         <div className="fixed bottom-24 md:bottom-8 right-4 z-50 flex flex-col items-end gap-2">
           <button
             onClick={() => {
-              printReceipt(lastSale, business || { name: "Aide Business" });
+              printReceipt(lastSale, business || { name: "Aide Business" }, shareUrl ?? undefined);
               setLastSale(null);
             }}
             className="bg-primary text-on-primary font-semibold px-5 py-3 rounded-xl hover:bg-primary-light transition-colors shadow-lg shadow-primary/20 flex items-center gap-2 text-sm"
@@ -346,7 +370,8 @@ export default function POSPage() {
           </button>
           <button
             onClick={async () => {
-              const url = `${window.location.origin}/r/${lastSale.id}`;
+              const url =
+                shareUrl ?? `${window.location.origin}/r/${lastSale.id}`;
               if (navigator.share) {
                 try {
                   await navigator.share({
@@ -371,7 +396,7 @@ export default function POSPage() {
             Send to Customer
           </button>
           <button
-            onClick={() => setLastSale(null)}
+            onClick={() => { setLastSale(null); setShareUrl(null); }}
             className="bg-surface-container-high text-on-surface-variant px-3 py-3 rounded-xl hover:bg-surface-container-highest transition-colors text-sm"
           >
             Dismiss

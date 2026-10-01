@@ -90,12 +90,12 @@ byte-identical responses — deliberate, and covered in
 
 ## Methods
 
-Only `GET` is implemented. There is no `POST` to create a receipt, and no
-`PATCH` or `DELETE`:
+Only `GET` is implemented on this route. There is no `POST` to create a receipt,
+and no `PATCH` or `DELETE`:
 
 | Method | Result |
 | --- | --- |
-| `GET /api/receipts/{id}` | The receipt |
+| `GET /api/receipts/{id}` | The receipt (authenticated) |
 | `POST /api/receipts` | `405` — the route does not exist |
 | `DELETE /api/receipts/{id}` | `405` |
 
@@ -104,11 +104,61 @@ Receipts are produced by recording a sale; see
 sale id is idempotent and can be called any number of times — which is what the
 app does.
 
+## Sharing a receipt with a customer
+
+This route needs credentials, so it cannot serve the customer who scans the QR
+code printed on their receipt. Sharing uses two other routes.
+
+### Mint the link
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" \
+  https://aide.omixsystems.store/api/sales/sale_1731_a7f2c9/share
+```
+
+```json
+{ "url": "https://aide.omixsystems.store/r/sale_1731_a7f2c9?t=8Kf2…" }
+```
+
+Authenticated and scoped to your business, so you can only mint links for your
+own sales. The QR code on a printed receipt and the **Send to Customer** button
+both use this URL.
+
+### Read it back
+
+```bash
+curl "https://aide.omixsystems.store/api/public/receipts/sale_1731_a7f2c9?t=8Kf2…"
+```
+
+Public — no credentials. The `t` parameter is an **HMAC of the sale id** signed
+with `NEXTAUTH_SECRET`, and it is required. Without a valid token the response is
+the same `404` as a sale that does not exist, so the endpoint cannot be used to
+probe which ids are real.
+
+> Why a token instead of a plain id? Sale ids are generated on the device as
+> `sale_${Date.now()}_${Math.random().toString(36).slice(2, 8)}` — a millisecond
+> timestamp plus six base36 characters from a non-cryptographic source. That is
+> enumerable. Publishing this route keyed on the id alone would have exposed
+> every customer's receipt to anyone prepared to walk a plausible timestamp
+> range. The token is what makes the link a capability rather than a guess.
+
+The public projection is deliberately narrower than the authenticated one. It
+omits `cost`, `profit`, `notes` and `businessId` — purchase cost and margin are
+the merchant's, not the customer's:
+
+| Field | Public | Authenticated |
+| --- | --- | --- |
+| `id`, `total`, `paid`, `change`, `tax`, `taxRate`, `paymentMethod`, `cashier`, `createdAt` | yes | yes |
+| `items[] { id, name, quantity, price }` | yes | yes (plus `cost`, `productId`) |
+| `business { name, type, currency, taxRate, receiptFooter }` | yes | yes |
+| `cost`, `profit`, `notes`, `businessId` | no | yes |
+
 ## Reprinting offline
 
 A device that has been offline still has the sale and its items locally, so the
-app prints from the local database rather than waiting for this route. This
-endpoint is for rendering a receipt you already know is on the server.
+app prints from the local database rather than waiting for this route. It also
+caches the signed share URL against the sale id when it is minted, so a reprint
+while offline still puts a working QR on the paper.
 
 ## Status codes
 

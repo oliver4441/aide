@@ -36,9 +36,11 @@ interface ReceiptBusiness {
 export default function ReceiptDocument({
   sale,
   business,
+  shareUrl,
 }: {
   sale: ReceiptSale;
   business: ReceiptBusiness;
+  shareUrl?: string;
 }) {
   const currency = business.currency || "KSh";
   const taxRate = business.taxRate ?? 16;
@@ -159,7 +161,10 @@ export default function ReceiptDocument({
       {/* QR — customer scans to get receipt on their phone (generated locally, works offline) */}
       <div className="print:hidden flex flex-col items-center pt-2 mt-2 border-t border-outline-variant">
         {typeof window !== "undefined" && (
-          <ReceiptQR url={`${window.location.origin}/r/${sale.id}`} size={80} />
+          <ReceiptQR
+            url={shareUrl ?? `${window.location.origin}/r/${sale.id}`}
+            size={80}
+          />
         )}
         <span className="text-[8px] text-on-surface-variant mt-1">Scan to save your receipt</span>
       </div>

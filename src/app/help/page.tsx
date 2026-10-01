@@ -5,7 +5,7 @@ import ContactSection from "@/components/help/ContactSection";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Help Center — Aide",
+  title: "Help Center",
   description:
     "How to run your business on Aide: set up categories and products, sell at the POS, print receipts, work offline, install the app, and get notified about sales and low stock.",
   openGraph: {
