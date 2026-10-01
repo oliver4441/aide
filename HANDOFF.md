@@ -2,7 +2,12 @@
 
 **Live site:** https://aide.omixsystems.store
 **Repo:** `github.com/oliver4441/aide` (`origin`) — deploys to Vercel on push to `master`
-**Last commit:** `104cd2c` · **Status:** everything below is deployed and verified on the live site
+**Last commit:** `6f67e64` · **Status:** everything below is deployed and verified on the live site
+
+> **Updated 2026-10-01.** Two later sessions landed on top of this document: a
+> landing/SEO overhaul (§2.10) and a full `/docs` section (§2.12). Sections 4.1,
+> 4.2 and 4.5 have been rewritten with the current CI and release findings — the
+> older text in them was wrong.
 
 ---
 
@@ -171,6 +176,41 @@ Omix Digital Solutions (registered in Kenya) · omixsystems@gmail.com ·
 
 ---
 
+### 2.12 Documentation section (`/docs`)
+
+Shipped in `6f67e64`. A Cloudflare-style docs site: persistent left rail with nested
+categories, per-page content column, breadcrumbs, an on-page contents rail with scroll
+tracking, and a previous/next pager.
+
+| Piece | File |
+|---|---|
+| Page registry (24 pages, 5 categories) | `src/lib/docs-nav.ts` |
+| Markdown renderer (dependency-free) | `src/lib/markdown.ts` |
+| Filesystem read + breadcrumbs + pager | `src/lib/docs.ts` |
+| Per-page `Metadata` | `src/lib/docs-metadata.ts` |
+| Content, read at build time only | `src/content/docs/**/*.md` |
+| Routes | `src/app/docs/page.tsx`, `src/app/docs/[...slug]/page.tsx` |
+| Components | `src/components/docs/` |
+
+Three decisions worth keeping:
+
+- **`docs-nav.ts` is pure data.** The sidebar is a client component and must never
+  pull in `node:fs`, so the registry and the filesystem read are deliberately split.
+  `DOC_NAV` and `DOC_ORDER` are *derived* from `DOC_PAGES`, so the sidebar, the pager
+  and the sitemap cannot drift from the registry.
+- **`dynamicParams = false`** on the catch-all, so only registered slugs are built
+  and anything else 404s rather than being rendered on demand.
+- **No new dependencies.** The renderer emits design-token classes and `data-docs-copy`
+  buttons that `DocsContent` wires up imperatively after hydration.
+
+Docs pages are grounded in the real handlers under `src/app/api`, including their
+quirks (the hard-coded low-stock threshold on `/api/dashboard`, the per-collection
+`since` cursors on `/api/sync`, bearer-token-before-cookie auth resolution). That is
+deliberate: a reference that documents intended behaviour rather than actual behaviour
+is worse than no reference.
+
+---
+
 ## 3. Verification performed
 - `npx tsc --noEmit` — clean
 - `next lint` — only 2 pre-existing warnings (unrelated)
@@ -182,28 +222,95 @@ Omix Digital Solutions (registered in Kenya) · omixsystems@gmail.com ·
 - **Database verified directly**: notification tables exist in production Neon with all
   12 `Notification` columns (including `data` JSONB), all 5 indexes, and all 4 foreign keys.
 
+**2026-10-01, docs + CI + release audit:**
+
+- `npx tsc --noEmit` — clean across the whole docs route/component set.
+- `npm run build` — 24 docs paths pre-rendered (23 SSG + `/docs` index).
+- Registry/filesystem cross-check: 24 files, 24 registry entries, **no missing, no orphans**.
+- Live, all **24** doc URLs return `200`; an unregistered slug returns `404`.
+- Live: unique `<title>` per page, **exactly one** self-referencing canonical each,
+  `BreadcrumbList` JSON-LD present on every page.
+- Live sitemap: **29 URLs** (5 pre-existing + 24 docs).
+- Live: `/docs` linked from the landing nav, the footer, `/help` and `llms.txt`.
+- Live: sidebar SSR renders the correct `aria-current="page"` item.
+- CI on `6f67e64`: **Android CI success**, Desktop **success** on all three platforms,
+  `android-release.yml` **fails in 0s** (see 4.1).
+- Release audit: Windows/macOS/Linux artifacts exist but **no `desktop-v*` tag has ever
+  been pushed**, so nothing is published; **zero `.exe` assets** exist (see 4.5).
+
 ---
 
 ## 4. Known issues / not done
 
-### 4.1 GitHub Actions is red (pre-existing, not caused by this work)
-Three workflows fail on every push, and were **already failing on the previous commit
-`b50d7e6`**, before any of these changes:
+### 4.1 GitHub Actions is green, except one workflow that never registered
 
-| Workflow | Failure |
-|---|---|
-| **Android CI** | fails at the **"Run Unit Tests"** step — `./gradlew testDebugUnitTest`. Build and APK upload steps are skipped as a result. |
-| Desktop App Release | fails at "Install Electron dependencies" (`npm ci` in `electron/`) |
-| android-release | Gradle failure (only runs on `v*` tags / manual dispatch) |
+Re-verified on `6f67e64` (Android CI run `36917367806`, 1m16s):
 
-**This does not affect the web app** — that deploys through Vercel, not Actions. But it
-**does** block producing new APKs, so it must be fixed before Android v2 can ship.
+| Workflow | Status | Note |
+|---|---|---|
+| **Android CI** | PASS - `build` **success** | The old `testDebugUnitTest` failure is fixed; this gate is now clear |
+| **Desktop App Release** | PASS - Build macOS / Windows / Linux all **success** | `Publish desktop release` is **skipped** by design (see 4.5) |
+| **`.github/workflows/android-release.yml`** | FAIL - **fails in 0s with no log** | See below |
 
-### 4.2 No signed release APK is published
-The only v1.0.1 asset is `app-debug.apk` — a debug build. The release workflow supports
-signing (`ANDROID_KEYSTORE_BASE64`, `ANDROID_STORE_PASSWORD`, `ANDROID_KEY_ALIAS`,
-`ANDROID_KEY_PASSWORD`) but those secrets are not configured, so `assembleRelease` is
-skipped. For a properly signed build, add the secrets and push a `v*` tag.
+**This does not affect the web app** - that deploys through Vercel, not Actions.
+
+#### The `android-release.yml` failure is a workflow-file problem, not Gradle
+
+The run says so directly:
+
+```
+X This run likely failed because of a workflow file issue.
+```
+
+The proof is in the API - GitHub never read the `name:` key:
+
+```bash
+gh api repos/oliver4441/aide/actions/workflows/android-release.yml
+# {"name":".github/workflows/android-release.yml", ...}   <- name is the FILE PATH
+# {"badge_url":".../workflows/.github/workflows/android-release.yml/badge.svg"}
+```
+
+Compare `android-ci.yml` and `release-desktop.yml`, which report `Android CI` and
+`Desktop App Release`. `android-release.yml` has reported its own **path** as its
+name since `created_at: 2026-09-07` - **this workflow has never once run**.
+
+That also explains the other oddity: a run appears on *every* push even though the
+file has not changed since `b50d7e6`. The file only triggers on `v*` tags and
+`workflow_dispatch`, so a push-triggered run is impossible unless the file is being
+rejected outright.
+
+**Still unresolved.** The file is byte-identical on `master` (md5 verified), pure
+ASCII, no BOM, no CRLF, no tabs, and parses cleanly under a standard YAML parser.
+Whatever GitHub's stricter validator objects to is not surfaced through `gh` - only
+the Actions UI shows it. Next step: open the run in a browser, or bisect by
+replacing the file with a minimal skeleton and adding steps back.
+
+### 4.2 No signed release APK is published, and the download button serves a debug build
+
+Two separate problems, both live today.
+
+**(a) The signing workflow has never run** - see 4.1. `android-release.yml` is
+rejected by GitHub, so the `v*`-tag path that would build a signed APK is dead.
+The secrets (`ANDROID_KEYSTORE_BASE64`, `ANDROID_STORE_PASSWORD`,
+`ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`) are also unconfigured, which would
+skip `assembleRelease` even if it did run.
+
+**(b) The public download is a debug APK.** `/api/latest-release` picks the
+newest stable release (v1.0.1) and its only asset is `app-debug.apk`:
+
+```json
+{ "version": "1.0.1", "versionCode": 0, "tag": "v1.0.1",
+  "downloadUrl": ".../releases/download/v1.0.1/app-debug.apk",
+  "apkName": "app-debug.apk", "sizeBytes": 4795842 }
+```
+
+`/downloads` links to exactly that URL, so every user who taps "Download the APK"
+gets an unsigned debug build. Note `versionCode: 0` - the tag `v1.0.1` has no
+`+N` suffix, so the API's `parseInt(... || "0")` yields 0.
+
+Also worth knowing: `v1.0.0` ships **both** `aide-release.apk` and
+`app-debug.apk` at the byte-identical size (4,145,362), which suggests the
+"release" asset is a debug build that was simply renamed.
 
 ### 4.3 Repo schema is behind production (intentionally not changed)
 Production Neon has **28 tables**; this repo's `schema.prisma` models only the core ones.
@@ -227,17 +334,79 @@ there is "no account, no server, and no sync". Capacitor was added in `62c0659` 
 Retrofit and kotlinx-serialization are already declared in `gradle/libs.versions.toml`
 but not yet used in `app/build.gradle.kts`.
 
-### 4.5 Android / desktop builds
-Left alone this session by request.
+### 4.5 Windows EXE: builds in CI, never published, and the page title over-promises
 
-### 4.6 Housekeeping
+This was checked end to end on 2026-10-01. The honest summary is that **the
+Windows build works, but no user can download it.**
+
+**The build is fine.** On run `36917367701` the Windows job passed and uploaded a
+real artifact:
+
+| Artifact | Size | Expired |
+|---|---|---|
+| `desktop-windows` | 76,409,892 bytes (~76 MB) | no |
+| `desktop-linux` | 348,171,800 bytes | no |
+| `desktop-macos` | 380,303,188 bytes | no |
+
+**Nothing is published.** The `release` job in `release-desktop.yml` is gated:
+
+```yaml
+release:
+  if: startsWith(github.ref, 'refs/tags/desktop-v')
+```
+
+It only publishes from a `desktop-v*` tag, and the repo has **never had one**:
+
+```bash
+git tag -l 'desktop-v*'   # -> empty
+git tag -l                # -> v1.0.0  v1.0.0+1  v1.0.1
+```
+
+So `Publish desktop release` is correctly reported as `skipped`, and a sweep of
+both releases confirms **zero `.exe` assets**:
+
+| Release | Assets |
+|---|---|
+| `v1.0.0` | `aide-release.apk`, `app-debug.apk` |
+| `v1.0.1` | `app-debug.apk` |
+
+**The public page contradicts itself.** `/downloads` reads `/api/releases`, which
+filters out any release with no assets - so with no desktop release published, the
+page correctly renders only the Android build. Its body copy is honest:
+
+> "Windows, macOS & Linux - Native desktop builds are still in progress. Aide
+> works today in your browser and installs as a desktop app from Chrome or Edge."
+
+But all three of its metadata tags promise a file that does not exist:
+
+```
+title: "Download Aide - PWA, Android APK & Windows EXE | Aide"
+```
+
+An `.exe` is named in the title, description and OG copy on a page that says
+there is no `.exe`. That is both inaccurate and a search-result promise we
+cannot keep. Either publish the desktop release or drop "Windows EXE" from the
+metadata.
+
+**To actually ship the Windows build:** push a `desktop-v*` tag, which runs the
+`release` job and publishes the artifacts already being built on every push.
+
+### 4.6 Housekeeping - security items, still open
+
+- **Credentials were published in `public/llms.txt`.** An older revision shipped a
+  live credential in a file designed to be fed to LLMs and read by crawlers. It was
+  **removed** in `90041d6` and the site was re-verified clean, but **removing it from
+  `HEAD` does not unpublish it** - the value is still in git history, in every clone,
+  and in any web cache that fetched the old file. **The credential must be rotated at
+  the provider.** A full-history sweep for other leaked values was queued but not
+  completed; do that before treating this as closed.
 - A **Neon personal access token** is stored in the local Neon CLI config
-  (`~/.config/neon`) on the dev machine, used to verify the schema. **Worth rotating and
-  wiping.**
-- Scratch DB scripts live in `/tmp/nrtest` — safe to delete.
+  (`~/.config/neon`) on the dev machine, used to verify the schema. **Rotate and wipe.**
+- Scratch DB scripts live in `/tmp/nrtest` - safe to delete.
 - `firebase` and `google-auth-library` are still in `package.json` but are **not imported
   anywhere in `src/`**. Auth is email + password. They can be removed unless FCM plans
-  need them.
+  need them - note that removing them does **not** block FCM, which needs the Admin SDK
+  and a service account, not these two client libraries.
 
 ### 4.7 Legal pages need a review pass
 Both pages name Omix Digital Solutions with the contact details supplied. If you want to
@@ -291,20 +460,43 @@ npm run db:push        # ⚠️ read §4.3 first
 
 ## 7. Suggested next steps
 
-1. **Fix Android CI** — diagnose the failing `testDebugUnitTest` step. It is the gate on
-   the APK workflow and blocks everything below.
-2. **Android v2 notifications** (extends the existing Compose app, per the agreed
+**Security first** — these are ordered by blast radius, not convenience:
+
+1. **Rotate every credential that ever reached git history** (§4.6). Deleting the
+   value from `HEAD` does not remove it from history, clones, or caches. Then run a
+   full-history secret sweep (`gitleaks detect --source .` or `trufflehog git .`) —
+   assume more than the one in `llms.txt` leaked, and check `.env`, CI logs and the
+   Neon token too. Only *after* rotating is history rewriting (`git filter-repo`)
+   worth considering; rotation is the part that actually closes the hole.
+2. **Rotate and wipe the Neon token** in `~/.config/neon`, and delete `/tmp/nrtest`.
+3. **Remove `firebase` and `google-auth-library`** from `package.json` (unused in `src/`).
+   This does not block FCM later — FCM needs the Admin SDK and a service account.
+
+**Then correctness of what is already published:**
+
+4. **Decide the Windows question** (§4.5): either push a `desktop-v*` tag and publish
+   the EXE that CI is already building, or remove "Windows EXE" from the `/downloads`
+   title/description/OG. Right now the metadata promises a file that does not exist.
+5. **Fix `android-release.yml`** (§4.1) and configure the signing secrets, then tag a
+   real `v<version>+<versionCode>` release so `/downloads` stops serving `app-debug.apk`
+   (§4.2).
+6. **Android v2 notifications** (extends the existing Compose app, per the agreed
    architecture):
    - Phase 2 — native local notifications + `NotificationManager` channels
    - Phase 3 — FCM remote delivery, driven by the backend event model
-   - Phase 4 — deep links (`action` + `product_id` → open the right screen), badges,
+   - Phase 4 — deep links (`action` + `product_id` -> open the right screen), badges,
      notification preferences
    - Use an `event_id` idempotency key so server, PWA and Android never show a duplicate
    - FCM is the *delivery* mechanism only — the backend notification/event model stays
      channel-independent so the same event can serve PWA, Android, email later
-3. **Configure APK signing secrets** so a real release APK is published (§4.2).
-4. **Reconcile `prisma/schema.prisma` with production** so future migrations are safe.
-5. **Revisit the previous features** (Customer, Expense, Staff, Invoice, PO, AI).
-6. **Server-side scheduled jobs** for daily summaries / recurring low-stock checks — the
+
+**Then maintenance:**
+
+7. **Reconcile `prisma/schema.prisma` with production** so future migrations are safe.
+8. **Revisit the previous features** (Customer, Expense, Staff, Invoice, PO, AI).
+9. **Server-side scheduled jobs** for daily summaries / recurring low-stock checks — the
    `POST /api/notifications` route already respects preferences, so a cron can drive it.
-7. **Refresh this document** after the next work session.
+10. **Extend `/docs`** as features land. Add the page to `DOC_PAGES` in
+    `src/lib/docs-nav.ts` and drop the Markdown in `src/content/docs/`; the sidebar,
+    pager and sitemap all follow from the registry.
+11. **Refresh this document** after the next work session.
