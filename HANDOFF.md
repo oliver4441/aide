@@ -454,6 +454,51 @@ does **not** remove it from history, from existing clones, or from web caches.
   removing it before `ADMIN_EMAILS` is confirmed set in the Vercel environment
   would lock the owner out of `/dashboard/admin`.
 
+### 4.6b Receipt sharing — fixed, and it depends on NEXTAUTH_SECRET
+
+Shared receipts were broken for the people they exist for. The QR on every
+receipt and the "Send to Customer" button both point at `/r/<saleId>`, which
+called `/api/receipts/<saleId>` **without credentials** against a route that
+requires them and returns `401`. The fallback read the viewer's own IndexedDB,
+which never has the shop's sale, so a customer scanning at the till saw "Could
+not load receipt". It only ever worked for the owner, already signed in.
+
+Making that route public was not an option. Sale ids are minted on the device:
+
+```js
+const saleId = `sale_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+```
+
+A millisecond timestamp plus six base36 characters from a non-cryptographic
+source — enumerable. A public route keyed on the id alone would have published
+every customer's receipt to anyone walking a plausible trading window.
+
+Fixed in `5a24758` with a capability token:
+
+| Route | Auth | Purpose |
+|---|---|---|
+| `GET /api/sales/[id]/share` | Bearer or session, tenant-scoped | Mints `/r/<id>?t=<hmac>` |
+| `GET /api/public/receipts/[id]?t=` | **none** | Serves the receipt, token required |
+
+The token is an HMAC-SHA256 of the sale id under `NEXTAUTH_SECRET`, namespaced
+(`aide:receipt:v1`) so it cannot be replayed elsewhere, and compared with
+`timingSafeEqual`. A missing or wrong token returns the **same 404** as a sale
+that does not exist, so ids cannot be probed. The public projection omits
+`cost`, `profit`, `notes` and `businessId` — margin is the merchant's, not the
+customer's.
+
+Verified live: no token → `404`, bad token → `404`, mint unauthenticated →
+`401`.
+
+> ⚠️ **This depends on `NEXTAUTH_SECRET` being set in the Vercel environment.**
+> `src/lib/shareToken.ts` throws without it, which is deliberate — but it means
+> share links break loudly rather than silently signing with a default. Confirm
+> it is set before shipping. Rotating the secret invalidates every previously
+> printed QR code.
+
+The POS mints the link when a sale completes and caches it in localStorage
+against the sale id, so an offline reprint still prints a working QR.
+
 ### 4.7 Legal pages need a review pass
 Both pages name Omix Digital Solutions with the contact details supplied. If you want to
 add a company registration number, physical address, or a named data-protection contact,
