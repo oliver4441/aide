@@ -2,80 +2,13 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import { FAQS } from "@/lib/faqs";
+import { SUPPORT_EMAIL } from "@/lib/site";
 
 interface HelpCenterProps {
   open: boolean;
   onClose: () => void;
 }
-
-interface FAQItem {
-  question: string;
-  answer: string;
-  category: string;
-}
-
-const faqData: FAQItem[] = [
-  {
-    category: "Getting Started",
-    question: "How do I add products?",
-    answer:
-      "Go to Inventory and tap 'Add Product'. Fill in the name, price, quantity, and optional SKU. Tap Save and your product is ready to sell.",
-  },
-  {
-    category: "Getting Started",
-    question: "How do I make a sale?",
-    answer:
-      "Tap 'New Sale' in the sidebar. Search or tap products to add them to the cart, then tap 'Complete Sale' to finish.",
-  },
-  {
-    category: "Getting Started",
-    question: "How do I print receipts?",
-    answer:
-      "After completing a sale, a print button will appear. Connect a Bluetooth or thermal printer and tap Print.",
-  },
-  {
-    category: "Getting Started",
-    question: "How do I use offline mode?",
-    answer:
-      "Aide works offline automatically. All sales and inventory changes are saved locally and sync when you reconnect.",
-  },
-  {
-    category: "FAQ",
-    question: "How does offline mode work?",
-    answer:
-      "Aide uses IndexedDB to store all data locally. When you go offline, everything continues to work. When you reconnect, data syncs to the cloud automatically.",
-  },
-  {
-    category: "FAQ",
-    question: "How do I install Aide on my phone?",
-    answer:
-      "Open Aide in your mobile browser, tap the share icon, and select 'Add to Home Screen'. This installs it as a Progressive Web App (PWA).",
-  },
-  {
-    category: "FAQ",
-    question: "Can I use Aide on multiple devices?",
-    answer:
-      "Yes! Sign in on any device with your account. All data syncs across devices when connected to the internet.",
-  },
-  {
-    category: "FAQ",
-    question: "How do I export my data?",
-    answer:
-      "Go to Settings → Data Export. You can export your sales, inventory, and reports as CSV files.",
-  },
-  {
-    category: "FAQ",
-    question: "What happens when I lose internet?",
-    answer:
-      "Nothing changes — Aide continues to work fully offline. Your data is stored locally and will sync automatically when connectivity returns.",
-  },
-  {
-    category: "FAQ",
-    question: "How do I change my business settings?",
-    answer:
-      "Go to Settings in the sidebar. You can update your business name, tax rate, currency, and receipt preferences.",
-  },
-];
 
 export default function HelpCenter({ open, onClose }: HelpCenterProps) {
   const [search, setSearch] = useState("");
@@ -83,9 +16,9 @@ export default function HelpCenter({ open, onClose }: HelpCenterProps) {
   const [helpful, setHelpful] = useState<Record<number, "yes" | "no" | null>>({});
 
   const filtered = useMemo(() => {
-    if (!search) return faqData;
+    if (!search) return FAQS;
     const q = search.toLowerCase();
-    return faqData.filter(
+    return FAQS.filter(
       (item) =>
         item.question.toLowerCase().includes(q) ||
         item.answer.toLowerCase().includes(q)
@@ -209,12 +142,21 @@ export default function HelpCenter({ open, onClose }: HelpCenterProps) {
             <p className="text-sm text-on-surface font-medium mb-2">
               Can&apos;t find what you need?
             </p>
-            <button
-              onClick={openChat}
-              className="bg-primary text-on-primary px-4 py-2 rounded-lg text-sm font-semibold hover:bg-primary-light transition-colors"
-            >
-              Chat with Us
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={openChat}
+                className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-on-primary transition-colors duration-200 hover:bg-primary-light"
+              >
+                Chat with Us
+              </button>
+              <a
+                href={`mailto:${SUPPORT_EMAIL}`}
+                className="rounded-lg border border-outline-variant bg-surface px-4 py-2 text-sm font-semibold text-on-surface transition-colors duration-200 hover:bg-surface-container"
+              >
+                Email us
+              </a>
+            </div>
+            <p className="mt-2 text-[11px] text-on-surface-variant">{SUPPORT_EMAIL}</p>
           </div>
 
           {/* FAQ Items */}
@@ -225,7 +167,7 @@ export default function HelpCenter({ open, onClose }: HelpCenterProps) {
               </p>
             )}
             {filtered.map((item, i) => {
-              const globalIdx = faqData.indexOf(item);
+              const globalIdx = FAQS.indexOf(item);
               const isExpanded = expandedIdx === globalIdx;
               return (
                 <div

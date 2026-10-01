@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SUPPORT_EMAIL } from "@/lib/site";
 import FAQSection from "@/components/help/FAQSection";
 import ContactSection from "@/components/help/ContactSection";
 import type { Metadata } from "next";
@@ -6,17 +7,17 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Help Center — Aide",
   description:
-    "How to run your business on Aide: set up categories and products, sell at the POS, print receipts, work offline, export sales, and install the app.",
+    "How to run your business on Aide: set up categories and products, sell at the POS, print receipts, work offline, install the app, and get notified about sales and low stock.",
   openGraph: {
     title: "Aide Help Center",
     description:
-      "Set up categories and products, sell at the POS, print receipts, work offline, and export sales.",
+      "Set up categories and products, sell at the POS, print receipts, work offline, and install the app.",
     images: [{ url: "/og-help.jpg", width: 1200, height: 630, alt: "Aide Help Center" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Aide Help Center",
-    description: "Set up categories and products, sell at the POS, print receipts, work offline, and export sales.",
+    description: "Set up categories and products, sell at the POS, print receipts, work offline, and install the app.",
     images: ["/og-help.jpg"],
   },
   alternates: {
@@ -88,7 +89,8 @@ export default function HelpPage() {
               { n: 5, title: "Watch your numbers", d: "Dashboard shows today's revenue and profit live. Reports breaks down best sellers, payment methods, and weekly trends." },
               { n: 6, title: "Work anywhere", d: "No internet? Keep selling — everything is stored on your phone and syncs safely when you reconnect. Use 'Sync now' to push immediately." },
               { n: 7, title: "Export your records", d: "Sales History exports everything as CSV or JSON — perfect for your accountant or bookkeeping." },
-              { n: 8, title: "Install the app", d: "Use the Install banner (or browser menu → Add to Home Screen) so Aide opens full-screen like a native app and works offline." },
+              { n: 8, title: "Turn on notifications", d: "Tap the bell icon for your notification centre, or Settings → Notifications to choose what you get alerted about — new sales, low stock, and system updates." },
+              { n: 9, title: "Install the app", d: "Use the Install banner (or browser menu → Add to Home Screen) so Aide opens full-screen like a native app and works offline. Android APK and Windows builds are on the Get the app page." },
             ].map((s) => (
               <div key={s.n} className="flex gap-4 bg-surface-container-low border border-outline-variant rounded-xl p-4">
                 <div className="w-8 h-8 rounded-full bg-primary/15 text-primary font-bold flex items-center justify-center shrink-0 text-sm">
@@ -179,9 +181,11 @@ export default function HelpPage() {
           <div className="flex flex-wrap gap-3">
             {[
               { label: "App Features", href: "/#features" },
+              { label: "Get the app", href: "/downloads" },
               { label: "Privacy Policy", href: "/privacy" },
               { label: "Terms of Service", href: "/terms" },
-              { label: "Visit OmixSystems", href: "https://omixsystems.store" },
+              { label: "Visit Omix Digital Solutions", href: "https://omixsystems.store" },
+              { label: `Email ${SUPPORT_EMAIL}`, href: `mailto:${SUPPORT_EMAIL}` },
             ].map((link) => (
               <a
                 key={link.href}
@@ -198,7 +202,7 @@ export default function HelpPage() {
       </div>
 
       <footer className="border-t border-outline-variant py-8 text-center text-on-surface-variant text-sm">
-        <p>© {new Date().getFullYear()} OmixSystems. All rights reserved.</p>
+        <p>© {new Date().getFullYear()} Omix Digital Solutions. All rights reserved.</p>
       </footer>
     </div>
   );

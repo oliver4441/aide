@@ -1,13 +1,55 @@
 "use client";
 
+import Image from "next/image";
 import UiButton from "@/components/ui/UiButton";
+
+/**
+ * Hero framing knob.
+ *
+ * The photo is a 4:3 shot (sky on top, tea leaves at the bottom). `object-cover`
+ * crops it to whatever the viewport shape is, so this value decides which slice
+ * survives: a lower Y% shows more sky, a higher Y% shows more tea leaves.
+ * Tune here, not in the markup.
+ */
+const PHOTO_FOCUS = "50% 30%";
 
 export default function Hero() {
   return (
-    <section id="product" className="relative overflow-hidden px-4 pb-20 pt-32 md:px-8 md:pb-28 md:pt-40">
-      <div className="pointer-events-none absolute left-1/2 top-10 h-[620px] w-[620px] -translate-x-1/2 rounded-full bg-primary/10 blur-[150px]" />
+    <section
+      id="product"
+      className="relative isolate overflow-hidden px-4 pb-20 pt-32 md:px-8 md:pb-28 md:pt-40"
+    >
+      {/* ---- Background photo: tea plantation ---- */}
+      <Image
+        src="/hero/hero-bg.jpg"
+        alt=""
+        aria-hidden="true"
+        fill
+        priority
+        sizes="100vw"
+        quality={82}
+        className="-z-20 select-none object-cover"
+        style={{ objectPosition: PHOTO_FOCUS }}
+      />
+
+      {/*
+        ---- Legibility scrim ----
+        Theme-aware because this sits on top of the photo: in light mode the
+        headline is dark-on-light, in dark mode it is light-on-dark. The scrim
+        is heaviest at the top (behind the nav + headline) and at the bottom
+        (where it dissolves into the next section), leaving the middle band of
+        the photo visible.
+      */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 -z-10 bg-gradient-to-b from-surface/90 via-surface/60 to-surface"
+      />
+
+      {/* ---- Soft brand glow ---- */}
+      <div className="pointer-events-none absolute left-1/2 top-10 -z-10 h-[620px] w-[620px] -translate-x-1/2 rounded-full bg-primary/10 blur-[150px]" />
+
       <div className="relative z-10 mx-auto max-w-[1180px] text-center">
-        <div className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3.5 py-1.5 text-xs font-semibold text-primary">
+        <div className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3.5 py-1.5 text-xs font-semibold text-primary backdrop-blur-sm">
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
           Offline-first business workspace
         </div>

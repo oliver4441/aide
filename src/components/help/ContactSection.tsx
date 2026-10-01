@@ -1,5 +1,7 @@
 "use client";
 
+import { SUPPORT_EMAIL, SUPPORT_PHONE, SUPPORT_PHONE_HREF } from "@/lib/site";
+
 export default function ContactSection() {
   const openChat = () => {
     if (typeof window !== "undefined" && (window as any).Tawk_API) {
@@ -41,13 +43,20 @@ export default function ContactSection() {
           </div>
           <h3 className="text-on-surface font-semibold mb-2">Email support</h3>
           <p className="text-on-surface-variant text-sm mb-4">
-            We typically respond within 24 hours.
+            {SUPPORT_EMAIL} — we typically respond within 24 hours.
           </p>
           <a
-            href="mailto:support@omixsystems.store"
+            href={`mailto:${SUPPORT_EMAIL}`}
             className="inline-block bg-primary text-on-primary px-4 py-2 rounded-lg text-sm font-semibold hover:bg-primary-light transition-colors"
           >
             Send Email
+          </a>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-on-surface-variant">
+          <span>Phone</span>
+          <a href={SUPPORT_PHONE_HREF} className="font-semibold text-primary transition-colors duration-200 hover:underline">
+            {SUPPORT_PHONE}
           </a>
         </div>
       </div>

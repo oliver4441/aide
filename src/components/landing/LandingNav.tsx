@@ -28,9 +28,6 @@ export default function LandingNav() {
         <Link href="/" className="flex items-center gap-2.5" onClick={close}>
           <img src="/logo.jpg" alt="Aide" className="h-8 w-8 rounded-lg object-cover" />
           <span className="font-headline text-lg font-bold tracking-tight text-on-surface">Aide</span>
-          <span className="rounded-full border border-warning/25 bg-warning/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-warning">
-            beta
-          </span>
         </Link>
 
         <div className="hidden items-center gap-7 text-sm md:flex">
@@ -38,7 +35,7 @@ export default function LandingNav() {
           <a href="#features" className="text-on-surface-variant transition-colors hover:text-on-surface">Features</a>
           <a href="#pricing" className="text-on-surface-variant transition-colors hover:text-on-surface">Variants</a>
           <Link href="/downloads" className="text-on-surface-variant transition-colors hover:text-on-surface">Get the app</Link>
-          <Link href="/help" className="text-on-surface-variant transition-colors hover:text-on-surface">Docs</Link>
+          <Link href="/help" className="text-on-surface-variant transition-colors hover:text-on-surface">Help</Link>
         </div>
 
         <div className="hidden items-center gap-2 md:flex">
@@ -74,7 +71,7 @@ export default function LandingNav() {
             <a href="#features" onClick={close} className="block rounded-lg px-3 py-2.5 text-sm text-on-surface-variant">Features</a>
             <a href="#pricing" onClick={close} className="block rounded-lg px-3 py-2.5 text-sm text-on-surface-variant">Variants</a>
             <Link href="/downloads" onClick={close} className="block rounded-lg px-3 py-2.5 text-sm text-on-surface-variant">Get the app</Link>
-            <Link href="/help" onClick={close} className="block rounded-lg px-3 py-2.5 text-sm text-on-surface-variant">Docs</Link>
+            <Link href="/help" onClick={close} className="block rounded-lg px-3 py-2.5 text-sm text-on-surface-variant">Help</Link>
           </div>
           <div className="mt-3 flex items-center gap-3 border-t border-outline-variant pt-4">
             <ThemeToggle />
