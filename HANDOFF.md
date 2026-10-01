@@ -391,22 +391,68 @@ metadata.
 **To actually ship the Windows build:** push a `desktop-v*` tag, which runs the
 `release` job and publishes the artifacts already being built on every push.
 
-### 4.6 Housekeeping - security items, still open
+### 4.6 Credentials: what was found, what was fixed, what still needs you
 
-- **Credentials were published in `public/llms.txt`.** An older revision shipped a
-  live credential in a file designed to be fed to LLMs and read by crawlers. It was
-  **removed** in `90041d6` and the site was re-verified clean, but **removing it from
-  `HEAD` does not unpublish it** - the value is still in git history, in every clone,
-  and in any web cache that fetched the old file. **The credential must be rotated at
-  the provider.** A full-history sweep for other leaked values was queued but not
-  completed; do that before treating this as closed.
-- A **Neon personal access token** is stored in the local Neon CLI config
-  (`~/.config/neon`) on the dev machine, used to verify the schema. **Rotate and wipe.**
+A full sweep was run on 2026-10-01 over **every blob in git history** (1,334 blobs),
+not just the working tree. Four separate leaks were found. Three are now fixed in
+`HEAD`; **all of them still exist in git history, so every one needs rotating.**
+
+| # | What leaked | Where | State |
+|---|---|---|---|
+| 1 | **Admin account email + password** (`admin@aide.co.ke` / `admin123`) | `public/llms.txt` (published!), `AGENT_AUTH_LOG.md`, `prisma/seed.ts` | Redacted from `HEAD`. **Rotate the account.** |
+| 2 | **Business account email + password** (`oliver@aide.co.ke` / `password123`) | same three files, plus `AGENT_ANDROID_LOG.md` | Redacted from `HEAD`. **Rotate the account.** |
+| 3 | **Google/Firebase API key** (`AIzaSyAs7C…`) | `AGENT_AUTH_LOG.md` (still in `HEAD` until this fix), and historically `src/lib/firebase.ts` + `src/app/layout.tsx` | Redacted from `HEAD`. **Revoke the key** in Google Cloud. |
+| 4 | Neon project host id (`ep-bil…`) | `AGENTS.md` | Left in place - it is an identifier, not a credential |
+
+Leak 1 and 2 are the serious ones: `public/llms.txt` is served from the site root
+and is **designed to be read by crawlers and LLMs**, so those two working logins
+were published to the internet and indexed. `prisma/seed.ts` also *created* the
+accounts with those exact passwords, so they are not placeholders - they are real.
+
+#### What this commit changes
+
+- `prisma/seed.ts` no longer hardcodes credentials. It reads `SEED_ADMIN_EMAIL`,
+  `SEED_ADMIN_PASSWORD`, `SEED_USER_EMAIL`, `SEED_USER_PASSWORD` from the
+  environment and **throws if any is missing**. A seed file that bakes passwords
+  into source is the reason they reached git in the first place.
+- `AGENT_AUTH_LOG.md` and `AGENT_ANDROID_LOG.md`: credentials replaced with
+  `<REDACTED-2026-10-01>` markers, with a note explaining why.
+- `.env.example`: the real admin email replaced with a placeholder, the new seed
+  variables documented, and a warning added that `ADMIN_EMAILS` must always be set.
+
+#### What you still have to do
+
+Rotation is the only thing that actually closes this. Deleting a value from `HEAD`
+does **not** remove it from history, from existing clones, or from web caches.
+**Do this in this order:**
+
+1. **Rotate the two accounts** in production (or delete them). They were public.
+2. **Revoke the Google/Firebase API key** in Google Cloud Console. Firebase web
+   config is arguably public by design, but it was used for Auth, so revoke it -
+   Firebase Auth is now unused anyway.
+3. **Rotate the Neon personal access token** in `~/.config/neon` on the dev machine,
+   then wipe the file. It was never committed, but it is a live credential sitting
+   in plaintext on disk.
+4. **Rotate `NEXTAUTH_SECRET`** if you have any reason to think it leaked - the
+   sweep found no copy of it in history, but rotating it invalidates all sessions,
+   so do it in a quiet moment.
+5. Only *after* rotating, consider rewriting history with `git filter-repo`.
+   Rewriting is disruptive (every clone must be replaced, every open PR breaks) and
+   does nothing on its own - **rotation is the part that matters.**
+
+#### Still open, not credentials
+
+- A **Neon personal access token** sits in `~/.config/neon` on the dev machine.
 - Scratch DB scripts live in `/tmp/nrtest` - safe to delete.
-- `firebase` and `google-auth-library` are still in `package.json` but are **not imported
-  anywhere in `src/`**. Auth is email + password. They can be removed unless FCM plans
-  need them - note that removing them does **not** block FCM, which needs the Admin SDK
-  and a service account, not these two client libraries.
+- **`prisma/seed.ts` is destructive.** It runs `deleteMany()` on reviews, sync
+  conflicts, sales, sale items, products, categories, memberships and businesses
+  before inserting. It is a dev fixture and must never be pointed at production.
+  A guard would be worth adding.
+- **`ADMIN_EMAILS` has a hardcoded fallback** to a personal Gmail address in
+  `src/lib/auth.ts` and `src/lib/mobileAuth.ts`. If `ADMIN_EMAILS` is ever unset,
+  that address silently gets the admin role. It was left alone deliberately -
+  removing it before `ADMIN_EMAILS` is confirmed set in the Vercel environment
+  would lock the owner out of `/dashboard/admin`.
 
 ### 4.7 Legal pages need a review pass
 Both pages name Omix Digital Solutions with the contact details supplied. If you want to
@@ -469,8 +515,9 @@ npm run db:push        # ⚠️ read §4.3 first
    Neon token too. Only *after* rotating is history rewriting (`git filter-repo`)
    worth considering; rotation is the part that actually closes the hole.
 2. **Rotate and wipe the Neon token** in `~/.config/neon`, and delete `/tmp/nrtest`.
-3. **Remove `firebase` and `google-auth-library`** from `package.json` (unused in `src/`).
-   This does not block FCM later — FCM needs the Admin SDK and a service account.
+3. ~~**Remove `firebase` and `google-auth-library`**~~ — **done**, both uninstalled,
+   lockfile and `node_modules` clean, build still green. This does not block FCM
+   later: FCM needs the Admin SDK and a service account, not these client libraries.
 
 **Then correctness of what is already published:**
 

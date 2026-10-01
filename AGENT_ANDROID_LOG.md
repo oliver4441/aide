@@ -62,7 +62,7 @@ The Android project is a **well-structured native Kotlin/Compose app** with offl
 ```kotlin
 } catch (e: Exception) {
     // Offline fallback for demo / test credentials if matches
-    if (email == "oliver@aide.co.ke" && password == "password123") {
+    if (email == "<REDACTED-2026-10-01>" && password == "<REDACTED-2026-10-01>") {
         // Hardcoded demo user
     } else {
         Result.failure(Exception(e.message ?: "Authentication failed"))

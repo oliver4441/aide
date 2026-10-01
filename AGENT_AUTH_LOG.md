@@ -55,7 +55,7 @@ Switching to email/password only enables:
   ```
 - Removed Firebase initialization script:
   ```js
-  firebase.initializeApp({apiKey:"AIzaSyAs7C-OegYfoPxj8LOYNagZgcMi9yo45Zg",...})
+  firebase.initializeApp({apiKey:"<REDACTED-2026-10-01>",...})
   ```
 
 **Before:** Loaded Firebase SDK for Google sign-in support
@@ -80,10 +80,17 @@ Switching to email/password only enables:
 
 ## Admin/Default User Credentials (from AGENTS.md)
 
-| Role | Email | Password |
-|------|-------|----------|
-| Platform Admin (SUPER_ADMIN) | `admin@aide.co.ke` | `admin123` |
-| Business User (OWNER) | `oliver@aide.co.ke` | `password123` |
+> **Redacted 2026-10-01.** This table previously carried working account
+> emails and passwords in plaintext, and the same values were published in
+> `public/llms.txt` until `90041d6`. They are still present in git history.
+> **Those passwords must be treated as compromised and rotated.**
+>
+> | Role | Email | Password |
+> |------|-------|----------|
+> | Platform Admin (SUPER_ADMIN) | `<redacted>` | `<redacted>` |
+> | Business User (OWNER) | `<redacted>` | `<redacted>` |
+>
+> Seed credentials now come from the environment — see `prisma/seed.ts`.
 
 **Note:** New users must be created via database seeding or admin panel.
 
