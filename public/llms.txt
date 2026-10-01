@@ -33,6 +33,7 @@ Aide ships in three variants. Current builds, file sizes and SHA-256 checksums: 
 - `/` — Landing page (product overview, variants in KES, FAQ, downloads)
 - `/downloads` — Download Aide (PWA, Android APK, Windows EXE, checksums)
 - `/help` — Help Centre (getting started, run guide, FAQ, contact)
+- `/docs` — Documentation (getting started, concepts, guides, API reference, changelog)
 - `/privacy` — Privacy policy
 - `/terms` — Terms of service
 - `/r/[id]` — Shared receipt viewer (public, per-sale permalink)
@@ -61,7 +62,7 @@ Sign-in (`/login`) is a private auth screen and is not indexed.
 - Canonical domain: `https://aide.omixsystems.store`
 - Per-page unique title, description, canonical, OG image and Twitter card
 - robots.txt: allows public pages and `/_next/` assets; disallows `/dashboard`, `/api/` and `/login`
-- sitemap.xml: `/`, `/downloads`, `/help`, `/privacy`, `/terms`
+- sitemap.xml: `/`, `/downloads`, `/help`, `/docs` (+ all 24 doc pages), `/privacy`, `/terms`
 - Structured data: `Organization` + `WebSite` sitewide, `SoftwareApplication` + `FAQPage` on the landing page
 
 ## Repository

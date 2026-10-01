@@ -70,6 +70,15 @@ export default function HelpPage() {
           <p className="text-on-surface-variant text-lg max-w-2xl mx-auto">
             Everything you need to get started with Aide, manage your business, and make the most of our features.
           </p>
+          <p className="mt-6">
+            <Link
+              href="/docs"
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-on-primary shadow-sm transition-colors hover:bg-primary-light"
+            >
+              Browse the full documentation
+              <span aria-hidden="true">&rarr;</span>
+            </Link>
+          </p>
         </div>
 
         <nav className="sticky top-[65px] z-20 bg-surface/95 backdrop-blur-xl border border-outline-variant rounded-xl p-1.5 mb-12 flex gap-1 overflow-x-auto" aria-label="Page sections">

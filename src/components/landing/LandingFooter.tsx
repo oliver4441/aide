@@ -30,6 +30,7 @@ export default function LandingFooter() {
             <h4 className="text-xs font-bold text-on-surface uppercase tracking-wider mb-4">Resources</h4>
             <ul className="space-y-2 text-sm text-on-surface-variant">
               <li><Link href="/help" className="hover:text-on-surface transition-colors">Help Centre</Link></li>
+              <li><Link href="/docs" className="hover:text-on-surface transition-colors">Documentation</Link></li>
               <li><Link href="/downloads" className="hover:text-on-surface transition-colors">Get the app</Link></li>
               <li><a href="https://blog.omixsystems.store" target="_blank" rel="noopener noreferrer" className="hover:text-on-surface transition-colors">Blog</a></li>
               <li><a href="mailto:{SUPPORT_EMAIL}" className="hover:text-on-surface transition-colors">Contact</a></li>

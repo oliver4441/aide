@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/site";
+import { DOC_PAGES, docHref } from "@/lib/docs-nav";
 
 /**
  * Public, indexable routes only.
@@ -31,10 +32,22 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/terms", lastModified: "2026-09-30", changeFrequency: "yearly", priority: 0.4 },
   ];
 
-  return routes.map((r) => ({
-    url: `${SITE_URL}${r.path}`,
-    lastModified: new Date(r.lastModified),
-    changeFrequency: r.changeFrequency,
-    priority: r.priority,
+  // The docs section is derived from the same registry the sidebar renders, so a
+  // new doc page cannot ship without appearing in the sitemap.
+  const docs: MetadataRoute.Sitemap = DOC_PAGES.map((page) => ({
+    url: `${SITE_URL}${docHref(page.slug)}`,
+    lastModified: new Date(page.lastModified),
+    changeFrequency: "monthly",
+    priority: page.slug === "" ? 0.8 : 0.6,
   }));
+
+  return [
+    ...routes.map((r) => ({
+      url: `${SITE_URL}${r.path}`,
+      lastModified: new Date(r.lastModified),
+      changeFrequency: r.changeFrequency,
+      priority: r.priority,
+    })),
+    ...docs,
+  ];
 }

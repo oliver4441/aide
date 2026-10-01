@@ -32,23 +32,25 @@ export type Breadcrumb = {
   href: string;
 };
 
-/** Home / Docs / category / page — the trail rendered above the article. */
+/**
+ * Home / Docs / category / page — the trail rendered above the article.
+ *
+ * The category crumb is skipped when the category's first page *is* the docs
+ * index (as with "Getting started"), because that would put two differently
+ * named links to `/docs` in a row.
+ */
 export function getBreadcrumbs(page: DocPage): Breadcrumb[] {
   const crumbs: Breadcrumb[] = [
     { name: "Home", href: "/" },
     { name: "Docs", href: "/docs" },
   ];
 
-  const category = DOC_CATEGORIES.find((c) => c.id === page.category);
-  if (category) {
-    const firstInGroup = DOC_PAGES.find((p) => p.category === page.category);
-    crumbs.push({
-      name: category.title,
-      href: firstInGroup ? docHref(firstInGroup.slug) : "/docs",
-    });
-  }
-
   if (page.slug !== "") {
+    const category = DOC_CATEGORIES.find((c) => c.id === page.category);
+    const firstInGroup = DOC_PAGES.find((p) => p.category === page.category);
+    if (category && firstInGroup && firstInGroup.slug !== "") {
+      crumbs.push({ name: category.title, href: docHref(firstInGroup.slug) });
+    }
     crumbs.push({ name: page.title, href: docHref(page.slug) });
   }
 
