@@ -91,3 +91,40 @@ jobs:
           files: ${{ steps.apk.outputs.path }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  checksums:
+    name: Publish SHA-256 checksums
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      # The checksum file lives on master, not on the tag.
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+
+      # Hash the exact APK that was uploaded to the release.
+      - name: Download the published APK
+        uses: actions/download-artifact@v4
+        with:
+          name: aide-release-apk
+          path: dist
+
+      - name: Merge hashes into public/apk-checksums.json
+        run: node scripts/update-checksums.mjs dist "${{ github.ref_name }}"
+
+      - name: Commit the checksums
+        # Never let a checksum push break a release that already went out.
+        continue-on-error: true
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/apk-checksums.json
+          if git diff --staged --quiet; then
+            echo "Checksums unchanged — nothing to commit."
+            exit 0
+          fi
+          # [skip ci] stops this commit from triggering another build;
+          # Vercel still deploys it, which is what makes the hashes go live.
+          git commit -m "chore(checksums): SHA-256 for ${{ github.ref_name }} [skip ci]"
+          git push origin HEAD:master

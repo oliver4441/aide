@@ -6,6 +6,11 @@ on:
     tags:
       - 'desktop-v*'
   workflow_dispatch:
+    inputs:
+      checksums_tag:
+        description: 'Also publish SHA-256 checksums for an already-released desktop tag (e.g. desktop-v1.0.0)'
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -110,3 +115,47 @@ jobs:
           files: dist/**/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  checksums:
+    name: Publish SHA-256 checksums
+    needs: [build, release]
+    # !cancelled() because `release` is legitimately skipped outside a tag push,
+    # and a skipped dependency would otherwise skip this job too.
+    if: ${{ !cancelled() && (startsWith(github.ref, 'refs/tags/desktop-v') || inputs.checksums_tag != '') }}
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ inputs.checksums_tag || github.ref_name }}
+    steps:
+      # The checksum file lives on master, not on the tag.
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+
+      # Hash the exact bytes that were uploaded. Downloading them again here is
+      # the only way to be sure the hash matches what users actually download.
+      - name: Download the published assets
+        run: |
+          mkdir -p dist
+          gh release download "$TAG" --repo oliver4441/aide --pattern '*' --dir dist
+          ls -la dist
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Merge hashes into public/apk-checksums.json
+        run: node scripts/update-checksums.mjs dist "$TAG"
+
+      - name: Commit the checksums
+        # Never let a checksum push break a release that already went out.
+        continue-on-error: true
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/apk-checksums.json
+          if git diff --staged --quiet; then
+            echo "Checksums unchanged — nothing to commit."
+            exit 0
+          fi
+          # [skip ci] stops this commit from triggering another desktop build;
+          # Vercel still deploys it, which is what makes the hashes go live.
+          git commit -m "chore(checksums): SHA-256 for $TAG [skip ci]"
+          git push origin HEAD:master
