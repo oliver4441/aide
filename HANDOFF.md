@@ -663,6 +663,26 @@ npx next lint          # lint
 npm run db:push        # ⚠️ read §4.3 first
 ```
 
+**Releases** — do not just `git push origin vX.Y.Z`: tag pushes do not trigger
+workflows in this repo (§4.5b), so that silently does nothing. Use:
+
+```bash
+scripts/publish-release.sh v1.0.3 --dry-run   # check the plan, change nothing
+scripts/publish-release.sh v1.0.3              # tag, dispatch, watch, verify
+scripts/publish-release.sh desktop-v1.0.1
+```
+
+It picks the right workflow from the tag shape, refuses a tag that disagrees
+with `android/app/build.gradle.kts` or `electron/package.json`, refuses to run
+without the four signing secrets, then pushes the tag, dispatches against it,
+waits, and prints the published assets. `v1.0.2` was published by hand before
+this existed; the same two commands it runs are what it automates.
+
+```bash
+# Refreshing checksums for a release published another way
+gh workflow run release-desktop.yml --repo oliver4441/aide -f checksums_tag=desktop-v1.0.0
+```
+
 > Builds on this machine exceed the ~3-minute foreground command limit. Run them detached:
 > `nohup npm run build > /tmp/build.log 2>&1 &` then poll the log.
 
