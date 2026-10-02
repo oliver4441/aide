@@ -18,6 +18,9 @@
       "Aide.Setup.1.0.0.exe": "ac6d81d49ba8123a37c3d5ecde8237bcf6f585411207b888f235fa912e2b74be",
       "aide_1.0.0_amd64.deb": "bad0fa3a8e25c9f6533ebf9920edac7550ad71210b9d3c6819c80cdd3849ad44",
       "aide_1.0.0_arm64.deb": "760e89e2f14dc4b3d1c07b5fb767fa026ed1952dd8cee814ebcb11aed869c50e"
+    },
+    "v1.0.2": {
+      "aide-release.apk": "479756ecba261ed0d17d174399e69ffcf12253a396394a0c04612095a73e19d9"
     }
   }
 }
