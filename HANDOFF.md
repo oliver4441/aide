@@ -49,6 +49,23 @@ Three commits, plus one tag that unblocked the desktop release.
 Tag **`desktop-v1.0.0`** was pushed to `origin`, which ran the release job and
 published "Aide Desktop v1.0.0" with 9 assets including the Windows installer.
 
+The session continued into the Android release pipeline, and turned up two
+defects nobody had found (§2.17, §4.5b):
+
+| Commit | What it did |
+|---|---|
+| `9a63f8a` | `android-release.yml` registered at all — duplicate `name:` keys from step-level action inputs |
+| `0b6a721` | The keystore decode step gated on a secret that does not exist, so every "release" build was unsigned |
+| `20fe0e5` | `versionCode 2` / `1.0.2` (Gradle had still said 1.0.0), and `*.jks` git-ignored |
+| `fc956a2` | `scripts/update-checksums.mjs` + a `checksums` job in both release workflows |
+| `a0aa805`, `011d9c1` | *(bot)* SHA-256 for `desktop-v1.0.0` and `v1.0.2` |
+| `f03a93e` | Release API: no more fabricated `versionCode: 0`, no more `vdesktop-v1.0.0` |
+| `392e184` | `scripts/publish-release.sh` — tag, dispatch, watch, verify |
+| `5abd040`, `71c2037` | *(docs)* this document |
+
+Tag **`v1.0.2`** was published with `aide-release.apk`, 1.43 MB, signed with a
+new certificate that runs to 2054-02-17.
+
 ---
 
 ## 2. What is done
@@ -510,6 +527,30 @@ ignored by git.
 > page displays that field, but the API docs describe the `+N` convention — see
 > the open question in §7.
 
+### 2.18 Release API: honest versions (§2.13-2.17 context)
+
+`/api/releases` and `/api/latest-release` shared an inline derivation that was
+wrong in two ways. Both now use `src/lib/releaseVersion.ts`.
+
+| Field | Before | After |
+|---|---|---|
+| `version` | `replace(/^v/, "")` | strips the `desktop-` namespace too, so `desktop-v1.0.0` reports `1.0.0` |
+| `versionCode` | `parseInt(... \|\| "0", 10)` | `+N` suffix, else the number in the release name (`Aide v1.0.2 (2)`), else **`null`** |
+
+`0` was a fabrication: it looked like a real build number while only recording
+its absence, and `v1.0.2`'s APK is genuinely build 2. `/downloads` had been
+rendering the desktop release as **"vdesktop-v1.0.0"** on the live page.
+
+`/api/latest-release` also stopped using GitHub's `releases/latest`. That is the
+newest release *of any kind*, so the first desktop release published after an
+Android one would have emptied the download button while a signed APK sat in an
+older release. It now lists the 20 most recent releases, skips drafts, and
+returns the first that actually ships an APK; `404` only when none does.
+
+Verified live: `v1.0.2` → `versionCode 2`; the three releases without a `+N`
+build number in their name report `null`; zero occurrences of `vdesktop` on
+`/downloads`.
+
 ### 4.6 Credentials: what was found, what was fixed, what still needs you
 
 A full sweep was run on 2026-10-01 over **every blob in git history** (1,334 blobs),
@@ -705,6 +746,12 @@ gh workflow run release-desktop.yml --repo oliver4441/aide -f checksums_tag=desk
 
 **Then correctness of what is already published:**
 
+> **State at the end of 2026-10-02:** items 1–5 are done. What is left, in
+> order of how much it matters: credential rotation (1, 2 — yours, and the only
+> thing that actually closes the leak), the Actions setting behind §4.5b (UI
+> only), and `scripts/publish-release.sh` has had every guard tested but has
+> never been run end to end, because doing so publishes a real release.
+
 4. ~~**Decide the Windows question**~~ — **done** (2026-10-02): `desktop-v1.0.0`
    published `Aide.Setup.1.0.0.exe` and `/downloads` lists the real builds
    (§2.13, §2.14). Remaining from this area: add the desktop checksums to
@@ -727,6 +774,13 @@ gh workflow run release-desktop.yml --repo oliver4441/aide -f checksums_tag=desk
      channel-independent so the same event can serve PWA, Android, email later
 
 **Then maintenance:**
+
+- Run `scripts/publish-release.sh <tag>` once for real (after bumping
+  `android/app/build.gradle.kts` or `electron/package.json`) so the happy path
+  is proven, not just the guards.
+- Rewrite the `v1.0.2` release notes. `generate_release_notes: true` filled them
+  with an unrelated PR title, so the first signed release advertises itself as a
+  Firebase sign-in change.
 
 7. **Reconcile `prisma/schema.prisma` with production** so future migrations are safe.
 8. **Revisit the previous features** (Customer, Expense, Staff, Invoice, PO, AI).
