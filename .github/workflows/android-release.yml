@@ -67,18 +67,20 @@ jobs:
 
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
-        name: aide-release-apk
-        path: ${{ steps.apk.outputs.path }}
-        retention-days: 90
+        with:
+          name: aide-release-apk
+          path: ${{ steps.apk.outputs.path }}
+          retention-days: 90
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
-        tag_name: ${{ github.ref_name }}
-        name: "Aide v${{ steps.version.outputs.version }} (${{ steps.version.outputs.version_code }})"
-        draft: false
-        prerelease: false
-        generate_release_notes: true
-        files: ${{ steps.apk.outputs.path }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "Aide v${{ steps.version.outputs.version }} (${{ steps.version.outputs.version_code }})"
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: ${{ steps.apk.outputs.path }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
