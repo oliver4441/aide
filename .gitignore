@@ -11,3 +11,9 @@ build/
 *.log
 .DS_Store
 tsconfig.tsbuildinfo
+
+# Signing material must never be committed. The release keystore lives outside
+# the repo (~/.aide/), but a developer may drop a local one here.
+*.jks
+*.keystore
+keystore.properties
