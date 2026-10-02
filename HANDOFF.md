@@ -2,12 +2,14 @@
 
 **Live site:** https://aide.omixsystems.store
 **Repo:** `github.com/oliver4441/aide` (`origin`) — deploys to Vercel on push to `master`
-**Last commit:** `6f67e64` · **Status:** everything below is deployed and verified on the live site
+**Last commit:** `7078bf0` · **Status:** everything below is deployed and verified on the live site
 
-> **Updated 2026-10-01.** Two later sessions landed on top of this document: a
-> landing/SEO overhaul (§2.10) and a full `/docs` section (§2.12). Sections 4.1,
-> 4.2 and 4.5 have been rewritten with the current CI and release findings — the
-> older text in them was wrong.
+> **Updated 2026-10-02.** Three later sessions landed on top of this document: a
+> landing/SEO overhaul (§2.10), a full `/docs` section (§2.12), and the desktop
+> release + accent themes + new-user guide (§2.13–§2.16). Sections 4.1, 4.2 and
+> 4.5 have been rewritten with the current CI and release findings — the older
+> text in them was wrong. **§4.5 is now resolved:** the desktop release is
+> published.
 
 ---
 
@@ -33,6 +35,19 @@ downloads/versions page, SEO, and legal pages.
 | `937e5f2` | Privacy Policy + Terms of Service pages |
 | `5a10347` | Fix duplicated page titles |
 | `104cd2c` | Populate legal pages with Omix Digital Solutions details |
+
+### 2026-10-02 session
+
+Three commits, plus one tag that unblocked the desktop release.
+
+| Commit | What it did |
+|---|---|
+| `6e94555` | `/downloads` desktop card now lists the published Windows/macOS/Linux builds |
+| `57c9998` | Accent themes: Settings → Appearance, 5 palettes, `data-theme` + no-flash persistence |
+| `7078bf0` | New-user guide: `/docs/getting-started/new-user-guide` + `/help` CTA |
+
+Tag **`desktop-v1.0.0`** was pushed to `origin`, which ran the release job and
+published "Aide Desktop v1.0.0" with 9 assets including the Windows installer.
 
 ---
 
@@ -136,9 +151,11 @@ are notifications inside the PWA UI, and they work offline.
   They now read **`oliver4441/aide`** and prefer the release APK over `app-debug.apk`.
 - New **`/api/releases`** returns all releases with their assets.
 - **`/downloads` page**: Android install card (3 steps), iOS Safari install guidance,
-  honest "in progress" desktop card, and a **Versions & checksums** section listing every
-  release with file sizes and **copyable SHA-256** values, plus the `sha256sum` /
-  `certutil` commands to verify. Checksums live in `public/apk-checksums.json`.
+  and a **Versions & checksums** section listing every release with file sizes and
+  **copyable SHA-256** values, plus the `sha256sum` / `certutil` commands to verify.
+  Checksums live in `public/apk-checksums.json`. The desktop card was an
+  honest "in progress" placeholder when this session ran; it now lists the real
+  published builds (§2.14).
 - **`src/lib/device.ts` rewritten**: removed hardcoded URLs for files that never existed
   (`app-release-unsigned.apk`, `Aide-Setup-1.0.0.exe`, `Aide-1.0.0-mac.dmg`,
   `Aide_1.0.0_amd64.deb`, a stale Vercel preview URL) — all were 404s. It now reads from
@@ -209,6 +226,69 @@ quirks (the hard-coded low-stock threshold on `/api/dashboard`, the per-collecti
 deliberate: a reference that documents intended behaviour rather than actual behaviour
 is worse than no reference.
 
+### 2.13 Desktop release published (`desktop-v1.0.0`)
+
+The §4.5 blocker is resolved. On 2026-10-02 the tag `desktop-v1.0.0` was pushed
+to `origin`, the `Desktop App Release` workflow ran end to end (~4 minutes), and
+the **"Aide Desktop v1.0.0"** release was published with 9 assets:
+
+| Asset | Size |
+|---|---|
+| `Aide.Setup.1.0.0.exe` (Windows installer, x64 NSIS) | 76 MB |
+| `Aide-1.0.0.dmg` / `Aide-1.0.0-arm64.dmg` (macOS) | ~99 / 94 MB |
+| `Aide-1.0.0.AppImage` / `-arm64.AppImage` (Linux) | ~104 MB each |
+| `aide_1.0.0_amd64.deb` / `aide_1.0.0_arm64.deb` | ~72 / 68 MB |
+| `Aide-1.0.0-mac.zip` / `Aide-1.0.0-arm64-mac.zip` | ~96 / 91 MB |
+
+Verified live through `/api/releases`. The desktop app is an Electron shell
+around the live PWA (`electron/main.js`) — it loads the deployed URL, so there
+is no bundled Next.js output. To publish the next one: bump
+`electron/package.json`, push a `desktop-v<semver>` tag.
+
+### 2.14 `/downloads` desktop card (`6e94555`)
+
+The "Windows, macOS & Linux" card no longer says the builds are "in progress".
+It renders the newest `desktop-v*` release from `/api/releases`: a version
+badge, release date, and every asset with a friendly label (Windows installer,
+macOS Intel / Apple Silicon, Linux AppImage / package), its file name, size and
+a direct download button. Falls back to the old copy when no desktop release is
+published, so the page cannot claim a build that does not exist.
+
+### 2.15 Accent themes (`57c9998`)
+
+Settings → **Appearance** offers a light/dark picker and five accent palettes:
+**Plum** (the default), **Ocean**, **Forest**, **Sunrise**, **Graphite**.
+
+- Each accent overrides only the `--primary` trio through a `data-theme`
+  attribute on `<html>`, with light *and* dark variants defined in
+  `globals.css`. They sit after the `.dark` block so an explicit palette beats
+  the default in both modes. Surfaces, text and outlines stay shared, so every
+  palette is usable in either mode.
+- The choice persists to `localStorage` under `accent` and is applied **before
+  first paint**: the inline script in `layout.tsx` now reads the accent too, and
+  it honours `prefers-color-scheme` (it previously defaulted to dark, which
+  disagreed with `ThemeProvider`'s system-preference default — a small flash
+  bug fixed in passing).
+- `ThemeProvider.tsx` exports `ACCENTS` (id, label, swatch hex) and manages both
+  `theme` and `accent`. The sidebar's quick light/dark toggle is unchanged and
+  orthogonal to the accent.
+- The scrollbar tint and the `theme-color` meta tags now follow the accent, so
+  the PWA status bar and taskbar tile match the chosen palette.
+
+### 2.16 New user guide (`7078bf0`)
+
+`/docs/getting-started/new-user-guide` is a day-one walkthrough: create the
+account, pick a theme, add categories and products, ring up the first sale,
+share the receipt, work offline, turn on notifications, install, and know where
+the data lives. It is grounded in the real handlers (capability-token receipts,
+split payments, in-app notifications) and links to the detailed pages rather
+than duplicating them.
+
+Registered in `DOC_PAGES` as the first "Getting started" page after the index,
+so the sidebar, pager and sitemap all followed from the registry — the sitemap
+went from 29 to 30 URLs. `/help` now leads with a "New here? Start with the new
+user guide" CTA, and the docs index's "New here?" note points at it.
+
 ---
 
 ## 3. Verification performed
@@ -237,6 +317,20 @@ is worse than no reference.
   `android-release.yml` **fails in 0s** (see 4.1).
 - Release audit: Windows/macOS/Linux artifacts exist but **no `desktop-v*` tag has ever
   been pushed**, so nothing is published; **zero `.exe` assets** exist (see 4.5).
+
+**2026-10-02, desktop release + themes + new user guide:**
+
+- `desktop-v1.0.0` run `36987558964`: Windows (1m59s), macOS (2m02s), Linux
+  (3m35s) all **success**; `Publish desktop release` (28s) created a public
+  release with 9 assets. Confirmed with `gh release view` and live
+  `/api/releases`.
+- `npx tsc --noEmit` clean; `next lint` only the 2 pre-existing warnings.
+- `npm run build` — green, **43** static pages (the new docs page added one) and
+  `new-user-guide` pre-rendered.
+- Live: `/help` 200 with the new CTA, `/docs/getting-started/new-user-guide`
+  200, sitemap **30 URLs** including it.
+- Live: `/downloads` no longer renders "still in progress"; the desktop card
+  lists the real builds.
 
 ---
 
@@ -334,62 +428,24 @@ there is "no account, no server, and no sync". Capacitor was added in `62c0659` 
 Retrofit and kotlinx-serialization are already declared in `gradle/libs.versions.toml`
 but not yet used in `app/build.gradle.kts`.
 
-### 4.5 Windows EXE: builds in CI, never published, and the page title over-promises
+### 4.5 Windows EXE — RESOLVED (2026-10-02)
 
-This was checked end to end on 2026-10-01. The honest summary is that **the
-Windows build works, but no user can download it.**
+The desktop release is published. Tag `desktop-v1.0.0` ran the release job and
+shipped `Aide.Setup.1.0.0.exe` alongside the macOS and Linux builds (§2.13), and
+`/downloads` now lists the real builds with working download links (§2.14). The
+`/downloads` metadata no longer promises a file that does not exist.
 
-**The build is fine.** On run `36917367701` the Windows job passed and uploaded a
-real artifact:
+Two things from this area are still open:
 
-| Artifact | Size | Expired |
-|---|---|---|
-| `desktop-windows` | 76,409,892 bytes (~76 MB) | no |
-| `desktop-linux` | 348,171,800 bytes | no |
-| `desktop-macos` | 380,303,188 bytes | no |
-
-**Nothing is published.** The `release` job in `release-desktop.yml` is gated:
-
-```yaml
-release:
-  if: startsWith(github.ref, 'refs/tags/desktop-v')
-```
-
-It only publishes from a `desktop-v*` tag, and the repo has **never had one**:
-
-```bash
-git tag -l 'desktop-v*'   # -> empty
-git tag -l                # -> v1.0.0  v1.0.0+1  v1.0.1
-```
-
-So `Publish desktop release` is correctly reported as `skipped`, and a sweep of
-both releases confirms **zero `.exe` assets**:
-
-| Release | Assets |
-|---|---|
-| `v1.0.0` | `aide-release.apk`, `app-debug.apk` |
-| `v1.0.1` | `app-debug.apk` |
-
-**The public page contradicts itself.** `/downloads` reads `/api/releases`, which
-filters out any release with no assets - so with no desktop release published, the
-page correctly renders only the Android build. Its body copy is honest:
-
-> "Windows, macOS & Linux - Native desktop builds are still in progress. Aide
-> works today in your browser and installs as a desktop app from Chrome or Edge."
-
-But all three of its metadata tags promise a file that does not exist:
-
-```
-title: "Download Aide - PWA, Android APK & Windows EXE | Aide"
-```
-
-An `.exe` is named in the title, description and OG copy on a page that says
-there is no `.exe`. That is both inaccurate and a search-result promise we
-cannot keep. Either publish the desktop release or drop "Windows EXE" from the
-metadata.
-
-**To actually ship the Windows build:** push a `desktop-v*` tag, which runs the
-`release` job and publishes the artifacts already being built on every push.
+- **Desktop checksums are not in `apk-checksums.json`**, so those 9 assets show
+  "checksum unavailable" in the Versions & checksums section. The fix is to
+  download the release assets, `sha256sum` them, and add a `desktop-v1.0.0` map
+  to `public/apk-checksums.json`. Better: compute the hashes inside the release
+  workflow after the release is published, so future tags never need manual
+  work.
+- **The installer is unsigned.** There is no code-signing certificate, so
+  Windows SmartScreen warns on first run. Acceptable while the certificate costs
+  money, but revisit if it is costing installs.
 
 ### 4.6 Credentials: what was found, what was fixed, what still needs you
 
@@ -566,9 +622,10 @@ npm run db:push        # ⚠️ read §4.3 first
 
 **Then correctness of what is already published:**
 
-4. **Decide the Windows question** (§4.5): either push a `desktop-v*` tag and publish
-   the EXE that CI is already building, or remove "Windows EXE" from the `/downloads`
-   title/description/OG. Right now the metadata promises a file that does not exist.
+4. ~~**Decide the Windows question**~~ — **done** (2026-10-02): `desktop-v1.0.0`
+   published `Aide.Setup.1.0.0.exe` and `/downloads` lists the real builds
+   (§2.13, §2.14). Remaining from this area: add the desktop checksums to
+   `apk-checksums.json`, ideally computed by the release workflow (§4.5).
 5. **Fix `android-release.yml`** (§4.1) and configure the signing secrets, then tag a
    real `v<version>+<versionCode>` release so `/downloads` stops serving `app-debug.apk`
    (§4.2).
@@ -591,4 +648,5 @@ npm run db:push        # ⚠️ read §4.3 first
 10. **Extend `/docs`** as features land. Add the page to `DOC_PAGES` in
     `src/lib/docs-nav.ts` and drop the Markdown in `src/content/docs/`; the sidebar,
     pager and sitemap all follow from the registry.
-11. **Refresh this document** after the next work session.
+11. ~~**Refresh this document**~~ — **done** for the 2026-10-02 session; refresh
+    again after the next one.
