@@ -447,6 +447,69 @@ Two things from this area are still open:
   Windows SmartScreen warns on first run. Acceptable while the certificate costs
   money, but revisit if it is costing installs.
 
+### 4.5b Tag pushes no longer trigger workflows (open, GitHub-side)
+
+**`android-release.yml` is fixed** (§2.17) and publishes correctly — but the
+trigger is unreliable, so a release cannot be published by tagging alone.
+
+Observed on 2026-10-02: pushing `desktop-v1.0.0` at 09:03 **did** start a run.
+From 15:23 onward, pushing `v1.0.2+2` and then `v1.0.2` created **no runs at
+all** — no workflow, zero jobs. Branch pushes to `master` kept working the whole
+time, and GitHub's status page reported Actions as operational.
+
+A deliberately minimal probe workflow (`tag-probe.yml`, plain filename, ten
+lines, byte-identical to local, `actionlint` clean, deleted afterwards) was also
+rejected on arrival: it registered under its **file path** instead of its name,
+its push run failed in **0s with no jobs**, and it could not be dispatched. The
+same symptom the broken `android-release.yml` had. Files that already exist are
+fine — editing `android-release.yml` and `release-desktop.yml` today registered
+and ran normally — so this affects **newly added** workflow files specifically.
+
+**Workaround that is proven to work:** dispatch against the tag.
+
+```bash
+gh workflow run android-release.yml --repo oliver4441/aide --ref v1.0.2 -f version=1.0.2
+```
+
+With `--ref <tag>`, `github.ref` is `refs/tags/<tag>`, so the release and
+checksum steps pass their `startsWith(github.ref, 'refs/tags/')` gates exactly
+as they would on a real tag push. `v1.0.2` was published this way.
+
+Worth checking in the GitHub UI (**not** visible to this token, which lacks
+Administration read): repository **Settings → Actions → General** — "Disable
+actions", the allowed-actions list, and any organisation-level workflow policy.
+
+### 2.17 Android release pipeline repaired (2026-10-02)
+
+Three defects, all fixed and verified:
+
+1. **The workflow never registered.** Two steps declared action inputs at the
+   *step* level instead of under `with:`. That collided with the step's own
+   `name:` key, and duplicate keys in one mapping are a hard error for GitHub's
+   Actions parser — so the whole file was rejected, which is why it reported its
+   path as its name and failed in 0s on every push.
+2. **Release builds were silently unsigned.** The decode step gated on
+   `env.ANDROID_KEYSTORE_PATH`, populated from a secret named
+   `ANDROID_KEYSTORE_PATH` that **does not exist** (the real one is
+   `ANDROID_KEYSTORE_BASE64`). The condition was always false, so the keystore
+   was never written and `build.gradle.kts` fell back to an unsigned build. The
+   secrets are now mapped to env vars and the step gates on one that exists,
+   with a warning annotation when there is no keystore at all.
+3. **Version drift.** Gradle still said `versionCode = 1` / `1.0.0` while GitHub
+   was tagged `v1.0.1`. Now `versionCode = 2` / `1.0.2`.
+
+`v1.0.2` is published: `aide-release.apk`, 1.43 MB, signed with the **new**
+certificate (`notBefore Oct 2 2026` → `notAfter Feb 17 2054`), replacing the
+original whose 7-day validity had expired on 14 Sep 2026. `/downloads` now
+serves the signed APK instead of `app-debug.apk`. Signing material lives
+outside the repository in `~/.aide/` (mode 700, files 600) and `*.jks` is now
+ignored by git.
+
+> The tag is `v1.0.2` without a `+N` suffix, so `/api/latest-release` reports
+> `versionCode: 0` even though the APK's real versionCode is 2. Nothing on the
+> page displays that field, but the API docs describe the `+N` convention — see
+> the open question in §7.
+
 ### 4.6 Credentials: what was found, what was fixed, what still needs you
 
 A full sweep was run on 2026-10-01 over **every blob in git history** (1,334 blobs),
@@ -626,9 +689,13 @@ npm run db:push        # ⚠️ read §4.3 first
    published `Aide.Setup.1.0.0.exe` and `/downloads` lists the real builds
    (§2.13, §2.14). Remaining from this area: add the desktop checksums to
    `apk-checksums.json`, ideally computed by the release workflow (§4.5).
-5. **Fix `android-release.yml`** (§4.1) and configure the signing secrets, then tag a
-   real `v<version>+<versionCode>` release so `/downloads` stops serving `app-debug.apk`
-   (§4.2).
+5. ~~**Fix `android-release.yml` and sign the APK**~~ — **done** (§2.17): the
+   workflow registers, the keystore is used, `v1.0.2` is published signed, and
+   `/downloads` serves `aide-release.apk`. Two things remain: **tag pushes no
+   longer trigger workflows at all** (§4.5b) — publish with
+   `gh workflow run android-release.yml --ref <tag>` until that clears — and
+   decide whether `/api/latest-release` should stop reporting `versionCode: 0`
+   for tags without a `+N` suffix (§2.17).
 6. **Android v2 notifications** (extends the existing Compose app, per the agreed
    architecture):
    - Phase 2 — native local notifications + `NotificationManager` channels
