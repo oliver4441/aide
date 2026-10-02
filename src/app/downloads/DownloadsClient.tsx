@@ -122,6 +122,20 @@ export default function DownloadsClient() {
   const device = typeof window !== "undefined" ? getDeviceType() : "unknown";
   const latestApk = release?.downloadUrl ?? null;
 
+  // Newest desktop (Electron) release, if one is published. Distinct from the
+  // Android `v*` tags so the two client families never collide on this page.
+  const desktopRelease = releases.find((r) => r.tag?.startsWith("desktop-")) ?? null;
+
+  const desktopLabel = (name: string): string => {
+    if (/\.exe$/i.test(name)) return "Windows installer";
+    if (/\.dmg$/i.test(name)) return name.includes("arm64") ? "macOS (Apple Silicon)" : "macOS (Intel)";
+    if (/\.AppImage$/i.test(name)) return name.includes("arm64") ? "Linux AppImage (ARM64)" : "Linux AppImage";
+    if (/\.deb$/i.test(name)) return name.includes("arm64") ? "Linux package (ARM64)" : "Linux package";
+    if (/mac\.zip$/i.test(name)) return name.includes("arm64") ? "macOS zip (Apple Silicon)" : "macOS zip";
+    if (/\.zip$/i.test(name)) return "Desktop archive";
+    return "Desktop build";
+  };
+
   return (
     <div className="min-h-screen bg-surface">
       {/* Top bar */}
@@ -243,14 +257,59 @@ export default function DownloadsClient() {
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
               <Monitor className="w-6 h-6" />
             </div>
-            <div>
+            <div className="min-w-0">
               <h2 className="text-lg font-bold text-on-surface font-headline">Windows, macOS & Linux</h2>
               <p className="mt-1 text-sm text-on-surface-variant">
-                Native desktop builds are still in progress. Aide works today in your
-                browser and installs as a desktop app from Chrome or Edge.
+                The Aide desktop app is a native shell for the PWA — real system
+                notifications, background reminders and offline access, in a
+                standalone window.
               </p>
             </div>
           </div>
+
+          {loading ? (
+            <div className="flex h-[50px] w-full items-center justify-center rounded-xl border border-outline-variant mt-5">
+              <Loader2 className="w-4 h-4 animate-spin text-on-surface-variant" />
+            </div>
+          ) : desktopRelease ? (
+            <div className="mt-5 space-y-2">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-semibold text-primary">
+                  Aide Desktop v{desktopRelease.version ?? "1.0.0"}
+                </span>
+                {desktopRelease.publishedAt && (
+                  <span className="text-xs text-on-surface-variant">{formatDate(desktopRelease.publishedAt)}</span>
+                )}
+              </div>
+              {desktopRelease.assets.map((a) => (
+                <div
+                  key={a.name}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-outline-variant bg-surface-container px-3 py-2.5"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-on-surface">{desktopLabel(a.name)}</p>
+                    <p className="text-[11px] text-on-surface-variant font-mono">{a.name}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="hidden sm:inline text-[11px] text-on-surface-variant">{formatBytes(a.sizeBytes)}</span>
+                    <a
+                      href={a.downloadUrl}
+                      download={a.name}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-on-primary transition hover:bg-primary-light"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      Download
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="mt-5 rounded-xl border border-outline-variant bg-surface-container px-4 py-3 text-sm text-on-surface-variant">
+              Native desktop builds are still in progress. Aide works today in your
+              browser and installs as a desktop app from Chrome or Edge.
+            </div>
+          )}
         </section>
 
         {/* Releases */}
