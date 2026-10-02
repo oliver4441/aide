@@ -53,6 +53,55 @@
     --danger: 251 113 133;
   }
 
+  /* Accent palettes — data-theme on <html>, chosen in Settings → Appearance.
+     Plum (the default) is what :root and .dark already define, so it needs no
+     override. Each palette restyles only the accent trio; surfaces, text and
+     outlines stay shared. These blocks sit after .dark so an explicit palette
+     wins over the default in both light and dark mode. */
+  [data-theme="ocean"] {
+    --primary: 37 99 235;
+    --primary-light: 59 130 246;
+    --primary-container: 59 130 246;
+  }
+  .dark[data-theme="ocean"] {
+    --primary: 147 197 253;
+    --primary-light: 191 219 254;
+    --primary-container: 30 58 138;
+  }
+
+  [data-theme="forest"] {
+    --primary: 22 101 52;
+    --primary-light: 34 129 68;
+    --primary-container: 34 129 68;
+  }
+  .dark[data-theme="forest"] {
+    --primary: 134 239 172;
+    --primary-light: 110 213 150;
+    --primary-container: 20 83 45;
+  }
+
+  [data-theme="sunrise"] {
+    --primary: 234 88 12;
+    --primary-light: 249 115 22;
+    --primary-container: 249 115 22;
+  }
+  .dark[data-theme="sunrise"] {
+    --primary: 253 186 116;
+    --primary-light: 251 146 60;
+    --primary-container: 154 52 18;
+  }
+
+  [data-theme="graphite"] {
+    --primary: 55 65 81;
+    --primary-light: 75 85 99;
+    --primary-container: 75 85 99;
+  }
+  .dark[data-theme="graphite"] {
+    --primary: 209 213 219;
+    --primary-light: 156 163 175;
+    --primary-container: 55 65 81;
+  }
+
   body {
     font-family: var(--font-body), "Inter", sans-serif;
   }
@@ -73,12 +122,12 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(111, 38, 79, 0.2);
+  background: rgb(var(--primary) / 0.2);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(111, 38, 79, 0.4);
+  background: rgb(var(--primary) / 0.4);
 }
 
 /* Glass panel utility */

@@ -13,6 +13,7 @@ import {
   NOTIFICATION_CATEGORIES,
   type NotificationType,
 } from "@/lib/notifications";
+import { ACCENTS, useTheme, type Accent } from "@/components/ThemeProvider";
 
 function ToggleRow({
   label,
@@ -54,6 +55,9 @@ export default function SettingsPage() {
   const [newCategory, setNewCategory] = useState("");
   const [notifEnabled, setNotifEnabledState] = useState(true);
   const [notifCats, setNotifCats] = useState<Record<string, boolean>>({});
+  const { theme, setTheme, accent, setAccent } = useTheme();
+  const [uiTheme, setUiTheme] = useState<"light" | "dark">("dark");
+  const [uiAccent, setUiAccent] = useState<Accent>("plum");
 
   useEffect(() => {
     let active = true;
@@ -69,6 +73,15 @@ export default function SettingsPage() {
       active = false;
     };
   }, []);
+
+  // Mirror the theme context into local state after mount, so the selected
+  // swatches render the stored choice instead of the pre-mount default.
+  useEffect(() => {
+    setUiTheme(theme);
+  }, [theme]);
+  useEffect(() => {
+    setUiAccent(accent);
+  }, [accent]);
 
   const setNotifEnabled = async (v: boolean) => {
     await setNotificationsEnabled(v);
@@ -178,6 +191,71 @@ export default function SettingsPage() {
               <div className="text-sm font-medium text-on-surface">{session?.user?.name}</div>
               <div className="text-xs text-on-surface-variant">{session?.user?.email}</div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Appearance */}
+      <div className="bg-surface-container-low border border-outline-variant rounded-xl p-6">
+        <h2 className="text-lg font-bold text-on-surface font-headline mb-4">Appearance</h2>
+        <div className="space-y-5">
+          <div>
+            <div className="text-sm text-on-surface mb-2">Mode</div>
+            <div className="flex gap-2" role="group" aria-label="Colour mode">
+              {(["light", "dark"] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  aria-pressed={uiTheme === m}
+                  onClick={() => {
+                    setUiTheme(m);
+                    setTheme(m);
+                  }}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors border ${
+                    uiTheme === m
+                      ? "border-primary bg-primary/10 text-on-surface ring-2 ring-primary/30"
+                      : "border-outline-variant text-on-surface-variant hover:bg-surface-container"
+                  }`}
+                >
+                  {m}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-on-surface-variant mt-1.5">
+              Follows your system setting until you pick one. A quick light/dark toggle also lives in the sidebar.
+            </p>
+          </div>
+
+          <div>
+            <div className="text-sm text-on-surface mb-2">Accent</div>
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Accent colour">
+              {ACCENTS.map((a) => (
+                <button
+                  key={a.id}
+                  type="button"
+                  aria-pressed={uiAccent === a.id}
+                  onClick={() => {
+                    setUiAccent(a.id);
+                    setAccent(a.id);
+                  }}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${
+                    uiAccent === a.id
+                      ? "border-primary bg-primary/10 text-on-surface ring-2 ring-primary/30"
+                      : "border-outline-variant text-on-surface-variant hover:bg-surface-container"
+                  }`}
+                >
+                  <span
+                    aria-hidden="true"
+                    className="w-4 h-4 rounded-full border border-black/10 shadow-sm"
+                    style={{ background: a.color }}
+                  />
+                  {a.label}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-on-surface-variant mt-1.5">
+              Changes the highlight colour across the app. Saved on this device.
+            </p>
           </div>
         </div>
       </div>

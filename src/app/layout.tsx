@@ -91,7 +91,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="manifest" href="/manifest.webmanifest" />
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('theme');if(t==='light'){document.documentElement.classList.remove('dark')}else{document.documentElement.classList.add('dark')}}catch(e){document.documentElement.classList.add('dark')}})()`,
+            __html: `(function(){try{var e=document.documentElement,t=localStorage.getItem('theme'),a=localStorage.getItem('accent');e.classList.toggle('dark',t==='dark'?true:t==='light'?false:window.matchMedia('(prefers-color-scheme: dark)').matches);if(a&&a!=='plum'&&/^[a-z]+$/.test(a)){e.setAttribute('data-theme',a)}else{e.removeAttribute('data-theme')}}catch(x){document.documentElement.classList.add('dark')}})()`,
           }}
         />
         <script
