@@ -57,6 +57,15 @@ export const DOC_PAGES: DocPage[] = [
     lastModified: "2026-10-01",
   },
   {
+    slug: "getting-started/new-user-guide",
+    title: "New user guide",
+    description:
+      "Your first day on Aide: create an account, pick a theme, load your stock, ring up a sale, share the receipt, and trust it all to work offline.",
+    category: "start",
+    file: "getting-started/new-user-guide",
+    lastModified: "2026-10-02",
+  },
+  {
     slug: "getting-started/installation",
     title: "Installation",
     navTitle: "Install the app",

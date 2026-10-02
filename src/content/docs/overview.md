@@ -8,8 +8,9 @@ That assumption shapes everything. Every sale you ring up is written to the
 device first and synced to the server afterwards, so a busy Saturday with patchy
 mobile data does not cost you a day's takings.
 
-> New here? Start with [Set up your business](/docs/getting-started/setup), then
-> work through [Make your first sale](/docs/getting-started/first-sale).
+> New here? Start with the [New user guide](/docs/getting-started/new-user-guide)
+> for a day-one walkthrough, or go straight to
+> [Set up your business](/docs/getting-started/setup).
 
 ## How Aide is put together
 
