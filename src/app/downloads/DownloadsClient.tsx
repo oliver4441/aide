@@ -28,7 +28,8 @@ interface ReleaseAsset {
 interface Release {
   tag: string | null;
   version: string | null;
-  versionCode: number;
+  /** Android's build number. null for anything that is not an APK release. */
+  versionCode: number | null;
   name: string | null;
   notes: string | null;
   prerelease: boolean;
@@ -389,10 +390,11 @@ export default function DownloadsClient() {
           )}
 
           <p className="mt-4 text-xs text-on-surface-variant/70">
-            Checksums are SHA-256 of the published files. To verify on Linux or macOS run{" "}
-            <span className="font-mono">sha256sum aide-release.apk</span> and compare with the
-            value above. On Windows use{" "}
-            <span className="font-mono">certutil -hashfile aide-release.apk SHA256</span>.
+            Checksums are SHA-256 of the exact bytes that were published. Verify
+            the file you downloaded by naming it — on Linux or macOS{" "}
+            <span className="font-mono">sha256sum Aide.Setup.1.0.0.exe</span>, on Windows{" "}
+            <span className="font-mono">certutil -hashfile Aide.Setup.1.0.0.exe SHA256</span> —
+            and compare with the value above.
           </p>
         </section>
 

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { parseVersion, parseVersionCode } from "@/lib/releaseVersion";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,12 @@ function pickApk(assets: any[] = []) {
 
 export async function GET() {
   try {
-    const res = await fetch(`https://api.github.com/repos/${REPO}/releases/latest`, {
+    // Not /releases/latest: that is simply the newest release of any kind, and
+    // the desktop family publishes independently. The moment a desktop release
+    // goes out after an Android one, "latest" stops being an Android build and
+    // the download button disappears even though a signed APK is right there.
+    // Ask for the list and pick the newest release that actually ships an APK.
+    const res = await fetch(`https://api.github.com/repos/${REPO}/releases?per_page=20`, {
       headers: {
         Accept: "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
@@ -33,13 +39,32 @@ export async function GET() {
       );
     }
 
-    const release = await res.json();
-    const apk = pickApk(release.assets);
+    const raw = await res.json();
+    const releases = Array.isArray(raw) ? raw : [];
+
+    let release: any = null;
+    let apk: any = null;
+    for (const candidate of releases) {
+      if (candidate?.draft) continue;
+      const picked = pickApk(candidate.assets);
+      if (picked) {
+        release = candidate;
+        apk = picked;
+        break;
+      }
+    }
+
+    if (!release) {
+      return NextResponse.json(
+        { version: null, downloadUrl: null, message: "No Android release available yet" },
+        { status: 404 }
+      );
+    }
 
     return NextResponse.json(
       {
-        version: release.tag_name?.replace(/^v/, "").replace(/\+\d+$/, ""),
-        versionCode: parseInt(release.tag_name?.match(/\+(\d+)$/)?.[1] || "0", 10),
+        version: parseVersion(release.tag_name),
+        versionCode: parseVersionCode(release.tag_name, release.name),
         tag: release.tag_name ?? null,
         downloadUrl: apk?.browser_download_url ?? null,
         apkName: apk?.name ?? null,

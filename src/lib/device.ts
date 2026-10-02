@@ -66,7 +66,8 @@ export function getDeviceLabel(): string {
 
 export interface ReleaseInfo {
   version: string | null;
-  versionCode: number;
+  /** Android's build number. null for anything that is not an APK release. */
+  versionCode: number | null;
   tag: string | null;
   downloadUrl: string | null;
   apkName: string | null;

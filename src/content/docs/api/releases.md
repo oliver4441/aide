@@ -49,8 +49,8 @@ Versions are read **from the git tag**, using the pattern `v<version>+<code>`:
 | Field | Derivation | Example tag |
 | --- | --- | --- |
 | `tag` | The tag verbatim | `v2.1.0+42` |
-| `version` | `v` stripped, build metadata stripped | `2.1.0` |
-| `versionCode` | The `+N` suffix as an integer | `42` |
+| `version` | Tag namespace and `v` prefix stripped, build metadata stripped | `2.1.0` |
+| `versionCode` | The `+N` suffix, else the number in the release name, else `null` | `42` |
 | `name` | The release's display name, falling back to the tag | `Aide 2.1.0` |
 | `notes` | The release body, or `null` | Markdown string |
 | `prerelease` | Boolean from GitHub | `false` |
@@ -59,12 +59,20 @@ Versions are read **from the git tag**, using the pattern `v<version>+<code>`:
 | `assets` | Mapped below | |
 
 ```js
-version: r.tag_name?.replace(/^v/, "").replace(/\+\d+$/, ""),
-versionCode: parseInt(r.tag_name?.match(/\+(\d+)$/)?.[1] || "0", 10),
+version: parseVersion(r.tag_name),          // src/lib/releaseVersion.ts
+versionCode: parseVersionCode(r.tag_name, r.name),
 ```
 
-Every field is nullable except `prerelease` and `assets`. A release tagged
-without a `+N` suffix still lists, with `versionCode: 0`.
+Every field is nullable except `prerelease` and `assets`.
+
+`versionCode` is **null**, not `0`, when the tag carries no `+N` suffix and the
+release name carries no parenthesised build number. An earlier version of this
+route reported `0` in that case, which reads like a real build number when it
+is only the absence of one. Only the APK family has a `versionCode` at all —
+every desktop release reports `null`.
+
+`version` also strips the tag namespace, so `desktop-v1.0.0` reports
+`1.0.0`, not `desktop-v1.0.0`.
 
 ### Assets
 
@@ -106,8 +114,15 @@ Returns a **single flattened object**, not an array:
 }
 ```
 
-This calls GitHub's `releases/latest`, which excludes drafts and prereleases —
-so this endpoint gives you the newest **stable** build.
+This does **not** call `releases/latest`. That endpoint returns the newest
+release of any kind, and the desktop family publishes independently — so as soon
+as a desktop build is released after an Android one, "latest" is no longer an
+Android build and the download button would vanish while a signed APK sat
+untouched in an older release. Instead this route lists the 20 most recent
+releases, skips drafts, and returns the first one that actually ships an APK.
+
+The practical difference: the answer does not change when the desktop pipeline
+publishes. If **no** release ships an APK, the endpoint returns `404`.
 
 ### Which APK gets picked
 

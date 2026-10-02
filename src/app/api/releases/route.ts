@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { parseVersion, parseVersionCode } from "@/lib/releaseVersion";
 
 export const dynamic = "force-dynamic";
 
@@ -23,8 +24,8 @@ export async function GET() {
     const releases = (Array.isArray(raw) ? raw : [])
       .map((r: any) => ({
         tag: r.tag_name ?? null,
-        version: r.tag_name?.replace(/^v/, "").replace(/\+\d+$/, "") ?? null,
-        versionCode: parseInt(r.tag_name?.match(/\+(\d+)$/)?.[1] || "0", 10),
+        version: parseVersion(r.tag_name),
+        versionCode: parseVersionCode(r.tag_name, r.name),
         name: r.name ?? r.tag_name ?? null,
         notes: r.body ?? null,
         prerelease: Boolean(r.prerelease),

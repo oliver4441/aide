@@ -32,6 +32,13 @@ Both the leading `v` and the `+N` suffix are stripped to produce the displayed
 to increase on every upload to Play, and the app compares it to decide whether
 an update exists — so never reuse or rewind a code.
 
+`versionCode` is optional in practice. When a tag carries no `+N`, the release
+name (`Aide v1.0.2 (2)`, written by `android-release.yml`) supplies the number
+the Gradle build actually used. If neither is present the API reports
+`versionCode: null` rather than `0` — see
+[Releases](/docs/api/releases). Desktop tags are `desktop-v<version>` and have
+no versionCode.
+
 ## Reading the history
 
 - In the app: **Settings → Updates** lists every release with assets attached,
