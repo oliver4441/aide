@@ -85,6 +85,19 @@ interface SaleDao {
         insertSaleItems(items)
     }
 
+    // ---- report aggregates -------------------------------------------------
+    // Aggregated in SQL rather than in Kotlin so a long history does not have
+    // to be loaded into memory to draw one chart.
+
+    @Query("SELECT COALESCE(SUM(total), 0) AS revenue, COALESCE(SUM(cost), 0) AS cost, COALESCE(SUM(profit), 0) AS profit, COALESCE(SUM(tax), 0) AS tax, COUNT(*) AS count FROM sales WHERE businessId = :businessId AND createdAt >= :sinceIso")
+    suspend fun getTotalsSince(businessId: String, sinceIso: String): SalesTotalsRow
+
+    @Query("SELECT si.productId AS productId, si.name AS name, SUM(si.quantity) AS quantity, SUM(si.quantity * si.price) AS revenue, SUM(si.quantity * (si.price - si.cost)) AS profit FROM sale_items si INNER JOIN sales s ON s.id = si.saleId WHERE s.businessId = :businessId AND s.createdAt >= :sinceIso GROUP BY si.productId, si.name ORDER BY revenue DESC LIMIT :limit")
+    suspend fun getTopProducts(businessId: String, sinceIso: String, limit: Int): List<TopProductRow>
+
+    @Query("SELECT paymentMethod AS method, COUNT(*) AS count, SUM(total) AS total FROM sales WHERE businessId = :businessId AND createdAt >= :sinceIso GROUP BY paymentMethod ORDER BY total DESC")
+    suspend fun getPaymentBreakdown(businessId: String, sinceIso: String): List<PaymentBreakdownRow>
+
 }
 
 @Dao
@@ -112,3 +125,79 @@ interface NotificationDao {
     suspend fun clearAll()
 }
 
+
+/** Aggregate row for the reports header. */
+data class SalesTotalsRow(
+    val revenue: Double,
+    val cost: Double,
+    val profit: Double,
+    val tax: Double,
+    val count: Int
+)
+
+/** One row of the "top products" table. */
+data class TopProductRow(
+    val productId: String?,
+    val name: String,
+    val quantity: Int,
+    val revenue: Double,
+    val profit: Double
+)
+
+/** One row of the payment-method breakdown. */
+data class PaymentBreakdownRow(
+    val method: String,
+    val count: Int,
+    val total: Double
+)
+
+@Dao
+interface ExpenseDao {
+
+    @Query("SELECT * FROM expenses WHERE businessId = :businessId ORDER BY createdAt DESC")
+    fun getExpenses(businessId: String): Flow<List<ExpenseEntity>>
+
+    @Query("SELECT * FROM expenses WHERE businessId = :businessId AND createdAt >= :sinceIso ORDER BY createdAt DESC")
+    suspend fun getExpensesSince(businessId: String, sinceIso: String): List<ExpenseEntity>
+
+    /** Overheads only. COGS is already carried on each sale. */
+    @Query("SELECT COALESCE(SUM(amount), 0) FROM expenses WHERE businessId = :businessId AND isCogs = 0 AND createdAt >= :sinceIso")
+    suspend fun getOverheadsSince(businessId: String, sinceIso: String): Double
+
+    @Query("SELECT category, SUM(amount) AS total FROM expenses WHERE businessId = :businessId AND createdAt >= :sinceIso GROUP BY category ORDER BY total DESC")
+    suspend fun getCategoryTotalsSince(businessId: String, sinceIso: String): List<CategoryExpenseRow>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertOrUpdate(expense: ExpenseEntity)
+
+    @Query("DELETE FROM expenses WHERE id = :id")
+    suspend fun deleteById(id: String)
+}
+
+/** One row of the "spend by category" table. */
+data class CategoryExpenseRow(
+    val category: String,
+    val total: Double
+)
+
+@Dao
+interface CustomerDao {
+
+    @Query("SELECT * FROM customers WHERE businessId = :businessId ORDER BY name ASC")
+    fun getCustomers(businessId: String): Flow<List<CustomerEntity>>
+
+    @Query("SELECT * FROM customers WHERE businessId = :businessId AND isActive = 1 ORDER BY name ASC")
+    fun getActiveCustomers(businessId: String): Flow<List<CustomerEntity>>
+
+    @Query("SELECT * FROM customers WHERE id = :id")
+    suspend fun getById(id: String): CustomerEntity?
+
+    @Query("SELECT COALESCE(SUM(balance), 0) FROM customers WHERE businessId = :businessId")
+    suspend fun getTotalOwed(businessId: String): Double
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertOrUpdate(customer: CustomerEntity)
+
+    @Query("DELETE FROM customers WHERE id = :id")
+    suspend fun deleteById(id: String)
+}
