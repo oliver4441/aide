@@ -31,9 +31,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.navArgument
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.omix.aide.data.local.AideDatabase
 import com.omix.aide.data.local.LocalBusinessStore
@@ -99,9 +100,10 @@ class MainActivity : ComponentActivity() {
         // Only one setContent call may happen per activity, hence the handoff.
         setContentView(R.layout.splash)
         val accent = Palette.read(this)
-        showSplash(accent = accent) {
-            setupContent(accent = accent)
-        }
+        showSplash(
+            onReady = { setupContent(accent = accent) },
+            accent = accent
+        )
     }
 
     override fun onNewIntent(intent: Intent?) {

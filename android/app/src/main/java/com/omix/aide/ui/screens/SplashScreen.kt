@@ -33,7 +33,8 @@ fun ComponentActivity.showSplash(
     onReady: () -> Unit,
     accent: String
 ) {
-    val database = AideDatabase.getDatabase(this)
+    // Warm the Room singleton so the first query after the splash is cheap.
+    AideDatabase.getDatabase(this)
     val store = LocalBusinessStore(this)
 
     // Publish the business identifier to LocalBusinessStore.
@@ -71,12 +72,13 @@ fun ComponentActivity.showSplash(
 
     // When the database is ready, hand control to the main app.
     val progress = findViewById<ProgressBar>(R.id.splash_progress)
-    database.executor.execute {
-        Handler(Looper.getMainLooper()).post {
+    val main = Handler(Looper.getMainLooper())
+    Thread {
+        main.post {
             progress?.visibility = View.GONE
             onReady()
         }
-    }
+    }.start()
 }
 
 /**

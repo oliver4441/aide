@@ -3,6 +3,7 @@ package com.omix.aide.theme
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.res.ResourcesCompat
+import com.omix.aide.R
 
 /** A single accent theme the user can pick. (Plum, Lavender, Teal, Amber,
  *  Orange — mirroring the web app's `ACCENTS`.) */

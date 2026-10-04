@@ -34,7 +34,7 @@ class BrandedLogo @JvmOverloads constructor(
     }
 
     init {
-        orientation = VERTICAL
+        // FrameLayout stacks the mark over the slate circle.
         addView(circle)
         addView(mark)
     }
