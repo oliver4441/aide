@@ -7,11 +7,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.omix.aide.ui.components.*
+import com.omix.aide.ui.theme.WarningAmber
 import com.omix.aide.ui.viewmodel.SellViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -122,6 +124,59 @@ fun SellScreen(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
+
+                // Change due, worked out as they type. Nothing to press — this
+                // is the calculation a cashier does mentally at the till.
+                val paid = uiState.amountPaid.toDoubleOrNull()
+                if (paid != null && paid > 0.0) {
+                    val due = paid - uiState.subtotal
+                    Spacer(Modifier.height(8.dp))
+                    AideCard {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if (due >= 0) "Change due" else "Still owed",
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text(
+                                text = "KSh ${"%.2f".format(kotlin.math.abs(due))}",
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.Bold,
+                                color = if (due >= 0) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    WarningAmber
+                                }
+                            )
+                        }
+                        Spacer(Modifier.height(4.dp))
+                        // Quick exact-tender buttons, so the common case needs
+                        // no typing at all.
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            val suggestions = listOf(
+                                uiState.subtotal,
+                                Math.ceil(uiState.subtotal / 100.0) * 100.0,
+                                Math.ceil(uiState.subtotal / 500.0) * 500.0,
+                                Math.ceil(uiState.subtotal / 1000.0) * 1000.0
+                            ).distinct().filter { it >= uiState.subtotal }
+
+                            suggestions.forEach { amount ->
+                                FilterChip(
+                                    selected = paid != null && kotlin.math.abs(paid - amount) < 0.005,
+                                    onClick = {
+                                        sellViewModel.setAmountPaid("%.2f".format(amount))
+                                    },
+                                    label = { Text("%.0f".format(amount)) },
+                                    modifier = Modifier.height(48.dp)
+                                )
+                            }
+                        }
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(24.dp))
 

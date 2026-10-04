@@ -63,7 +63,7 @@ class ReportViewModel(
         fun sinceIso(range: ReportRange): String {
             if (range.days == 0) return "1970-01-01T00:00:00.000Z"
             val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
-                add(Calendar.DAY_OF_YEAR, -(range.days - 1L))
+                add(Calendar.DAY_OF_YEAR, -(range.days - 1))
                 set(Calendar.HOUR_OF_DAY, 0)
                 set(Calendar.MINUTE, 0)
                 set(Calendar.SECOND, 0)

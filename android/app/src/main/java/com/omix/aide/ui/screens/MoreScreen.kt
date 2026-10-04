@@ -17,7 +17,12 @@ import com.omix.aide.ui.components.NotificationSettingsCard
 
 @Composable
 fun MoreScreen(
-    businessName: String
+    businessName: String,
+    onNavigateToCustomers: () -> Unit,
+    onNavigateToExpenses: () -> Unit,
+    onNavigateToReports: () -> Unit,
+    onNavigateToSettings: () -> Unit,
+    onNavigateToCalculator: () -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -48,7 +53,7 @@ fun MoreScreen(
                 icon = Icons.Default.People,
                 title = "Customers",
                 subtitle = "Manage customer balances & directory",
-                onClick = {}
+                onClick = onNavigateToCustomers
             )
         }
 
@@ -57,7 +62,7 @@ fun MoreScreen(
                 icon = Icons.Default.Receipt,
                 title = "Expenses",
                 subtitle = "Track shop overheads & payments",
-                onClick = {}
+                onClick = onNavigateToExpenses
             )
         }
 
@@ -66,7 +71,7 @@ fun MoreScreen(
                 icon = Icons.Default.Assessment,
                 title = "Reports",
                 subtitle = "Sales analytics, profit, & summaries",
-                onClick = {}
+                onClick = onNavigateToReports
             )
         }
 
@@ -75,7 +80,15 @@ fun MoreScreen(
                 icon = Icons.Default.Settings,
                 title = "Settings",
                 subtitle = "Business profile & receipt customization",
-                onClick = {}
+                onClick = onNavigateToSettings
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+            MoreMenuItem(
+                icon = Icons.Default.Calculate,
+                title = "Calculator",
+                subtitle = "Pricing, margin & profit",
+                onClick = onNavigateToCalculator
             )
         }
 
