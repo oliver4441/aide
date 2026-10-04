@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="128dp"
+    android:height="128dp"
+    android:viewportWidth="128"
+    android:viewportHeight="128">
+
+    <!-- Slate circle behind the mark -->
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M0,0h128v128h-128z" />
+
+    <!-- White ring so the light-blue mark pops -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M16,64C16,49.7 29.7,36 48,36S80,49.7 80,64c0,14.3-24,13.3-24,13.3" />
+
+</vector>

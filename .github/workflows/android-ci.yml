@@ -33,6 +33,13 @@ jobs:
           cd android
           ./gradlew assembleDebug
 
+      - name: Build Release APK (unsigned, to cover R8)
+        # Keeps minification and resource shrinking honest on every PR. The
+        # release build hard-errors without a keystore, so opt out explicitly.
+        run: |
+          cd android
+          ./gradlew assembleRelease -PaideAllowUnsignedRelease=true
+
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
