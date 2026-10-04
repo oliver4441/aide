@@ -113,11 +113,12 @@ fun AideProductRow(
                     Spacer(modifier = Modifier.height(8.dp))
                     Button(
                         onClick = onAddClick,
+                        modifier = Modifier.heightIn(min = 48.dp),
                         shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                     ) {
-                        Text("+ Add", fontSize = 12.sp)
+                        Text("+ Add", style = MaterialTheme.typography.labelMedium)
                     }
                 }
             }

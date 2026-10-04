@@ -105,7 +105,9 @@ fun SellScreen(
                             selected = uiState.paymentMethod == method,
                             onClick = { sellViewModel.setPaymentMethod(method) },
                             label = { Text(method.replace("_", " ")) },
-                            modifier = Modifier.weight(1f)
+                            // FilterChip defaults to 32dp tall, which is under
+                            // the 48dp minimum tap target.
+                            modifier = Modifier.weight(1f).height(48.dp)
                         )
                     }
                 }
