@@ -212,7 +212,11 @@ export default function DownloadsClient() {
               </div>
             ) : latestApk ? (
               <a
-                href={latestApk}
+                // Same-origin on purpose: the `download` attribute is ignored
+                // for cross-origin URLs, so linking GitHub's asset CDN directly
+                // sent users to an interstitial before the file started.
+                // /download/apk redirects to the Vercel Blob copy.
+                href="/download/apk"
                 download={release?.apkName ?? true}
                 className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-sm font-semibold text-on-primary shadow-lg shadow-primary/20 transition hover:bg-primary-light active:scale-[0.99]"
               >
