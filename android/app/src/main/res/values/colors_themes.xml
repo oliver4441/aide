@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Aide theme palette. Mirrors the PWA's `ACCENTS` so the Android app can
+     offer the user the same accent theme choices and persist a choice. -->
+<resources>
+
+    <!-- Primary accent trio for the selected theme. -->
+    <color name="theme_primary">#4DA8FF</color>
+    <color name="theme_primary_variant">#4DA8FF</color>
+    <color name="theme_on_primary">#0F172A</color>
+
+    <!-- Theme surface colours (light). -->
+    <color name="theme_background">#FFFFFF</color>
+    <color name="theme_surface">#F8FAFC</color>
+    <color name="theme_surface_variant">#E2E8F0</color>
+    <color name="theme_outline">#CBD5E1</color>
+
+    <!-- Theme text colours (light). -->
+    <color name="theme_on_surface">#0F172A</color>
+    <color name="theme_on_surface_variant">#475569</color>
+    <color name="theme_on_background">#0F172A</color>
+    <color name="theme_secondary">#6366F1</color>
+    <color name="theme_secondary_variant">#6366F1</color>
+    <color name="theme_error">#DC2626</color>
+    <color name="theme_surface_tint">#4DA8FF</color>
+
+    <!-- Dark themes. -->
+    <color name="theme_background_dark">#0F172A</color>
+    <color name="theme_surface_dark">#1E293B</color>
+    <color name="theme_surface_variant_dark">#334155</color>
+    <color name="theme_outline_dark">#475569</color>
+    <color name="theme_on_surface_dark">#F8FAFC</color>
+    <color name="theme_on_surface_variant_dark">#CBD5E1</color>
+    <color name="theme_on_background_dark">#F8FAFC</color>
+    <color name="theme_secondary_dark">#818CF8</color>
+    <color name="theme_secondary_variant_dark">#818CF8</color>
+    <color name="theme_error_dark">#F87171</color>
+    <color name="theme_surface_tint_dark">#4DA8FF</color>
+
+    <!-- Accent palettes (ID, label, swatch hex) used by the theme picker. -->
+    <!--
+         These mirror theme_palette_swatches / theme_palette_text below so
+         theme/Palette.kt can resolve each accent as R.color.<id> and its
+         accessible foreground as R.color.<id>_text.
+    -->
+    <color name="plum">#7C3AED</color>
+    <color name="plum_text">#FFFFFF</color>
+    <color name="lavender">#8B5CF6</color>
+    <color name="lavender_text">#1E293B</color>
+    <color name="teal">#0D9488</color>
+    <color name="teal_text">#FFFFFF</color>
+    <color name="amber">#F59E0B</color>
+    <color name="amber_text">#0F172A</color>
+    <color name="orange">#F97316</color>
+    <color name="orange_text">#FFFFFF</color>
+
+    <string-array name="theme_palette_ids">
+        <item>plum</item>
+        <item>lavender</item>
+        <item>teal</item>
+        <item>amber</item>
+        <item>orange</item>
+    </string-array>
+
+    <string-array name="theme_palette_labels">
+        <item>Plum</item>
+        <item>Lavender</item>
+        <item>Teal</item>
+        <item>Amber</item>
+        <item>Orange</item>
+    </string-array>
+
+    <string-array name="theme_palette_swatches">
+        <!-- plum -->
+        <item>#7C3AED</item>
+        <!-- lavender -->
+        <item>#8B5CF6</item>
+        <!-- teal -->
+        <item>#0D9488</item>
+        <!-- amber -->
+        <item>#F59E0B</item>
+        <!-- orange -->
+        <item>#F97316</item>
+    </string-array>
+
+    <!-- Accessible text on each swatch. -->
+    <string-array name="theme_palette_text">
+        <item>#FFFFFF</item>
+        <item>#1E293B</item>
+        <item>#FFFFFF</item>
+        <item>#0F172A</item>
+        <item>#FFFFFF</item>
+    </string-array>
+
+</resources>

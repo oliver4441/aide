@@ -5,15 +5,31 @@ plugins {
 }
 
 android {
-    namespace = "ke.co.aide"
+    namespace = "com.omix.aide"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "ke.co.aide"
+        applicationId = "com.omix.aide"
         minSdk = 24
         targetSdk = 34
         versionCode = 2
         versionName = "1.0.2"
+
+        // Accent theme baked into the APK, read by theme/Palette.kt and the
+        // release banner. Defaults to the first entry in Palette.
+        buildConfigField(
+            "String",
+            "BRANDED",
+            "\"${providers.gradleProperty("aideBranded").getOrElse("plum")}\""
+        )
+
+        // Version code of the latest published release, injected by CI. 0 means
+        // "no published release known", which keeps the update banner hidden.
+        buildConfigField(
+            "int",
+            "LATEST_VERSION_CODE",
+            providers.gradleProperty("aideLatestVersionCode").getOrElse("0")
+        )
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -58,6 +74,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.11"
@@ -66,6 +83,7 @@ android {
         resources {
             excludes += "/META-INDEX/AL2.0"
             excludes += "/META-INDEX/LGPL2.1"
+            excludes += "/META-INF/*.version"
         }
     }
 }
@@ -89,6 +107,9 @@ dependencies {
     ksp(libs.androidx.room.compiler)
 
     implementation(libs.androidx.work.runtime.ktx)
+
+    // The splash and release-banner layouts are ConstraintLayout-based.
+    implementation(libs.androidx.constraintlayout)
 
 
 
