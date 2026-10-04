@@ -4,6 +4,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AddCircleOutline
+import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.RemoveCircleOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -73,6 +77,82 @@ fun SellScreen(
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
                         )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Line items with quantity controls. The cart used to show
+                    // only a total, so nothing could be removed or corrected
+                    // once added -- you had to complete the sale or start over.
+                    uiState.cart.forEach { item ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    text = item.product.name,
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                                Text(
+                                    text = "KSh ${"%.2f".format(item.product.sellingPrice)} each",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+
+                            Text(
+                                text = "KSh ${"%.2f".format(
+                                    item.product.sellingPrice * item.quantity
+                                )}",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.SemiBold
+                            )
+
+                            IconButton(
+                                onClick = {
+                                    sellViewModel.updateQuantity(item.product.id, -1)
+                                },
+                                modifier = Modifier.size(48.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.RemoveCircleOutline,
+                                    contentDescription = "Decrease ${item.product.name}"
+                                )
+                            }
+                            Text(
+                                text = item.quantity.toString(),
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.width(24.dp),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                            IconButton(
+                                onClick = {
+                                    sellViewModel.updateQuantity(item.product.id, 1)
+                                },
+                                modifier = Modifier.size(48.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.AddCircleOutline,
+                                    contentDescription = "Increase ${item.product.name}"
+                                )
+                            }
+                            IconButton(
+                                onClick = {
+                                    sellViewModel.removeFromCart(item.product.id)
+                                },
+                                modifier = Modifier.size(48.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.DeleteOutline,
+                                    contentDescription = "Remove ${item.product.name}",
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                        if (item.product.id != uiState.cart.last().product.id) {
+                            HorizontalDivider()
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
