@@ -12,7 +12,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.omix.aide.ui.components.*
-import com.omix.aide.ui.theme.PrimaryGreen
 import com.omix.aide.ui.theme.WarningAmber
 import com.omix.aide.ui.viewmodel.HomeViewModel
 
@@ -32,7 +31,7 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
-                Text(text = "TODAY", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                Text(text = "TODAY", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(modifier = Modifier.height(4.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -43,7 +42,7 @@ fun HomeScreen(
                         value = "KSh ${"%.2f".format(uiState.todaySalesTotal)}",
                         subtitle = "${uiState.todaySalesCount} sales",
                         modifier = Modifier.weight(1f),
-                        valueColor = PrimaryGreen
+                        valueColor = MaterialTheme.colorScheme.primary
                     )
                     AideStatCard(
                         title = "Profit",
@@ -121,14 +120,14 @@ fun HomeScreen(
                                 Text(
                                     text = "${saleWithItems.items.size} items • ${saleWithItems.sale.paymentMethod}",
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                             Text(
                                 text = "KSh ${"%.2f".format(saleWithItems.sale.total)}",
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
-                                color = PrimaryGreen
+                                color = MaterialTheme.colorScheme.primary
                             )
                         }
                     }

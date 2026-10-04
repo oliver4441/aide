@@ -13,7 +13,6 @@ import androidx.compose.ui.unit.dp
 import com.omix.aide.notifications.AideChannel
 import com.omix.aide.notifications.NotificationEngine
 import com.omix.aide.notifications.NotificationPrefs
-import com.omix.aide.ui.theme.PrimaryGreen
 import com.omix.aide.work.AideWorkScheduler
 
 /**
@@ -42,7 +41,7 @@ fun NotificationSettingsCard() {
                 Icon(
                     imageVector = Icons.Default.Notifications,
                     contentDescription = null,
-                    tint = PrimaryGreen,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(10.dp))
@@ -63,7 +62,7 @@ fun NotificationSettingsCard() {
                     "Android is currently blocking Aide's notifications. Enable them in system settings to receive alerts."
                 },
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -126,7 +125,7 @@ private fun SwitchRow(
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         Spacer(modifier = Modifier.width(12.dp))

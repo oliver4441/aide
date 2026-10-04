@@ -1,6 +1,7 @@
 package com.omix.aide.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,7 +17,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.omix.aide.ui.theme.PrimaryGreen
 import com.omix.aide.ui.theme.WarningAmber
 
 @Composable
@@ -25,7 +25,9 @@ fun AideButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    colors: ButtonColors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
+    colors: ButtonColors = ButtonDefaults.buttonColors(
+        containerColor = MaterialTheme.colorScheme.primary
+    )
 ) {
     Button(
         onClick = onClick,
@@ -34,7 +36,7 @@ fun AideButton(
         shape = RoundedCornerShape(12.dp),
         colors = colors
     ) {
-        Text(text = text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+        Text(text = text, style = MaterialTheme.typography.titleMedium)
     }
 }
 
@@ -47,7 +49,11 @@ fun AideCard(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        // A hairline border reads cleaner than a drop shadow on both surfaces,
+        // and it keeps the card edge legible in dark mode where elevation
+        // shading is almost invisible.
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         content = content
     )
 }
@@ -62,12 +68,12 @@ fun AideStatCard(
 ) {
     AideCard(modifier = modifier) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = title, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+            Text(text = title, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(4.dp))
             Text(text = value, style = MaterialTheme.typography.headlineMedium, color = valueColor, fontWeight = FontWeight.Bold)
             if (subtitle != null) {
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(text = subtitle, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                Text(text = subtitle, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f))
             }
         }
     }
@@ -91,25 +97,25 @@ fun AideProductRow(
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
                 if (!sku.isNull_or_blank_check()) {
-                    Text(text = "SKU: $sku", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                    Text(text = "SKU: $sku", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f))
                 }
                 val isLow = stock <= lowStockThreshold
                 Text(
                     text = "Stock: $stock",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = if (isLow) WarningAmber else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    color = if (isLow) WarningAmber else MaterialTheme.colorScheme.onSurfaceVariant,
                     fontWeight = if (isLow) FontWeight.Bold else FontWeight.Normal
                 )
             }
             Column(horizontalAlignment = Alignment.End) {
-                Text(text = price, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = PrimaryGreen)
+                Text(text = price, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                 if (onAddClick != null) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Button(
                         onClick = onAddClick,
                         shape = RoundedCornerShape(8.dp),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                     ) {
                         Text("+ Add", fontSize = 12.sp)
                     }
@@ -143,14 +149,14 @@ fun AideLocalOnlyBanner() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(PrimaryGreen.copy(alpha = 0.15f))
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = Icons.Default.PhoneAndroid,
             contentDescription = "Local only",
-            tint = PrimaryGreen,
+            tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(18.dp)
         )
         Spacer(modifier = Modifier.width(8.dp))
@@ -172,7 +178,7 @@ fun AideEmptyState(
         modifier = Modifier.fillMaxWidth().padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = message, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+        Text(text = message, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         if (actionLabel != null && onAction != null) {
             Spacer(modifier = Modifier.height(16.dp))
             AideButton(text = actionLabel, onClick = onAction, modifier = Modifier.width(200.dp))

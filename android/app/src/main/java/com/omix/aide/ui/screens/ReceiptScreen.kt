@@ -13,7 +13,6 @@ import com.omix.aide.data.local.dao.SaleWithItems
 import com.omix.aide.data.repository.SaleRepository
 import com.omix.aide.ui.components.AideButton
 import com.omix.aide.ui.components.AideCard
-import com.omix.aide.ui.theme.PrimaryGreen
 
 @Composable
 fun ReceiptScreen(
@@ -54,12 +53,12 @@ fun ReceiptScreen(
                     Text(
                         text = "Receipt #${saleData.sale.id.takeLast(8)}",
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
                         text = "Date: ${saleData.sale.createdAt}",
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
                     HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
@@ -86,7 +85,7 @@ fun ReceiptScreen(
                         Text(
                             text = "KSh ${"%.2f".format(saleData.sale.total)}",
                             fontWeight = FontWeight.Bold,
-                            color = PrimaryGreen
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
 

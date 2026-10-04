@@ -12,7 +12,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.omix.aide.ui.components.*
-import com.omix.aide.ui.theme.PrimaryGreen
 import com.omix.aide.ui.viewmodel.SellViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -69,7 +68,7 @@ fun SellScreen(
                             text = "KSh ${"%.2f".format(uiState.subtotal)}",
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold,
-                            color = PrimaryGreen
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
 

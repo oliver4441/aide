@@ -16,10 +16,15 @@ private val DarkColorScheme = darkColorScheme(
     secondary = SecondaryTeal,
     background = SurfaceDark,
     surface = SurfaceCardDark,
+    surfaceVariant = SurfaceCardDark,
     onPrimary = SurfaceDark,
     onSecondary = SurfaceDark,
     onBackground = TextOnSurfaceDark,
     onSurface = TextOnSurfaceDark,
+    // Previously undefined, so every muted label fell back to Material's
+    // default purple-grey or, worse, to onSurface.copy(alpha = 0.6f).
+    onSurfaceVariant = TextMutedDark,
+    outline = TextMutedDark.copy(alpha = 0.35f),
     error = DangerRed
 )
 
@@ -28,10 +33,13 @@ private val LightColorScheme = lightColorScheme(
     secondary = SecondaryTeal,
     background = SurfaceLight,
     surface = SurfaceCardLight,
+    surfaceVariant = SurfaceLight,
     onPrimary = SurfaceLight,
     onSecondary = SurfaceLight,
     onBackground = TextOnSurfaceLight,
     onSurface = TextOnSurfaceLight,
+    onSurfaceVariant = TextMutedLight,
+    outline = TextMutedLight.copy(alpha = 0.35f),
     error = DangerRed
 )
 
