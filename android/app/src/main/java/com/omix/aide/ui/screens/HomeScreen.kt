@@ -26,6 +26,11 @@ fun HomeScreen(
     Column(modifier = Modifier.fillMaxSize()) {
         AideLocalOnlyBanner()
 
+        if (uiState.isLoading) {
+            LoadingState()
+            return@Column
+        }
+
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)

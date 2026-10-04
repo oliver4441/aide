@@ -44,6 +44,11 @@ fun StockScreen(
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
+            if (uiState.isLoading) {
+                LoadingState()
+                return@Column
+            }
+
             AideSearchBar(
                 query = uiState.searchQuery,
                 onQueryChange = { stockViewModel.setSearchQuery(it) }

@@ -185,3 +185,26 @@ fun AideEmptyState(
         }
     }
 }
+
+/**
+ * Shown while a screen's first read from Room is still in flight.
+ *
+ * Both HomeUiState and StockUiState start with isLoading = true, but nothing
+ * consumed it -- so the app flashed "No sales recorded today yet" and a row of
+ * zeroed stats before the real numbers landed. This is what should occupy that
+ * window instead.
+ */
+@Composable
+fun LoadingState(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier.fillMaxSize().padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        CircularProgressIndicator(
+            color = MaterialTheme.colorScheme.primary,
+            strokeWidth = 2.dp,
+            modifier = Modifier.size(28.dp)
+        )
+    }
+}
