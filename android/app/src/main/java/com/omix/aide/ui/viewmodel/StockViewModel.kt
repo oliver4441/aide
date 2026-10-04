@@ -61,7 +61,8 @@ class StockViewModel(
         sellingPrice: Double,
         quantity: Int,
         lowStock: Int = 5,
-        sku: String? = null
+        sku: String? = null,
+        imagePath: String? = null
     ) {
         viewModelScope.launch {
             val isoFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
@@ -77,6 +78,7 @@ class StockViewModel(
                 quantity = quantity,
                 lowStock = lowStock,
                 sku = sku,
+                imageUrl = imagePath,
                 createdAt = now,
                 updatedAt = now
             )

@@ -45,6 +45,7 @@ fun SellScreen(
                             price = "KSh ${product.sellingPrice}",
                             sku = product.sku,
                             lowStockThreshold = product.lowStock,
+                            imagePath = product.imageUrl,
                             onAddClick = { sellViewModel.addToCart(product) }
                         )
                     }
