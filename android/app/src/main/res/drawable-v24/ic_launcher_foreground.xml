@@ -19,8 +19,8 @@
     <group
         android:scaleX="1.35"
         android:scaleY="1.35"
-        android:translateX="24"
-        android:translateY="12">
+        android:translateX="24dp"
+        android:translateY="12dp">
 
         <!-- Three parallel diagonal strokes -->
         <path
@@ -35,29 +35,27 @@
 
         <!-- Two perpendicular bars crossing the strokes -->
         <rect
-            android:height="14"
-            android:width="10"
+            android:height="14dp"
+            android:width="10dp"
             android:fillColor="#4DA8FF"
             android:x="24"
             android:y="42" />
         <rect
-            android:height="14"
-            android:width="10"
+            android:height="14dp"
+            android:width="10dp"
             android:fillColor="#4DA8FF"
             android:x="48"
             android:y="18" />
         <rect
-            android:height="14"
-            android:width="10"
+            android:height="14dp"
+            android:width="10dp"
             android:fillColor="#4DA8FF"
             android:x="72"
             android:y="36" />
     </group>
 
     <!-- A small "Aide" dot below the mark -->
-    <circle
-        android:cy="80"
-        android:rx="5"
-        android:ry="5"
-        android:fillColor="#4DA8FF" />
+    <path
+        android:fillColor="#4DA8FF"
+        android:pathData="M49,94 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0 z" />
 </vector>

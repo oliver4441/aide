@@ -22,14 +22,14 @@
 
     <!-- crossing bars -->
     <rect
-        android:height="6"
-        android:width="5"
+        android:height="6dp"
+        android:width="5dp"
         android:fillColor="#4DA8FF"
         android:x="4"
         android:y="14" />
     <rect
-        android:height="6"
-        android:width="5"
+        android:height="6dp"
+        android:width="5dp"
         android:fillColor="#4DA8FF"
         android:x="10"
         android:y="8" />
