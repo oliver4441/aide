@@ -25,12 +25,12 @@
         android:height="6dp"
         android:width="5dp"
         android:fillColor="#4DA8FF"
-        android:x="4"
-        android:y="14" />
+        android:x="4dp"
+        android:y="14dp" />
     <rect
         android:height="6dp"
         android:width="5dp"
         android:fillColor="#4DA8FF"
-        android:x="10"
-        android:y="8" />
+        android:x="10dp"
+        android:y="8dp" />
 </vector>

@@ -19,8 +19,8 @@
     <group
         android:scaleX="1.35"
         android:scaleY="1.35"
-        android:translateX="24dp"
-        android:translateY="12dp">
+        android:translateX="24"
+        android:translateY="12">
 
         <!-- Three parallel diagonal strokes -->
         <path
@@ -38,20 +38,20 @@
             android:height="14dp"
             android:width="10dp"
             android:fillColor="#4DA8FF"
-            android:x="24"
-            android:y="42" />
+            android:x="24dp"
+            android:y="42dp" />
         <rect
             android:height="14dp"
             android:width="10dp"
             android:fillColor="#4DA8FF"
-            android:x="48"
-            android:y="18" />
+            android:x="48dp"
+            android:y="18dp" />
         <rect
             android:height="14dp"
             android:width="10dp"
             android:fillColor="#4DA8FF"
-            android:x="72"
-            android:y="36" />
+            android:x="72dp"
+            android:y="36dp" />
     </group>
 
     <!-- A small "Aide" dot below the mark -->
