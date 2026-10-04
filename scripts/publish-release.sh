@@ -65,14 +65,19 @@ VERSION="${TAG#desktop-}"
 VERSION="${VERSION#v}"
 
 if [ "$FAMILY" = "android" ] && [ "$SKIP_VERSION_CHECK" -eq 0 ]; then
-  GRADLE_NAME=$(grep -oE 'versionName\s*=\s*"[^"]+"' android/app/build.gradle.kts | grep -oE '"[^"]+"' | tr -d '"')
-  GRADLE_CODE=$(grep -oE 'versionCode\s*=\s*[0-9]+' android/app/build.gradle.kts | grep -oE '[0-9]+')
-  [ -n "$GRADLE_NAME" ] || die "could not read versionName from android/app/build.gradle.kts"
-  [ "$GRADLE_NAME" = "$VERSION" ] || die "tag says $VERSION but android/app/build.gradle.kts says $GRADLE_NAME
-    Android builds its APK from Gradle, so the tag must match:
-      sed -i 's/versionName = \"[^\"]*\"/versionName = \"$VERSION\"/' android/app/build.gradle.kts
-    Or re-run with --skip-version-check if you know what you are doing."
-  say "Android version check: $GRADLE_NAME (versionCode $GRADLE_CODE) matches the tag"
+  # The tag is the source of truth. android-release.yml derives versionName and
+  # versionCode from it and passes them to Gradle as -P overrides, so a stale
+  # value in build.gradle.kts can no longer produce a mislabelled APK. What is
+  # left here is a heads-up, not a gate.
+  GRADLE_NAME=$(grep -oE 'aideVersionName"\)\.getOrElse\("[^"]+"' android/app/build.gradle.kts \
+    | grep -oE '[0-9][^"]*' || true)
+  GRADLE_CODE=$(grep -oE 'aideVersionCode"\)\.getOrElse\("[0-9]+"' android/app/build.gradle.kts \
+    | grep -oE '[0-9]+' || true)
+  if [ -n "$GRADLE_NAME" ] && [ "$GRADLE_NAME" != "$VERSION" ]; then
+    say "note: build.gradle.kts falls back to $GRADLE_NAME locally, but this release will be built as $VERSION from the tag"
+  else
+    say "Android version: $VERSION (versionCode ${GRADLE_CODE:-from tag})"
+  fi
 
   MISSING=""
   for s in ANDROID_KEYSTORE_BASE64 ANDROID_STORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
