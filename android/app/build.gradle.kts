@@ -120,7 +120,7 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.coroutines.test)
-    debugImplementation(androidx.compose.ui.tooling)
+    debugImplementation(libs.androidx.ui.tooling)
 }
 
 /**
