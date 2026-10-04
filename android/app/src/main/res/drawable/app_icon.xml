@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The Aide brand mark used inside the app (splash, release banner, theme
+    picker). This was previously an app_icon.png, but that file was not a real
+    PNG: it carried a "<?php exit; ?>" preamble and had been through a UTF-8
+    round-trip, so AAPT refused to compile it and the release build failed at
+    mergeReleaseResources. Drawing the same mark as a vector keeps it crisp at
+    every density and removes the binary from the tree.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="128dp"
+    android:height="128dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Three parallel diagonal strokes -->
+    <path
+        android:fillColor="#4DA8FF"
+        android:pathData="M18,30 L48,66 L60,84" />
+    <path
+        android:fillColor="#4DA8FF"
+        android:pathData="M42,18 L66,48 L78,66" />
+    <path
+        android:fillColor="#4DA8FF"
+        android:pathData="M66,6 L84,30 L90,42" />
+
+    <!-- Two perpendicular bars crossing the strokes -->
+    <path
+        android:fillColor="#4DA8FF"
+        android:pathData="M24,42 h10 v14 h-10 z" />
+    <path
+        android:fillColor="#4DA8FF"
+        android:pathData="M48,18 h10 v14 h-10 z" />
+    <path
+        android:fillColor="#4DA8FF"
+        android:pathData="M72,36 h10 v14 h-10 z" />
+
+    <!-- The Aide dot below the mark -->
+    <path
+        android:fillColor="#4DA8FF"
+        android:pathData="M49,94 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0 z" />
+</vector>
