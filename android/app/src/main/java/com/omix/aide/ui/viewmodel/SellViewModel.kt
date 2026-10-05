@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.omix.aide.data.local.entities.ProductEntity
 import com.omix.aide.data.local.entities.SaleItemEntity
 import com.omix.aide.data.repository.ProductRepository
+import com.omix.aide.data.local.BusinessSettings
 import com.omix.aide.data.repository.SaleRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -31,7 +32,13 @@ data class SellUiState(
 class SellViewModel(
     private val productRepository: ProductRepository,
     private val saleRepository: SaleRepository,
-    private val businessId: String
+    private val businessId: String,
+    /**
+     * Read at the moment a sale is completed rather than held as a field, so
+     * changing the VAT rate in Settings takes effect on the next sale without
+     * the view model having to be rebuilt.
+     */
+    private val settingsProvider: () -> BusinessSettings = { BusinessSettings() }
 ) : ViewModel() {
 
     private val _searchQuery = MutableStateFlow("")
@@ -157,6 +164,13 @@ class SellViewModel(
             }
 
             try {
+                // Prices are VAT-inclusive, so the VAT portion is extracted
+                // from the charged total rather than added on top. The customer
+                // pays exactly `total`; the sale records how much of it was tax
+                // so Reports can show a correct VAT line.
+                val taxRate = settingsProvider().taxRate
+                val vat = vatOn(total, taxRate)
+
                 val sale = saleRepository.createSale(
                     businessId = businessId,
                     items = saleItems,
@@ -165,6 +179,8 @@ class SellViewModel(
                     profit = profit,
                     paid = paidVal,
                     change = change,
+                    tax = vat,
+                    taxRate = taxRate,
                     paymentMethod = _paymentMethod.value
                 )
 

@@ -69,7 +69,7 @@ fun StockScreen(
                         AideProductRow(
                             name = product.name,
                             stock = product.quantity,
-                            price = "KSh ${product.sellingPrice}",
+                            price = money(product.sellingPrice),
                             sku = product.sku,
                             lowStockThreshold = product.lowStock,
                             imagePath = product.imageUrl

@@ -27,6 +27,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
+import com.omix.aide.ui.money
 import com.omix.aide.ui.components.AideCard
 import com.omix.aide.ui.theme.DangerRed
 
@@ -130,15 +131,15 @@ fun CalculatorScreen(onBack: () -> Unit) {
 
             item {
                 AideCard {
-                    ResultRow("Revenue", "KSh ${"%.2f".format(revenue)}")
+                    ResultRow("Revenue", money(revenue))
                     Spacer(Modifier.height(8.dp))
-                    ResultRow("Cost", "KSh ${"%.2f".format(totalCost)}")
+                    ResultRow("Cost", money(totalCost))
                     Spacer(Modifier.height(8.dp))
                     HorizontalDivider()
                     Spacer(Modifier.height(8.dp))
                     ResultRow(
                         label = "Profit",
-                        value = "KSh ${"%.2f".format(profit)}",
+                        value = money(profit),
                         emphasise = true,
                         positive = profit >= 0
                     )

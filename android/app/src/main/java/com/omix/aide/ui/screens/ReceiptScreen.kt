@@ -11,6 +11,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.omix.aide.data.local.dao.SaleWithItems
 import com.omix.aide.data.repository.SaleRepository
+import com.omix.aide.ui.LocalAideSettings
+import com.omix.aide.ui.money
 import com.omix.aide.ui.components.AideButton
 import com.omix.aide.ui.components.AideCard
 
@@ -28,10 +30,23 @@ fun ReceiptScreen(
 
     val saleData = saleWithItems
 
+    val settings = LocalAideSettings.current
+
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // The business name and footer come from Settings. Both used to be
+        // hardcoded, so a shop that set them still got "Aide Business Register"
+        // on every receipt.
+        if (settings.businessName.isNotBlank()) {
+            Text(
+                text = settings.businessName,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
         Text(
             text = "RECEIPT",
             style = MaterialTheme.typography.headlineMedium,
@@ -70,7 +85,7 @@ fun ReceiptScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(text = "${item.name} x${item.quantity}")
-                                Text(text = "KSh ${"%.2f".format(item.price * item.quantity)}")
+                                Text(text = money(item.price * item.quantity))
                             }
                         }
                     }
@@ -83,7 +98,7 @@ fun ReceiptScreen(
                     ) {
                         Text(text = "Total Paid:", fontWeight = FontWeight.Bold)
                         Text(
-                            text = "KSh ${"%.2f".format(saleData.sale.total)}",
+                            text = money(saleData.sale.total),
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -102,12 +117,41 @@ fun ReceiptScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(text = "Change:", style = MaterialTheme.typography.labelMedium)
-                        Text(text = "KSh ${"%.2f".format(saleData.sale.change)}", style = MaterialTheme.typography.labelMedium)
+                        Text(text = money(saleData.sale.change), style = MaterialTheme.typography.labelMedium)
+                    }
+
+                    // Only shown when the sale actually carried VAT, so a shop
+                    // with no tax configured never sees a zero-tax line.
+                    if (saleData.sale.tax > 0.0) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "VAT (${"%.0f".format(saleData.sale.taxRate)}%):",
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                            Text(
+                                text = money(saleData.sale.tax),
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
+
+            if (settings.receiptFooter.isNotBlank()) {
+                Text(
+                    text = settings.receiptFooter,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
 
             AideButton(
                 text = "Done",

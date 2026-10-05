@@ -24,9 +24,7 @@ data class ReportUiState(
     val range: ReportRange = ReportRange.WEEK,
     val report: ReportRepository.Report? = null,
     val isLoading: Boolean = true
-) {
-    val currency: String get() = "KSh"
-}
+)
 
 class ReportViewModel(
     private val reportRepository: ReportRepository,

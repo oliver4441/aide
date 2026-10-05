@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import com.omix.aide.theme.Palette
+import com.omix.aide.ui.LocalAideSettings
 
 private val DarkColorScheme = darkColorScheme(
     primary = PrimaryGreen,
@@ -46,9 +47,12 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun AideTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    accent: String = "plum",
     content: @Composable () -> Unit
 ) {
+    // Read reactively: the accent comes from the settings the user can change
+    // in-app, so picking Plum has to re-theme the running composition rather
+    // than only the next launch.
+    val accent = LocalAideSettings.current.accent
     // The accent the user picked on the theme picker drives primary/onPrimary;
     // everything else falls back to the default slate palette.
     val context = LocalContext.current

@@ -25,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -59,6 +60,7 @@ import com.omix.aide.ui.screens.SettingsScreen
 import com.omix.aide.ui.screens.SellScreen
 import com.omix.aide.ui.screens.StockScreen
 import com.omix.aide.ui.screens.showSplash
+import com.omix.aide.ui.LocalAideSettings
 import com.omix.aide.ui.theme.AideTheme
 import com.omix.aide.ui.theme.ThemePickerScreen
 import com.omix.aide.ui.viewmodel.CustomerViewModel
@@ -73,6 +75,13 @@ class MainActivity : ComponentActivity() {
 
     /** Route requested by a tapped notification, consumed once by the nav host. */
     private val pendingRoute = mutableStateOf<String?>(null)
+
+    /**
+     * The saved business settings, held as state so that changing the accent or
+     * currency re-themes and re-formats the running app instead of only taking
+     * effect after a restart.
+     */
+    private val settings = mutableStateOf(SettingsStore.read(applicationContext))
 
     private lateinit var database: AideDatabase
     private lateinit var businessStore: LocalBusinessStore
@@ -107,7 +116,9 @@ class MainActivity : ComponentActivity() {
         )
 
         homeViewModel = HomeViewModel(productRepository, saleRepository, businessId)
-        sellViewModel = SellViewModel(productRepository, saleRepository, businessId)
+        sellViewModel = SellViewModel(productRepository, saleRepository, businessId) {
+            settings.value
+        }
         stockViewModel = StockViewModel(productRepository, businessId)
 
         expenseViewModel = ExpenseViewModel(
@@ -129,7 +140,7 @@ class MainActivity : ComponentActivity() {
         setContentView(R.layout.splash)
         val accent = Palette.read(this)
         showSplash(
-            onReady = { setupContent(accent = accent) },
+            onReady = { setupContent() },
             accent = accent
         )
     }
@@ -157,7 +168,7 @@ class MainActivity : ComponentActivity() {
      * Switches to the main Compose content. Kept as a separate function so the
      * splash can present the same content without blocking on compose.
      */
-    private fun setupContent(accent: String) {
+    private fun setupContent() {
         setContent {
             val navController = rememberNavController()
             val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -206,7 +217,8 @@ class MainActivity : ComponentActivity() {
                 pendingRoute.value = null
             }
 
-            AideTheme(accent = accent) {
+            CompositionLocalProvider(LocalAideSettings provides settings.value) {
+            AideTheme {
                 val bottomNavItems = listOf(
                     NavItem("HOME", Screen.Home.route, Icons.Default.Home),
                     NavItem("SELL", Screen.Sell.route, Icons.Default.ShoppingCart),
@@ -340,7 +352,8 @@ class MainActivity : ComponentActivity() {
                             SettingsScreen(
                                 database = database,
                                 businessId = businessId,
-                                onBack = { navController.popBackStack() }
+                                onBack = { navController.popBackStack() },
+                                onSettingsChanged = { updated -> settings.value = updated }
                             )
                         }
 
@@ -353,7 +366,7 @@ class MainActivity : ComponentActivity() {
                         composable(Screen.ThemePicker.route) {
                             Column(modifier = Modifier.fillMaxSize()) {
                                 ThemePickerScreen(
-                                    accent = accent,
+                                    accent = settings.value.accent,
                                     onDismiss = {
                                         businessStore.markSetupComplete()
                                         if (!navController.popBackStack()) {
@@ -365,6 +378,7 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
+            }
             }
         }
     }
