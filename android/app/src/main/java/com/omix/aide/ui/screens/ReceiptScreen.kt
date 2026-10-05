@@ -125,7 +125,7 @@ fun ReceiptScreen(
                     if (saleData.sale.tax > 0.0) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalAlignment = Arrangement.SpaceBetween
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
                                 text = "VAT (${"%.0f".format(saleData.sale.taxRate)}%):",
