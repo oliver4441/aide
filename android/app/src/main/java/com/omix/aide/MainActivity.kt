@@ -61,6 +61,9 @@ import com.omix.aide.ui.screens.SellScreen
 import com.omix.aide.ui.screens.StockScreen
 import com.omix.aide.ui.screens.showSplash
 import com.omix.aide.ui.LocalAideSettings
+import com.omix.aide.ui.releases.UpdateCheck
+import com.omix.aide.ui.releases.UpdateChecker
+import com.omix.aide.ui.releases.UpdateBanner
 import com.omix.aide.ui.theme.AideTheme
 import com.omix.aide.ui.theme.ThemePickerScreen
 import com.omix.aide.ui.viewmodel.CustomerViewModel
@@ -70,6 +73,9 @@ import com.omix.aide.ui.viewmodel.ReportViewModel
 import com.omix.aide.ui.viewmodel.SellViewModel
 import com.omix.aide.ui.viewmodel.StockViewModel
 import com.omix.aide.work.AideWorkScheduler
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
@@ -82,6 +88,25 @@ class MainActivity : ComponentActivity() {
      * effect after a restart.
      */
     private val settings = mutableStateOf(SettingsStore.read(applicationContext))
+
+    /**
+     * The newest published release, fetched on launch. Null until the check
+     * finishes, which is deliberately invisible -- the app must never look
+     * broken because a network call is slow.
+     */
+    private val updateCheck = mutableStateOf<UpdateCheck?>(null)
+
+    init {
+        // Fire and forget: the UI never waits on this.
+        kotlinx.coroutines.CoroutineScope(Dispatchers.Main).launch {
+            val result = UpdateChecker.check()
+            if (result.newer) {
+                // Persist so the splash banner can pick it up next launch.
+                LocalBusinessStore(applicationContext).markOutOfDate()
+            }
+            updateCheck.value = result
+        }
+    }
 
     private lateinit var database: AideDatabase
     private lateinit var businessStore: LocalBusinessStore
@@ -229,6 +254,28 @@ class MainActivity : ComponentActivity() {
                 val showBottomBar = currentRoute in bottomNavItems.map { it.route }
 
                 Scaffold(
+                    topBar = {
+                        val update = updateCheck.value
+                        if (update != null && update.newer) {
+                            UpdateBanner(
+                                version = update.version,
+                                onDownload = {
+                                    val url = update.downloadUrl
+                                    if (url != null) {
+                                        runCatching {
+                                            startActivity(
+                                                Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))
+                                            )
+                                        }
+                                    }
+                                    LocalBusinessStore(applicationContext).markUpToDate()
+                                },
+                                onDismiss = {
+                                    LocalBusinessStore(applicationContext).markUpToDate()
+                                }
+                            )
+                        }
+                    },
                     bottomBar = {
                         if (showBottomBar) {
                             NavigationBar {
