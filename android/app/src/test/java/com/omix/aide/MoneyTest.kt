@@ -32,7 +32,11 @@ class MoneyTest {
 
     @Test
     fun vatScalesWithTheRate() {
-        assertEquals(50.0, vatOn(1000.0, 5.0), delta)
+        // VAT *contained in* a VAT-inclusive total, so it is smaller than the
+        // rate would suggest: 5% of a VAT-inclusive 1000 is 47.62, not 50.
+        assertEquals(47.62, vatOn(1000.0, 5.0), 0.01)
+        assertEquals(337.93, vatOn(2450.0, 16.0), 0.01)
+        // A third is 33.3333%, not 33%, so the result is very slightly short.
         assertEquals(250.0, vatOn(1000.0, 33.3333), 0.01)
     }
 
