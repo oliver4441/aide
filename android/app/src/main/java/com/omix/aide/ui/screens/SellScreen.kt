@@ -16,6 +16,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.omix.aide.ui.money
+import com.omix.aide.ui.moneyBare
 import com.omix.aide.ui.components.*
 import com.omix.aide.ui.theme.WarningAmber
 import com.omix.aide.ui.viewmodel.SellViewModel
@@ -46,7 +48,7 @@ fun SellScreen(
                         AideProductRow(
                             name = product.name,
                             stock = product.quantity,
-                            price = "KSh ${product.sellingPrice}",
+                            price = money(product.sellingPrice),
                             sku = product.sku,
                             lowStockThreshold = product.lowStock,
                             imagePath = product.imageUrl,
@@ -72,7 +74,7 @@ fun SellScreen(
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "KSh ${"%.2f".format(uiState.subtotal)}",
+                            text = money(uiState.subtotal),
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
@@ -95,16 +97,14 @@ fun SellScreen(
                                     style = MaterialTheme.typography.bodyLarge
                                 )
                                 Text(
-                                    text = "KSh ${"%.2f".format(item.product.sellingPrice)} each",
+                                    text = "${moneyBare(item.product.sellingPrice)} each",
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
 
                             Text(
-                                text = "KSh ${"%.2f".format(
-                                    item.product.sellingPrice * item.quantity
-                                )}",
+                                text = money(item.product.sellingPrice * item.quantity),
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -223,7 +223,7 @@ fun SellScreen(
                                 modifier = Modifier.weight(1f)
                             )
                             Text(
-                                text = "KSh ${"%.2f".format(kotlin.math.abs(due))}",
+                                text = money(kotlin.math.abs(due)),
                                 style = MaterialTheme.typography.headlineMedium,
                                 fontFamily = FontFamily.Monospace,
                                 fontWeight = FontWeight.Bold,
