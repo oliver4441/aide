@@ -80,3 +80,50 @@ data class NotifiedEventEntity(
     val createdAt: Long
 )
 
+
+/**
+ * A business expense — rent, utilities, transport, restocking, wages.
+ *
+ * Kept separate from [SaleEntity] on purpose: sales are revenue, expenses are
+ * cost, and net profit is only meaningful once both exist. Indexed by
+ * createdAt because every report filters on a date range.
+ */
+@Entity(
+    tableName = "expenses",
+    indices = [Index("businessId"), Index("createdAt")]
+)
+data class ExpenseEntity(
+    @PrimaryKey val id: String,
+    val businessId: String,
+    val category: String,
+    val description: String? = null,
+    val amount: Double,
+    /** Shop overheads are not itemised against a product; COGS lives on the sale. */
+    val isCogs: Boolean = false,
+    val notes: String? = null,
+    val createdAt: String
+)
+
+/**
+ * A customer in the local directory.
+ *
+ * `balance` is denormalised on purpose: it is maintained when a sale is
+ * recorded on credit, so the directory can be listed without joining every
+ * time. Negative means the customer owes the business.
+ */
+@Entity(
+    tableName = "customers",
+    indices = [Index("businessId"), Index("name")]
+)
+data class CustomerEntity(
+    @PrimaryKey val id: String,
+    val businessId: String,
+    val name: String,
+    val phone: String? = null,
+    val email: String? = null,
+    val notes: String? = null,
+    val balance: Double = 0.0,
+    val isActive: Boolean = true,
+    val createdAt: String,
+    val updatedAt: String
+)
