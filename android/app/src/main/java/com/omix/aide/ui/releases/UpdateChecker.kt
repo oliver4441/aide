@@ -64,7 +64,7 @@ object UpdateChecker {
                     // Strictly greater: a build must not nag about itself, and a
                     // locally-built debug APK with versionCode 0 must not think
                     // it is behind everything.
-                    newer = versionCode > BuildConfig.VERSION_CODE,
+                    newer = isNewerRelease(versionCode, BuildConfig.VERSION_CODE),
                     downloadUrl = extractString(body, "downloadUrl"),
                     notes = extractString(body, "notes")
                 )
@@ -112,3 +112,13 @@ object UpdateChecker {
     @Suppress("unused")
     fun installedVersionCode(): Int = BuildConfig.VERSION_CODE
 }
+/**
+ * Whether a published release should prompt this build to update.
+ *
+ * Extracted so the rule is directly testable. It is deliberately strict:
+ * equal must not prompt, an unknown (0) published code must never prompt, and a
+ * locally-built APK whose code is ahead of the server must not be told to go
+ * backwards.
+ */
+fun isNewerRelease(publishedCode: Int, installedCode: Int): Boolean =
+    publishedCode > 0 && publishedCode > installedCode
