@@ -1,6 +1,7 @@
 package com.omix.aide.ui.screens
 
 import android.content.Context
+import android.content.Intent
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -15,10 +16,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Backup
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -40,7 +44,9 @@ import kotlinx.coroutines.flow.first
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import com.omix.aide.BuildConfig
 import com.omix.aide.data.local.BusinessSettings
+import com.omix.aide.data.local.ThemeMode
 import com.omix.aide.data.local.SettingsStore
 import com.omix.aide.notifications.AideChannel
 import com.omix.aide.notifications.NotificationPrefs
@@ -71,6 +77,8 @@ fun SettingsScreen(
     ) }
     var receiptFooter by remember { mutableStateOf(initial.receiptFooter) }
     var accent by remember { mutableStateOf(initial.accent) }
+    var themeMode by remember { mutableStateOf(initial.themeMode) }
+    var soundsOn by remember { mutableStateOf(initial.soundsEnabled) }
     var saved by remember { mutableStateOf(false) }
 
     val prefs = remember { NotificationPrefs(context) }
@@ -140,7 +148,7 @@ fun SettingsScreen(
             Spacer(Modifier.height(20.dp))
 
             // ---- accent theme -----------------------------------------------
-            Text("Accent theme", style = MaterialTheme.typography.titleLarge)
+            Text("Appearance", style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(8.dp))
             Row(
                 modifier = Modifier.horizontalScroll(rememberScrollState()),
@@ -180,6 +188,36 @@ fun SettingsScreen(
                                 MaterialTheme.colorScheme.onSurfaceVariant
                             }
                         )
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            // Light/dark had no control at all before this: the app was pinned
+            // to the system setting with no way to override it.
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                ThemeMode.entries.forEach { mode ->
+                    FilterChip(
+                        selected = mode == themeMode,
+                        onClick = {
+                            themeMode = mode
+                            saved = false
+                            onSettingsChanged(SettingsStore.read(context).copy(themeMode = mode))
+                        },
+                        label = {
+                            Text(
+                                when (mode) {
+                                    ThemeMode.SYSTEM -> "System"
+                                    ThemeMode.LIGHT -> "Light"
+                                    ThemeMode.DARK -> "Dark"
+                                }
+                            )
+                        },
+                        modifier = Modifier.height(48.dp)
                     )
                 }
             }
@@ -238,6 +276,30 @@ fun SettingsScreen(
                 }
             }
 
+            Spacer(Modifier.height(20.dp))
+
+            Text("Sounds", style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.height(8.dp))
+            AideCard {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.VolumeUp,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("App sounds", style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            text = "Chime when a sale completes",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(checked = soundsOn, onCheckedChange = { soundsOn = it; saved = false })
+                }
+            }
+
             Spacer(Modifier.height(24.dp))
 
             Button(
@@ -247,7 +309,9 @@ fun SettingsScreen(
                         currency = currency.trim().ifBlank { "KSh" },
                         taxRate = taxRate.toDoubleOrNull() ?: 0.0,
                         receiptFooter = receiptFooter.trim(),
-                        accent = accent
+                        accent = accent,
+                        themeMode = themeMode,
+                        soundsEnabled = soundsOn
                     )
                     SettingsStore.write(context, settings)
                     Palette.write(context, accent)
@@ -277,6 +341,51 @@ fun SettingsScreen(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+
+            Spacer(Modifier.height(24.dp))
+
+            Text("About", style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.height(8.dp))
+            AideCard {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.Language,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("Omix Systems", style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            text = COMPANY_URL.replace("https://", ""),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    OutlinedButton(
+                        onClick = { openCompanySite(context) },
+                        modifier = Modifier.height(48.dp)
+                    ) {
+                        Text("Visit")
+                    }
+                }
+
+                Spacer(Modifier.height(10.dp))
+                HorizontalDivider()
+                Spacer(Modifier.height(10.dp))
+
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Version", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            text = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    TextButton(onClick = { checkForUpdate(context) }) { Text("Check for updates") }
+                }
+            }
         }
     }
 }
@@ -362,4 +471,18 @@ private fun exportData(
     } catch (e: Exception) {
         toast("Export failed: ${e.message}")
     }
+}
+
+/** Omix Systems — the company behind Aide. */
+const val COMPANY_URL = "https://omixsystems.store"
+
+private fun openCompanySite(context: Context) {
+    val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(COMPANY_URL))
+    runCatching { context.startActivity(intent) }
+}
+
+/** Opens the releases page so the user can pull a newer build manually. */
+private fun checkForUpdate(context: Context) {
+    val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("$COMPANY_URL/downloads"))
+    runCatching { context.startActivity(intent) }
 }
