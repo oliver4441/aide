@@ -1,9 +1,9 @@
 package com.omix.aide.theme
 
 import android.content.Context
-import android.content.SharedPreferences
 import androidx.core.content.res.ResourcesCompat
 import com.omix.aide.R
+import com.omix.aide.data.local.SettingsStore
 
 /** A single accent theme the user can pick. (Plum, Lavender, Teal, Amber,
  *  Orange — mirroring the web app's `ACCENTS`.) */
@@ -28,23 +28,32 @@ object Palette {
     fun find(id: String): AccentTheme =
         entries.firstOrNull { it.id == id } ?: entries.first()
 
-    /** Read the persisted accent theme from SharedPreferences. */
-    fun read(context: Context): String {
-        val prefs: SharedPreferences = context.getSharedPreferences(
-            "aide_preferences", Context.MODE_PRIVATE
-        )
-        val saved = prefs.getString(KEY_ACCENT, null)
-        return if (saved != null && all.any { it.id == saved }) saved else all.first().id
-    }
+    /**
+     * The accent the user selected.
+     *
+     * Reads [SettingsStore], which owns the value. This used to keep its own
+     * copy in a separate SharedPreferences file, which is how the splash and
+     * the rest of the app came to disagree: the splash read one store and the
+     * theme read the other, so a first-run pick showed on the splash and was
+     * then ignored everywhere else.
+     */
+    fun read(context: Context): String = valid(readRaw(context))
 
-    /** Persist the accepted accent theme. */
+    /**
+     * Persists the accent, keeping every other saved setting untouched.
+     *
+     * Ignores unknown ids so a bad value can never leave the app with no theme.
+     */
     fun write(context: Context, accent: String) {
         if (!all.any { it.id == accent }) return
-        val prefs: SharedPreferences = context.getSharedPreferences(
-            "aide_preferences", Context.MODE_PRIVATE
-        )
-        prefs.edit().putString(KEY_ACCENT, accent).apply()
+        val current = SettingsStore.read(context)
+        if (current.accent == accent) return
+        SettingsStore.write(context, current.copy(accent = accent))
     }
 
-    private const val KEY_ACCENT = "aide_accent"
+    /** Falls back to the default accent for an id we do not recognise. */
+    private fun valid(id: String?): String =
+        if (id != null && all.any { it.id == id }) id else all.first().id
+
+    private fun readRaw(context: Context): String = SettingsStore.read(context).accent
 }
