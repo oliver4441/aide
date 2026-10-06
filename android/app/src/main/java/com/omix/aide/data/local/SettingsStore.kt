@@ -86,18 +86,27 @@ object SettingsStore {
      * The first-run theme picker wrote straight to the legacy file and never
      * touched `aide_settings`, so anyone who picked a colour during onboarding
      * had it silently ignored by the rest of the app. This copies that choice
-     * across once, so nobody loses the theme they already selected.
+     * across so nobody loses the theme they already selected.
+     *
+     * The legacy key is **removed** afterwards, which is what makes this
+     * genuinely one-time. Leaving it in place meant every later launch saw the
+     * stale value and reverted whatever the user had since chosen in Settings.
      *
      * Returns true when a legacy value was adopted.
      */
     fun migrateLegacyAccent(context: Context): Boolean {
         val legacy = context.getSharedPreferences(LEGACY_PREFS, Context.MODE_PRIVATE)
-        val saved = legacy.getString(LEGACY_KEY_ACCENT, null) ?: return false
+        val saved = legacy.getString(LEGACY_KEY_ACCENT, null)
 
-        val current = read(context)
-        if (saved == current.accent) return false
+        // Nothing to adopt, or already in step: clear the key either way so it
+        // can never be adopted again after the user changes their mind.
+        if (saved == null || saved == read(context).accent) {
+            if (saved != null) legacy.edit().remove(LEGACY_KEY_ACCENT).apply()
+            return false
+        }
 
-        write(context, current.copy(accent = saved))
+        write(context, read(context).copy(accent = saved))
+        legacy.edit().remove(LEGACY_KEY_ACCENT).apply()
         return true
     }
 
