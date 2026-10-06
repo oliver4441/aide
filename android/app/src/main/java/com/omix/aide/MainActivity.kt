@@ -38,6 +38,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.omix.aide.data.local.AideDatabase
+import com.omix.aide.data.local.DatabaseHealth
 import com.omix.aide.data.local.LocalBusinessStore
 import com.omix.aide.data.local.SettingsStore
 import com.omix.aide.data.repository.CustomerRepository
@@ -50,6 +51,7 @@ import com.omix.aide.notifications.AideRoute
 import com.omix.aide.theme.Palette
 import com.omix.aide.ui.navigation.Screen
 import com.omix.aide.ui.screens.CalculatorScreen
+import com.omix.aide.ui.screens.DatabaseProblemScreen
 import com.omix.aide.ui.screens.CustomersScreen
 import com.omix.aide.ui.screens.ExpensesScreen
 import com.omix.aide.ui.screens.HomeScreen
@@ -123,6 +125,14 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // If the database could not be opened at startup, stop here and offer
+        // recovery. Continuing would crash on the first query and take the user
+        // into a loop they cannot escape.
+        if (DatabaseHealth.isBroken(applicationContext)) {
+            showDatabaseRecovery()
+            return
+        }
+
         pendingRoute.value = routeFromIntent(intent)
 
         // Everything below reads and writes Room on this device only — there is
@@ -168,6 +178,34 @@ class MainActivity : ComponentActivity() {
             onReady = { setupContent() },
             accent = accent
         )
+    }
+
+    /**
+     * Last-resort UI shown when the local database cannot be opened.
+     *
+     * Nothing here touches Room: the whole point is that it works when Room does
+     * not. Retry re-runs the probe and reopens normally on success; reset is
+     * destructive and only reachable behind a confirmation on that screen.
+     */
+    private fun showDatabaseRecovery() {
+        setContent {
+            CompositionLocalProvider(LocalAideSettings provides settings.value) {
+                AideTheme {
+                    DatabaseProblemScreen(
+                        errorMessage = DatabaseHealth.errorMessage(applicationContext),
+                        onRetry = {
+                            if (DatabaseHealth.probe(applicationContext)) {
+                                recreate()
+                            }
+                        },
+                        onReset = {
+                            DatabaseHealth.deleteDatabase(applicationContext)
+                            recreate()
+                        }
+                    )
+                }
+            }
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
