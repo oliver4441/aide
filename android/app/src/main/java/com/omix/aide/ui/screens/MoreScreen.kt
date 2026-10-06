@@ -1,4 +1,5 @@
 package com.omix.aide.ui.screens
+import android.content.Context
 import android.content.Intent
 
 import androidx.compose.foundation.clickable
@@ -27,6 +28,8 @@ fun MoreScreen(
     onNavigateToSettings: () -> Unit,
     onNavigateToCalculator: () -> Unit
 ) {
+    val context = LocalContext.current
+
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -110,7 +113,7 @@ fun MoreScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { openCompanyWebsite() }
+                    .clickable { openCompanyWebsite(context) }
                     .padding(vertical = 16.dp),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
@@ -204,10 +207,13 @@ fun MoreMenuItem(
     }
 }
 
-/** Opens the Omix Systems website. Reads the context from composition. */
-@Composable
-fun openCompanyWebsite() {
-    val context = LocalContext.current
+/**
+ * Opens the Omix Systems website.
+ *
+ * Takes a Context rather than reading LocalContext itself, because the call
+ * site is inside a `clickable` lambda, which is not a composable scope.
+ */
+fun openCompanyWebsite(context: Context) {
     val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(COMPANY_URL))
     runCatching { context.startActivity(intent) }
 }
