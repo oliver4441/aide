@@ -112,6 +112,11 @@ dependencies {
 
     implementation(libs.androidx.work.runtime.ktx)
 
+    // Declared explicitly rather than inherited from room-ktx: Dispatchers.Main
+    // is what viewModelScope and the update check run on, and it must not
+    // disappear if an upstream dependency changes.
+    implementation(libs.kotlinx.coroutines.android)
+
     // The splash and release-banner layouts are ConstraintLayout-based.
     implementation(libs.androidx.constraintlayout)
 
