@@ -128,6 +128,19 @@ abstract class AideDatabase : RoomDatabase() {
         @Volatile
         private var INSTANCE: AideDatabase? = null
 
+        /**
+         * Drops the open instance.
+         *
+         * Called before a database reset: Room holds the file open, so deleting
+         * it underneath a live handle leaves a half-deleted database.
+         */
+        fun closeInstance() {
+            synchronized(this) {
+                INSTANCE?.close()
+                INSTANCE = null
+            }
+        }
+
         fun getDatabase(context: Context): AideDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(

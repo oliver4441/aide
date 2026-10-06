@@ -1,6 +1,7 @@
 package com.omix.aide
 
 import android.app.Application
+import com.omix.aide.data.local.DatabaseHealth
 import com.omix.aide.data.local.SettingsStore
 import com.omix.aide.notifications.AideNotifications
 import com.omix.aide.notifications.NotificationPrefs
@@ -10,6 +11,12 @@ class AideApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+
+        // Force the database open now, where a failure can still be caught.
+        // Room validates the schema lazily on first use, so without this a bad
+        // migration throws later from inside a coroutine and the app dies in a
+        // loop with no way to recover.
+        DatabaseHealth.probe(this)
 
         // Adopt an accent chosen before SettingsStore owned it. This has to run
         // before any screen reads the settings, or the user sees the default
