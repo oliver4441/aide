@@ -204,7 +204,8 @@ fun MoreMenuItem(
     }
 }
 
-/** Opens the Omix Systems website from anywhere in the app. */
+/** Opens the Omix Systems website. Reads the context from composition. */
+@Composable
 fun openCompanyWebsite() {
     val context = LocalContext.current
     val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(COMPANY_URL))
