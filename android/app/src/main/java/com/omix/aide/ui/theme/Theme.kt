@@ -46,9 +46,13 @@ private val LightColorScheme = lightColorScheme(
 
 @Composable
 fun AideTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
+    // Follows the saved preference, defaulting to the system setting. There was
+    // no override at all before: the app had no way to be dark on a light phone
+    // or light on a dark one.
+    val darkTheme = LocalAideSettings.current.themeMode.resolve(isSystemInDarkTheme())
+
     // Read reactively: the accent comes from the settings the user can change
     // in-app, so picking Plum has to re-theme the running composition rather
     // than only the next launch.
