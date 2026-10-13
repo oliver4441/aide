@@ -28,11 +28,15 @@ function generateSku(categoryName: string): string {
   return `${abbr}-${digits}`;
 }
 
-async function compressImage(file: File, maxSizeBytes = 500 * 1024): Promise<string> {
+async function compressImage(file: File, maxSizeBytes = 500 * 1024): Promise<string | null> {
   return new Promise((resolve) => {
     const reader = new FileReader();
+    // Never leave the caller hanging: a file the browser cannot decode
+    // (e.g. an unsupported HEIC variant) resolves to null instead.
+    reader.onerror = () => resolve(null);
     reader.onload = (e) => {
       const img = new Image();
+      img.onerror = () => resolve(null);
       img.onload = () => {
         const canvas = document.createElement("canvas");
         let w = img.width;
@@ -132,6 +136,10 @@ export default function InventoryPage() {
     if (!file) return;
     if (!file.type.startsWith("image/")) return;
     const dataUrl = await compressImage(file);
+    if (!dataUrl) {
+      alert("Sorry — that image could not be processed. Try a different photo.");
+      return;
+    }
     setImageDataUrl(dataUrl);
   };
 

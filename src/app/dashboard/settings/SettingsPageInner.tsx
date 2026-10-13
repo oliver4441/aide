@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 import db from "@/lib/db";
 import { liveQuery } from "dexie";
@@ -172,6 +172,75 @@ export default function SettingsPage() {
     URL.revokeObjectURL(url);
   };
 
+  // --- Account: change email / password ---
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
+  const [emailStatus, setEmailStatus] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [savingEmail, setSavingEmail] = useState(false);
+
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordStatus, setPasswordStatus] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [savingPassword, setSavingPassword] = useState(false);
+
+  const saveEmail = async () => {
+    setEmailStatus(null);
+    setSavingEmail(true);
+    try {
+      const res = await fetch("/api/user", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: newEmail }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setEmailStatus({ ok: false, msg: data.error || "Could not update email" });
+        return;
+      }
+      setEmailStatus({
+        ok: true,
+        msg: "Email updated. Signing you out — please log in with your new email.",
+      });
+      // The session token still carries the old email, so sign out to refresh it.
+      setTimeout(() => signOut({ callbackUrl: "/login" }), 1500);
+    } catch {
+      setEmailStatus({ ok: false, msg: "Network error — please try again" });
+    } finally {
+      setSavingEmail(false);
+    }
+  };
+
+  const savePassword = async () => {
+    setPasswordStatus(null);
+    if (newPassword !== confirmPassword) {
+      setPasswordStatus({ ok: false, msg: "New passwords do not match" });
+      return;
+    }
+    setSavingPassword(true);
+    try {
+      const res = await fetch("/api/user/password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setPasswordStatus({ ok: false, msg: data.error || "Could not update password" });
+        return;
+      }
+      setPasswordStatus({ ok: true, msg: "Password updated successfully." });
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch {
+      setPasswordStatus({ ok: false, msg: "Network error — please try again" });
+    } finally {
+      setSavingPassword(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -192,6 +261,116 @@ export default function SettingsPage() {
               <div className="text-xs text-on-surface-variant">{session?.user?.email}</div>
             </div>
           </div>
+
+          <div className="flex flex-wrap gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => {
+                setShowEmailForm((v) => !v);
+                setEmailStatus(null);
+              }}
+              className="px-4 py-2 rounded-lg border border-outline-variant text-on-surface-variant text-xs font-medium hover:bg-surface-container transition-colors"
+            >
+              Change Email
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowPasswordForm((v) => !v);
+                setPasswordStatus(null);
+              }}
+              className="px-4 py-2 rounded-lg border border-outline-variant text-on-surface-variant text-xs font-medium hover:bg-surface-container transition-colors"
+            >
+              Change Password
+            </button>
+          </div>
+
+          {showEmailForm && (
+            <div className="space-y-2 border-t border-outline-variant pt-4">
+              <label className="block text-xs font-medium text-on-surface-variant">
+                New email address
+              </label>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                  type="email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  placeholder={session?.user?.email || "you@example.com"}
+                  className="flex-1 px-3 py-2.5 rounded-lg bg-surface-container border border-outline-variant text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+                <button
+                  onClick={saveEmail}
+                  disabled={savingEmail || !newEmail.trim()}
+                  className="px-4 py-2.5 rounded-lg bg-primary text-on-primary text-sm font-semibold hover:bg-primary-light transition-colors disabled:opacity-40"
+                >
+                  {savingEmail ? "Saving..." : "Update Email"}
+                </button>
+              </div>
+              <p className="text-xs text-on-surface-variant">
+                You will be signed out and asked to log in with your new email.
+              </p>
+              {emailStatus && (
+                <p className={`text-xs font-medium ${emailStatus.ok ? "text-primary" : "text-danger"}`}>
+                  {emailStatus.msg}
+                </p>
+              )}
+            </div>
+          )}
+
+          {showPasswordForm && (
+            <div className="space-y-2 border-t border-outline-variant pt-4">
+              <div>
+                <label className="block text-xs font-medium text-on-surface-variant mb-1">
+                  Current password
+                </label>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  autoComplete="current-password"
+                  className="w-full px-3 py-2.5 rounded-lg bg-surface-container border border-outline-variant text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-medium text-on-surface-variant mb-1">
+                    New password (min 8 characters)
+                  </label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    autoComplete="new-password"
+                    className="w-full px-3 py-2.5 rounded-lg bg-surface-container border border-outline-variant text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-on-surface-variant mb-1">
+                    Confirm new password
+                  </label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    autoComplete="new-password"
+                    className="w-full px-3 py-2.5 rounded-lg bg-surface-container border border-outline-variant text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                </div>
+              </div>
+              <button
+                onClick={savePassword}
+                disabled={savingPassword || !currentPassword || !newPassword}
+                className="px-4 py-2.5 rounded-lg bg-primary text-on-primary text-sm font-semibold hover:bg-primary-light transition-colors disabled:opacity-40"
+              >
+                {savingPassword ? "Saving..." : "Update Password"}
+              </button>
+              {passwordStatus && (
+                <p className={`text-xs font-medium ${passwordStatus.ok ? "text-primary" : "text-danger"}`}>
+                  {passwordStatus.msg}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

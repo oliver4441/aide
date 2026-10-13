@@ -99,41 +99,70 @@ class SyncEngine {
     this.isSyncing = true;
     this.notifyListeners();
 
+    let syncedTotal = 0;
+    const conflicts: any[] = [];
+
     try {
       const mutations = await db.syncQueue.orderBy('timestamp').toArray();
       if (mutations.length === 0) return { synced: 0, conflicts: [] };
 
       const deviceId = getDeviceId();
-      const res = await fetch('/api/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mutations, deviceId }),
-      });
 
-      if (!res.ok) throw new Error(`Sync failed: ${res.status}`);
-
-      const result = await res.json();
-
+      // Split the queue into batches that each stay well under the platform's
+      // ~4.5 MB request-body limit — image-bearing product mutations carry
+      // several hundred KB of base64 each, and one oversized POST used to
+      // fail the whole queue.
+      const MAX_BATCH_BYTES = 3 * 1024 * 1024;
+      const batches: SyncQueueItem[][] = [];
+      let batch: SyncQueueItem[] = [];
+      let batchBytes = 0;
       for (const mutation of mutations) {
-        await db.syncQueue.where('key').equals(mutation.key!).delete();
+        const size = JSON.stringify(mutation).length;
+        if (batch.length > 0 && batchBytes + size > MAX_BATCH_BYTES) {
+          batches.push(batch);
+          batch = [];
+          batchBytes = 0;
+        }
+        batch.push(mutation);
+        batchBytes += size;
+      }
+      if (batch.length > 0) batches.push(batch);
 
-        if (mutation.table === 'products') {
-          await db.products.update(mutation.recordId, { syncStatus: 'synced' }).catch(() => {});
-        } else if (mutation.table === 'categories') {
-          await db.categories.update(mutation.recordId, { syncStatus: 'synced' }).catch(() => {});
-        } else if (mutation.table === 'sales') {
-          await db.sales.update(mutation.recordId, { syncStatus: 'synced' }).catch(() => {});
+      for (const batchMutations of batches) {
+        const res = await fetch('/api/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mutations: batchMutations, deviceId }),
+        });
+
+        if (!res.ok) throw new Error(`Sync failed: ${res.status}`);
+
+        const result = await res.json();
+
+        for (const mutation of batchMutations) {
+          await db.syncQueue.where('key').equals(mutation.key!).delete();
+
+          if (mutation.table === 'products') {
+            await db.products.update(mutation.recordId, { syncStatus: 'synced' }).catch(() => {});
+          } else if (mutation.table === 'categories') {
+            await db.categories.update(mutation.recordId, { syncStatus: 'synced' }).catch(() => {});
+          } else if (mutation.table === 'sales') {
+            await db.sales.update(mutation.recordId, { syncStatus: 'synced' }).catch(() => {});
+          }
+        }
+
+        syncedTotal += result.synced || batchMutations.length;
+
+        for (const conflict of result.conflicts || []) {
+          conflicts.push(conflict);
+          await db.syncConflicts.put(conflict);
         }
       }
 
-      for (const conflict of result.conflicts || []) {
-        await db.syncConflicts.put(conflict);
-      }
-
-      return { synced: result.synced || mutations.length, conflicts: result.conflicts || [] };
+      return { synced: syncedTotal, conflicts };
     } catch (err) {
       console.error('Push failed:', err);
-      return { synced: 0, conflicts: [] };
+      return { synced: syncedTotal, conflicts };
     } finally {
       this.isSyncing = false;
       this.notifyListeners();
@@ -163,7 +192,18 @@ class SyncEngine {
       }
       if (result.products) {
         for (const p of result.products) {
-          await db.products.put({ ...p, syncStatus: 'synced' });
+          // The server is the source of truth for product fields, but never
+          // let a null image from the server wipe a photo that only exists
+          // locally (e.g. a still-pending edit that has not been pushed yet).
+          const local = await db.products.get(p.id);
+          const keepLocalImage = Boolean(local?.imageUrl) && local?.syncStatus !== 'synced';
+          const keepLocalThumb = Boolean(local?.thumbnailUrl) && local?.syncStatus !== 'synced';
+          await db.products.put({
+            ...p,
+            syncStatus: 'synced',
+            imageUrl: p.imageUrl || (keepLocalImage ? local!.imageUrl : undefined),
+            thumbnailUrl: p.thumbnailUrl || (keepLocalThumb ? local!.thumbnailUrl : undefined),
+          });
           count++;
         }
       }

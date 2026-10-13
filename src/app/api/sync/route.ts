@@ -100,6 +100,8 @@ async function handleProductMutation(
         lowStock: data.lowStock,
         isService: data.isService,
         categoryId: data.categoryId,
+        imageUrl: data.imageUrl ?? null,
+        thumbnailUrl: data.thumbnailUrl ?? null,
       },
     });
   } else {
@@ -114,6 +116,8 @@ async function handleProductMutation(
         lowStock: data.lowStock,
         isService: data.isService,
         categoryId: data.categoryId,
+        imageUrl: data.imageUrl ?? null,
+        thumbnailUrl: data.thumbnailUrl ?? null,
         businessId,
       },
     });

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useDashboard } from "@/hooks/useDashboard";
+import { useProducts } from "@/hooks/useProducts";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 import { formatMoney } from "@/lib/format";
 
@@ -36,6 +37,7 @@ export default function DashboardPageInner() {
     loading,
   } = useDashboard();
   const { data: business } = useBusinessSettings();
+  const { data: products } = useProducts();
 
   if (loading) {
     return (
@@ -107,6 +109,62 @@ export default function DashboardPageInner() {
           </p>
           <p className="text-xs text-on-surface-variant mt-1">{lowStockProducts > 0 ? "Check inventory" : "All stocked"}</p>
         </div>
+      </div>
+
+      {/* Stock Overview */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-on-surface font-headline">Stock Overview</h2>
+          <Link href="/dashboard/inventory" className="text-sm text-primary hover:underline">
+            View all
+          </Link>
+        </div>
+        {products.length === 0 ? (
+          <p className="text-on-surface-variant text-sm text-center py-8 bg-surface-container rounded-xl border border-outline-variant">
+            No products yet — add your first product in Inventory.
+          </p>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {[...products]
+              .filter((p) => !p.deletedAt)
+              .sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""))
+              .slice(0, 8)
+              .map((p) => (
+                <Link
+                  key={p.id}
+                  href="/dashboard/inventory"
+                  className="bg-surface-container border border-outline-variant rounded-xl p-3 flex items-center gap-3 hover:bg-surface-container-high transition-colors min-w-0"
+                >
+                  {p.thumbnailUrl || p.imageUrl ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={p.thumbnailUrl || p.imageUrl}
+                      alt={p.name}
+                      className="w-12 h-12 rounded-lg object-cover shrink-0"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
+                      <span className="text-sm font-semibold text-primary">
+                        {p.name?.[0]?.toUpperCase() ?? "?"}
+                      </span>
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-on-surface truncate">{p.name}</p>
+                    <p
+                      className={`text-xs ${
+                        !p.isService && p.quantity <= p.lowStock
+                          ? "text-danger font-medium"
+                          : "text-on-surface-variant"
+                      }`}
+                    >
+                      {p.isService ? "Service" : `${p.quantity} in stock`}
+                    </p>
+                  </div>
+                </Link>
+              ))}
+          </div>
+        )}
       </div>
 
       {/* Recent Sales */}
