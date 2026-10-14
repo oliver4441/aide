@@ -102,6 +102,72 @@
     --primary-container: 55 65 81;
   }
 
+  [data-theme="violet"] {
+    --primary: 109 40 217;
+    --primary-light: 124 58 237;
+    --primary-container: 124 58 237;
+  }
+  .dark[data-theme="violet"] {
+    --primary: 196 181 253;
+    --primary-light: 221 214 254;
+    --primary-container: 91 33 182;
+  }
+
+  [data-theme="rose"] {
+    --primary: 225 29 72;
+    --primary-light: 244 63 94;
+    --primary-container: 244 63 94;
+  }
+  .dark[data-theme="rose"] {
+    --primary: 253 164 175;
+    --primary-light: 254 205 211;
+    --primary-container: 159 18 57;
+  }
+
+  [data-theme="teal"] {
+    --primary: 13 148 136;
+    --primary-light: 20 184 166;
+    --primary-container: 20 184 166;
+  }
+  .dark[data-theme="teal"] {
+    --primary: 94 234 212;
+    --primary-light: 153 246 228;
+    --primary-container: 17 94 89;
+  }
+
+  [data-theme="gold"] {
+    --primary: 180 83 9;
+    --primary-light: 217 119 6;
+    --primary-container: 217 119 6;
+  }
+  .dark[data-theme="gold"] {
+    --primary: 252 211 77;
+    --primary-light: 253 230 138;
+    --primary-container: 146 64 14;
+  }
+
+  [data-theme="crimson"] {
+    --primary: 220 38 38;
+    --primary-light: 239 68 68;
+    --primary-container: 239 68 68;
+  }
+  .dark[data-theme="crimson"] {
+    --primary: 252 165 165;
+    --primary-light: 254 202 202;
+    --primary-container: 153 27 27;
+  }
+
+  [data-theme="indigo"] {
+    --primary: 79 70 229;
+    --primary-light: 99 102 241;
+    --primary-container: 99 102 241;
+  }
+  .dark[data-theme="indigo"] {
+    --primary: 165 180 252;
+    --primary-light: 199 210 254;
+    --primary-container: 55 48 163;
+  }
+
   body {
     font-family: var(--font-body), "Inter", sans-serif;
   }
@@ -146,6 +212,79 @@
 
 .animate-fade-in {
   animation: fadeIn 0.3s ease-out;
+}
+
+/* ---- Optional page backgrounds (Settings → Appearance → Background) ----
+   A fixed layer sits behind the app; presets paint pure-CSS gradient art via
+   [data-bg] on <html>, a custom photo is injected inline as --app-bg-art.
+   Scrims keep both light and dark mode readable, and the opaque page wrapper
+   (app-page-bg) goes transparent so the art can show through. */
+
+.app-bg-layer {
+  display: none;
+}
+
+[data-bg] .app-bg-layer {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+html:not(.dark) [data-bg] .app-bg-layer {
+  background-image:
+    linear-gradient(rgba(249, 249, 255, 0.84), rgba(249, 249, 255, 0.84)),
+    var(--app-bg-art);
+}
+
+.dark [data-bg] .app-bg-layer {
+  background-image:
+    linear-gradient(rgba(18, 18, 23, 0.8), rgba(18, 18, 23, 0.8)),
+    var(--app-bg-art);
+}
+
+[data-bg] .app-page-bg {
+  background-color: transparent;
+}
+
+[data-bg="aurora"] {
+  --app-bg-art: radial-gradient(900px 600px at 85% -10%, rgba(167, 139, 250, 0.55), transparent 60%),
+    radial-gradient(800px 600px at -10% 100%, rgba(52, 211, 153, 0.45), transparent 60%),
+    linear-gradient(135deg, #0f172a, #1e1b4b);
+}
+
+[data-bg="sunset"] {
+  --app-bg-art: radial-gradient(900px 600px at 80% -10%, rgba(251, 146, 60, 0.55), transparent 60%),
+    radial-gradient(800px 600px at 10% 110%, rgba(244, 63, 94, 0.45), transparent 60%),
+    linear-gradient(135deg, #1c1917, #431407);
+}
+
+[data-bg="ocean-depths"] {
+  --app-bg-art: radial-gradient(900px 600px at 85% -10%, rgba(56, 189, 248, 0.5), transparent 60%),
+    radial-gradient(800px 600px at -10% 100%, rgba(30, 64, 175, 0.55), transparent 60%),
+    linear-gradient(135deg, #082f49, #0c4a6e);
+}
+
+[data-bg="forest-mist"] {
+  --app-bg-art: radial-gradient(900px 600px at 85% -10%, rgba(134, 239, 172, 0.4), transparent 60%),
+    radial-gradient(800px 600px at -10% 100%, rgba(20, 184, 166, 0.4), transparent 60%),
+    linear-gradient(135deg, #0f1f1a, #14532d);
+}
+
+[data-bg="slate"] {
+  --app-bg-art: radial-gradient(900px 600px at 85% -10%, rgba(148, 163, 184, 0.35), transparent 60%),
+    radial-gradient(800px 600px at -10% 100%, rgba(100, 116, 139, 0.35), transparent 60%),
+    linear-gradient(135deg, #0f172a, #334155);
+}
+
+[data-bg="rose-dawn"] {
+  --app-bg-art: radial-gradient(900px 600px at 85% -10%, rgba(251, 113, 133, 0.5), transparent 60%),
+    radial-gradient(800px 600px at -10% 100%, rgba(192, 132, 252, 0.45), transparent 60%),
+    linear-gradient(135deg, #1f1117, #500724);
 }
 
 /* ---- uiverse-style micro-interactions ---- */

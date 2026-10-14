@@ -16,6 +16,7 @@ import {
   Shield,
   MoreHorizontal,
   LogOut,
+  Calculator,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -55,6 +56,7 @@ const navSections: NavSection[] = [
     title: "Account",
     items: [
       { label: "Settings", href: "/dashboard/settings", icon: "settings", offlineReady: true },
+      { label: "Calculator", href: "/dashboard/calculator", icon: "calculator", offlineReady: true },
       { label: "Help", href: "/help", icon: "help", offlineReady: false },
     ],
   },
@@ -67,6 +69,7 @@ const navIcons: Record<string, LucideIcon> = {
   stock: Package,
   reports: BarChart3,
   settings: Settings,
+  calculator: Calculator,
   help: HelpCircle,
   shield: Shield,
   more: MoreHorizontal,
@@ -82,6 +85,7 @@ const mobileNavItems = [
 const moreSheetItems = [
   { label: "Reports", href: "/dashboard/reports", icon: "reports" },
   { label: "Settings", href: "/dashboard/settings", icon: "settings" },
+  { label: "Calculator", href: "/dashboard/calculator", icon: "calculator" },
   { label: "Help Center", href: "/help", icon: "help" },
 ];
 
@@ -235,7 +239,7 @@ export default function Sidebar() {
             onClick={() => setMoreOpen(true)}
             className={cn(
               "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors min-w-[52px]",
-              moreOpen || ["/dashboard/reports", "/dashboard/settings", "/help", "/dashboard/admin"].some((h) => isActive(h))
+              moreOpen || ["/dashboard/reports", "/dashboard/settings", "/dashboard/calculator", "/help", "/dashboard/admin"].some((h) => isActive(h))
                 ? "text-primary"
                 : "text-on-surface-variant"
             )}

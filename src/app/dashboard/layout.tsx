@@ -1,6 +1,7 @@
 import Sidebar from "@/components/Sidebar";
 import DashboardInit from "@/components/DashboardInit";
 import BusinessGate from "@/components/BusinessGate";
+import BackgroundLayer from "@/components/BackgroundLayer";
 import AdBanner from "@/components/ads/AdBanner";
 import HelpWidget from "@/components/help/HelpWidget";
 import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
@@ -14,7 +15,8 @@ import Link from "next/link";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-surface">
+    <div className="min-h-screen bg-surface app-page-bg">
+      <BackgroundLayer />
       <DashboardInit />
       <OnboardingFlow />
       <BusinessGate />

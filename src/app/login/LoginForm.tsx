@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
+import BackgroundLayer from "@/components/BackgroundLayer";
 import UiButton from "@/components/ui/UiButton";
 
 type Mode = "signin" | "signup";
@@ -74,7 +75,8 @@ export default function LoginForm() {
     "w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface-container-low text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors";
 
   return (
-    <div className="min-h-screen bg-surface flex items-center justify-center p-4 relative">
+    <div className="min-h-screen bg-surface app-page-bg flex items-center justify-center p-4 relative">
+      <BackgroundLayer />
       <div className="absolute top-4 right-4">
         <ThemeToggle />
       </div>

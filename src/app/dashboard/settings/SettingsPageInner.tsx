@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 import db from "@/lib/db";
@@ -13,7 +13,7 @@ import {
   NOTIFICATION_CATEGORIES,
   type NotificationType,
 } from "@/lib/notifications";
-import { ACCENTS, useTheme, type Accent } from "@/components/ThemeProvider";
+import { ACCENTS, BACKGROUNDS, useTheme, type Accent, type Background } from "@/components/ThemeProvider";
 
 function ToggleRow({
   label,
@@ -47,6 +47,49 @@ function ToggleRow({
   );
 }
 
+/**
+ * Downscale + re-encode a chosen photo to a JPEG data URL that is safe to keep
+ * in localStorage (backgrounds are per-device, never uploaded).
+ */
+async function compressBackground(file: File, maxSizeBytes = 500 * 1024): Promise<string | null> {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onerror = () => resolve(null);
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onerror = () => resolve(null);
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let w = img.width;
+        let h = img.height;
+
+        const maxDim = 1920;
+        if (w > maxDim || h > maxDim) {
+          const ratio = Math.min(maxDim / w, maxDim / h);
+          w = Math.round(w * ratio);
+          h = Math.round(h * ratio);
+        }
+
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(img, 0, 0, w, h);
+
+        let quality = 0.82;
+        let dataUrl = canvas.toDataURL("image/jpeg", quality);
+        while (dataUrl.length > maxSizeBytes * 1.37 && quality > 0.4) {
+          quality -= 0.1;
+          dataUrl = canvas.toDataURL("image/jpeg", quality);
+        }
+
+        resolve(dataUrl);
+      };
+      img.src = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function SettingsPage() {
   const { data: session } = useSession();
   const { data: business, mutate: mutateBusiness } = useBusinessSettings();
@@ -55,7 +98,7 @@ export default function SettingsPage() {
   const [newCategory, setNewCategory] = useState("");
   const [notifEnabled, setNotifEnabledState] = useState(true);
   const [notifCats, setNotifCats] = useState<Record<string, boolean>>({});
-  const { theme, setTheme, accent, setAccent } = useTheme();
+  const { theme, setTheme, accent, setAccent, background, setBackground, customBackground, setCustomBackground } = useTheme();
   const [uiTheme, setUiTheme] = useState<"light" | "dark">("dark");
   const [uiAccent, setUiAccent] = useState<Accent>("plum");
 
@@ -90,6 +133,27 @@ export default function SettingsPage() {
   const setNotifCat = async (t: NotificationType, v: boolean) => {
     await setCategoryEnabled(t, v);
     setNotifCats((m) => ({ ...m, [t]: v }));
+  };
+
+  // --- Background image upload ---
+  const bgInputRef = useRef<HTMLInputElement>(null);
+  const [bgError, setBgError] = useState("");
+
+  const handleBackgroundUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setBgError("Please choose an image file.");
+      return;
+    }
+    const dataUrl = await compressBackground(file);
+    if (!dataUrl) {
+      setBgError("That image could not be processed. Try a different photo.");
+      return;
+    }
+    setBgError("");
+    setCustomBackground(dataUrl);
   };
 
   const [form, setForm] = useState({
@@ -434,6 +498,83 @@ export default function SettingsPage() {
             </div>
             <p className="text-xs text-on-surface-variant mt-1.5">
               Changes the highlight colour across the app. Saved on this device.
+            </p>
+          </div>
+
+          <div>
+            <div className="text-sm text-on-surface mb-2">Background</div>
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Page background">
+              <button
+                type="button"
+                aria-pressed={background === "none"}
+                onClick={() => setBackground("none")}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${
+                  background === "none"
+                    ? "border-primary bg-primary/10 text-on-surface ring-2 ring-primary/30"
+                    : "border-outline-variant text-on-surface-variant hover:bg-surface-container"
+                }`}
+              >
+                None
+              </button>
+              {BACKGROUNDS.map((b) => (
+                <button
+                  key={b.id}
+                  type="button"
+                  aria-pressed={background === b.id}
+                  onClick={() => setBackground(b.id)}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${
+                    background === b.id
+                      ? "border-primary bg-primary/10 text-on-surface ring-2 ring-primary/30"
+                      : "border-outline-variant text-on-surface-variant hover:bg-surface-container"
+                  }`}
+                >
+                  <span
+                    aria-hidden="true"
+                    className="w-4 h-4 rounded-full border border-black/10 shadow-sm"
+                    style={{ background: b.art }}
+                  />
+                  {b.label}
+                </button>
+              ))}
+              <button
+                type="button"
+                aria-pressed={background === "custom"}
+                onClick={() => bgInputRef.current?.click()}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${
+                  background === "custom"
+                    ? "border-primary bg-primary/10 text-on-surface ring-2 ring-primary/30"
+                    : "border-outline-variant text-on-surface-variant hover:bg-surface-container"
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+                {background === "custom" ? "Change photo" : "Upload photo"}
+              </button>
+              {background === "custom" && (
+                <button
+                  type="button"
+                  onClick={() => setCustomBackground(null)}
+                  className="px-3 py-2 rounded-lg text-sm font-medium transition-colors border border-outline-variant text-on-surface-variant hover:bg-surface-container"
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+            <input
+              ref={bgInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleBackgroundUpload}
+              className="hidden"
+            />
+            {bgError && <p className="text-xs text-danger mt-1.5">{bgError}</p>}
+            <p className="text-xs text-on-surface-variant mt-1.5">
+              A subtle backdrop behind the app — pick a preset or your own photo. Saved on this device.
             </p>
           </div>
         </div>
