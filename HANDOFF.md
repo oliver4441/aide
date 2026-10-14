@@ -791,3 +791,27 @@ gh workflow run release-desktop.yml --repo oliver4441/aide -f checksums_tag=desk
     pager and sitemap all follow from the registry.
 11. ~~**Refresh this document**~~ — **done** for the 2026-10-02 session; refresh
     again after the next one.
+
+---
+
+## 8. Account settings (Settings → Account)
+
+**Implemented and pushed in commit `3e36688`.**
+
+The Settings page now includes an **Account** section with three capabilities:
+
+### 8.1 Display name (inline edit)
+- Inline text input pre-populated from `session.user.name`
+- **Reserved name validation** — rejects `admin`, `root`, `system`, `support`, `help`, `test`, `demo`, `null`, `undefined`, `aide`, `omix`, `omixsystems`, `stor1`, `settings`, `dashboard`, `login`, `logout`, `signup`
+- PATCH to `/api/user` with loading state and success message
+- Auto-clears errors on new edit attempt
+
+### 8.2 Email change
+- Collapsible form that PATCHes `/api/user` with the new email
+- On success, signs the user out (session token still carries old email) with instructions to log in with the new email
+
+### 8.3 Password change
+- Collapsible form requiring current password + new password + confirmation
+- POST to `/api/user/password` with mismatch detection and error handling
+
+All three features are deployed and verified on the live site.
