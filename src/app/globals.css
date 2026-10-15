@@ -247,8 +247,9 @@ html:not(.dark) [data-bg] .app-bg-layer {
     var(--app-bg-art);
 }
 
-[data-bg] .app-page-bg {
-  background-color: transparent;
+[data-bg] .app-page-bg,
+html[data-bg] .app-page-bg {
+  background-color: transparent !important;
 }
 
 [data-bg="aurora"] {
