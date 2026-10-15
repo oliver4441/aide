@@ -137,9 +137,9 @@ export const FAQS: Faq[] = [
   },
   {
     category: "Devices & apps",
-    question: "Is there a native Android or Windows version?",
+    question: "Is there a native Android version?",
     answer:
-      `Yes. Aide ships as an installable PWA, an Android APK and a Windows desktop app. Head to ${SITE_URL}${DOWNLOADS_PATH} for the current builds, file sizes and SHA-256 checksums.`,
+      `Yes. Aide ships as an installable PWA and an Android APK. Head to ${SITE_URL}${DOWNLOADS_PATH} for the latest APK, file size and SHA-256 checksum.`,
   },
   {
     category: "Devices & apps",
@@ -157,7 +157,7 @@ export const FAQS: Faq[] = [
 const LANDING_QUESTION_ORDER = [
   "How does offline mode work?",
   "How do I install Aide on my phone?",
-  "Is there a native Android or Windows version?",
+  "Is there a native Android version?",
   "Which payment methods can I record?",
   "Can I print or share receipts?",
   "Can I use Aide on more than one device?",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useProducts } from "@/hooks/useProducts";
 import { useSales } from "@/hooks/useSales";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
@@ -29,6 +29,7 @@ export default function POSPage() {
   const [processing, setProcessing] = useState(false);
   const [lastSale, setLastSale] = useState<(SaleRecord & { items: SaleItemRecord[] }) | null>(null);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [initialProductHandled, setInitialProductHandled] = useState(false);
 
   const allProducts = products ?? [];
   const filtered = allProducts.filter(
@@ -59,6 +60,20 @@ export default function POSPage() {
       ];
     });
   };
+
+  useEffect(() => {
+    if (productsLoading || initialProductHandled || typeof window === "undefined") return;
+    const productId = new URLSearchParams(window.location.search).get("product");
+    if (!productId) {
+      setInitialProductHandled(true);
+      return;
+    }
+    const product = allProducts.find((item) => item.id === productId && item.isActive && !item.deletedAt);
+    if (product) {
+      addToCart(product);
+      setInitialProductHandled(true);
+    }
+  }, [productsLoading, initialProductHandled, allProducts]);
 
   const updateQty = (productId: string, qty: number) => {
     if (qty <= 0) {

@@ -6,19 +6,19 @@ export default function DownloadSection() {
         <div className="grid items-center gap-10 lg:grid-cols-[1fr_0.7fr]">
           <div>
             <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-outline-variant bg-surface px-3 py-1.5 text-xs font-semibold text-on-surface-variant">
-              Android companion
+              Android app
             </div>
             <h2 className="mb-4 font-headline text-3xl font-bold tracking-tight text-on-surface md:text-4xl">
-              Use Aide on the web today. Android comes next.
+              Take Aide with you on Android.
             </h2>
             <p className="mb-6 max-w-xl leading-relaxed text-on-surface-variant">
-              The Aide PWA is the primary experience: open it in your browser, install it to your home screen, and keep working offline. We are also building a dedicated native Android experience for faster everyday use on phones.
+              Keep using the full Aide PWA in your browser, or download the Android APK for native notifications and background reminders. Both are designed for offline work.
             </p>
             <div className="mb-7 grid gap-3 sm:grid-cols-2">
               {[
                 "The PWA is ready to use",
                 "Installable from the browser",
-                "Native Android experience in development",
+                "Android APK available to download",
                 "Offline-first workflows across devices",
               ].map((item) => (
                 <div key={item} className="flex items-center gap-2 text-sm text-on-surface">
@@ -33,6 +33,12 @@ export default function DownloadSection() {
             >
               Use Aide on the web
             </a>
+            <a
+              href="/downloads"
+              className="ml-3 inline-flex items-center justify-center rounded-xl border border-outline-variant px-6 py-3 text-sm font-semibold text-on-surface transition-colors hover:bg-surface-container"
+            >
+              Get the Android APK
+            </a>
           </div>
 
           <div className="relative mx-auto w-full max-w-sm">
@@ -45,7 +51,7 @@ export default function DownloadSection() {
                 <div className="px-4 pt-4">
                   <div className="text-[9px] text-on-surface-variant">Aide mobile</div>
                   <div className="font-headline text-base font-bold text-on-surface">KSh 45,230</div>
-                  <div className="mt-1 text-[8px] text-success">Native Android experience</div>
+                  <div className="mt-1 text-[8px] text-success">Offline ready</div>
                   <div className="mt-5 flex h-24 items-end gap-1 rounded-xl border border-outline-variant bg-surface-container p-3">
                     {[30, 45, 38, 60, 52, 75, 63, 86].map((height, index) => (
                       <div key={index} className="flex-1 rounded-t bg-primary/30 last:bg-primary/80" style={{ height: `${height}%` }} />

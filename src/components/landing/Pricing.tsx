@@ -6,7 +6,6 @@ import Container from "@/components/ui/Container";
 import {
   Globe,
   Smartphone,
-  Monitor,
   Check,
   Minus,
   type LucideIcon,
@@ -25,7 +24,7 @@ interface Variant {
   href: string;
 }
 
-const RELEASES = "https://github.com/oliver4441/aide/releases";
+const RELEASES = "/downloads";
 
 const variants: Variant[] = [
   {
@@ -64,24 +63,6 @@ const variants: Variant[] = [
     cta: "Download APK",
     href: RELEASES,
   },
-  {
-    key: "windows",
-    name: "Windows EXE",
-    tag: "Native Desktop",
-    icon: Monitor,
-    accent: "border-outline-variant",
-    desc: "A native Windows desktop app for daily business use at the till or office.",
-    strengths: [
-      "Real system notifications",
-      "Background tasks & scheduled reminders",
-      "Native desktop integrations",
-      "Receipt printing & faster workflows",
-      "Works fully offline",
-    ],
-    limit: "Desktop only",
-    cta: "Download for Windows",
-    href: RELEASES,
-  },
 ];
 
 export default function Pricing() {
@@ -94,12 +75,12 @@ export default function Pricing() {
               Choose how you run Aide
             </h2>
             <p className="text-on-surface-variant text-lg">
-              The same Aide — available as a web PWA, a native Android app, or a Windows desktop app. Pick the best fit for your business.
+              Use Aide in your browser on any device, or install the Android app for native notifications and reminders.
             </p>
           </div>
         </ScrollFadeIn>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
           {variants.map((v, i) => (
             <ScrollFadeIn key={v.key} delay={i * 100}>
               <div className={`bg-surface-container-lowest border rounded-2xl p-6 h-full flex flex-col relative ${v.accent}`}>

@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useDashboard } from "@/hooks/useDashboard";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
+import { useProducts } from "@/hooks/useProducts";
 import { formatMoney } from "@/lib/format";
 
 function getGreeting(): string {
@@ -36,6 +37,9 @@ export default function DashboardPageInner() {
     loading,
   } = useDashboard();
   const { data: business } = useBusinessSettings();
+  const businessId = business?.id ?? (session?.user as any)?.businessId;
+  const { data: inventory } = useProducts(businessId);
+  const saleProducts = inventory.filter((product) => product.isActive && !product.deletedAt);
 
   if (loading) {
     return (
@@ -108,6 +112,48 @@ export default function DashboardPageInner() {
           <p className="text-xs text-on-surface-variant mt-1">{lowStockProducts > 0 ? "Check inventory" : "All stocked"}</p>
         </div>
       </div>
+
+      {/* Quick sale inventory */}
+      <section aria-labelledby="quick-sale-heading">
+        <div className="mb-4 flex items-end justify-between gap-3">
+          <div>
+            <h2 id="quick-sale-heading" className="text-xl font-bold text-on-surface font-headline">Start a sale</h2>
+            <p className="mt-1 text-sm text-on-surface-variant">Choose a product to add it to a new sale.</p>
+          </div>
+          <Link href="/dashboard/pos" className="shrink-0 text-sm font-semibold text-primary hover:underline">Open full POS</Link>
+        </div>
+        {saleProducts.length === 0 ? (
+          <div className="rounded-2xl border border-outline-variant bg-surface-container p-6 text-sm text-on-surface-variant">
+            Your inventory is empty. <Link href="/dashboard/inventory" className="font-semibold text-primary hover:underline">Add a product</Link> to start selling.
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {saleProducts.map((product) => (
+              <Link
+                key={product.id}
+                href={`/dashboard/pos?product=${encodeURIComponent(product.id)}`}
+                aria-label={`Create a sale with ${product.name}, ${formatMoney(product.sellingPrice)}`}
+                className="group overflow-hidden rounded-2xl border border-outline-variant bg-surface-container-low transition-colors hover:border-primary/50 hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              >
+                <div className="aspect-[4/3] bg-surface-container flex items-center justify-center overflow-hidden">
+                  {product.thumbnailUrl || product.imageUrl ? (
+                    <img src={product.thumbnailUrl || product.imageUrl} alt="" className="h-full w-full object-cover transition-transform group-hover:scale-[1.03]" />
+                  ) : (
+                    <svg className="h-9 w-9 text-on-surface-variant/35" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m20 7-8-4-8 4m16 0-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
+                  )}
+                </div>
+                <div className="p-3">
+                  <p className="truncate text-sm font-medium text-on-surface">{product.name}</p>
+                  <p className="mt-1 text-sm font-bold text-primary">{formatMoney(product.sellingPrice)}</p>
+                  {!product.isService && <p className="mt-1 text-xs text-on-surface-variant">{product.quantity} in stock</p>}
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
 
       {/* Recent Sales */}
       <div>

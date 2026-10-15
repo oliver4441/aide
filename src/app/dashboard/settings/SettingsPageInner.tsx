@@ -14,6 +14,7 @@ import {
   type NotificationType,
 } from "@/lib/notifications";
 import { ACCENTS, useTheme, type Accent } from "@/components/ThemeProvider";
+import WallpaperPicker from "@/components/dashboard/WallpaperPicker";
 
 function ToggleRow({
   label,
@@ -256,6 +257,9 @@ export default function SettingsPage() {
             <p className="text-xs text-on-surface-variant mt-1.5">
               Changes the highlight colour across the app. Saved on this device.
             </p>
+          </div>
+          <div className="border-t border-outline-variant pt-5">
+            <WallpaperPicker />
           </div>
         </div>
       </div>
