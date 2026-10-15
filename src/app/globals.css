@@ -237,19 +237,75 @@
 
 html:not(.dark) [data-bg] .app-bg-layer {
   background-image:
-    linear-gradient(rgba(249, 249, 255, 0.84), rgba(249, 249, 255, 0.84)),
+    linear-gradient(rgba(249, 249, 255, 0.72), rgba(249, 249, 255, 0.72)),
     var(--app-bg-art);
 }
 
 .dark [data-bg] .app-bg-layer {
   background-image:
-    linear-gradient(rgba(18, 18, 23, 0.8), rgba(18, 18, 23, 0.8)),
+    linear-gradient(rgba(18, 18, 23, 0.66), rgba(18, 18, 23, 0.66)),
     var(--app-bg-art);
 }
 
 [data-bg] .app-page-bg,
 html[data-bg] .app-page-bg {
   background-color: transparent !important;
+}
+
+/* ---- Glassmorphism when a page background is active ----
+   Surfaces turn translucent with a backdrop blur so the wallpaper shows
+   through the UI while text stays readable on the frosted panels. */
+
+[data-bg] .bg-surface {
+  background-color: rgb(var(--surface) / 0.6);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+}
+
+[data-bg] .bg-surface-container-lowest {
+  background-color: rgb(var(--surface-container-lowest) / 0.8);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+}
+
+[data-bg] .bg-surface-container-low {
+  background-color: rgb(var(--surface-container-low) / 0.72);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+}
+
+[data-bg] .bg-surface-container {
+  background-color: rgb(var(--surface-container) / 0.68);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+}
+
+[data-bg] .bg-surface-container-high {
+  background-color: rgb(var(--surface-container-high) / 0.66);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+}
+
+[data-bg] .bg-surface-container-highest {
+  background-color: rgb(var(--surface-container-highest) / 0.64);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+}
+
+[data-bg] .bg-surface-dim,
+[data-bg] .bg-surface-bright,
+[data-bg] .bg-surface-plum {
+  background-color: rgb(var(--surface-container) / 0.68);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+}
+
+/* Common pre-translucent surface variants get the frost too. */
+[data-bg] .bg-surface-container\/50,
+[data-bg] .bg-surface-container\/40,
+[data-bg] .bg-surface-container-low\/50 {
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
 }
 
 [data-bg="aurora"] {
