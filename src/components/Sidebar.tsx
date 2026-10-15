@@ -17,12 +17,16 @@ import {
   MoreHorizontal,
   LogOut,
   Calculator,
+  Plus,
+  PanelLeftClose,
+  PanelLeftOpen,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ThemeToggle from "@/components/ThemeToggle";
 import OnlineStatus from "@/components/OnlineStatus";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
+import { useSidebarCollapsed } from "@/hooks/useSidebarCollapsed";
 
 interface NavSection {
   title: string;
@@ -78,6 +82,7 @@ const navIcons: Record<string, LucideIcon> = {
 const mobileNavItems = [
   { label: "Home", href: "/dashboard", icon: "dashboard" },
   { label: "Sale", href: "/dashboard/pos", icon: "sale" },
+  // More button goes in the center (handled separately in JSX)
   { label: "History", href: "/dashboard/sales", icon: "history" },
   { label: "Stock", href: "/dashboard/inventory", icon: "stock" },
 ];
@@ -113,6 +118,7 @@ export default function Sidebar() {
   const isAdmin = (session?.user as any)?.role === "admin";
   const businessName = business?.name ?? "Aide Business";
   const [moreOpen, setMoreOpen] = useState(false);
+  const { collapsed, toggle: toggleCollapsed } = useSidebarCollapsed();
 
   useEffect(() => {
     setMoreOpen(false);
@@ -137,31 +143,55 @@ export default function Sidebar() {
   return (
     <>
       {/* Desktop Sidebar */}
-      <nav className="hidden md:flex bg-surface-container-low fixed left-0 top-0 h-screen w-[260px] border-r border-outline-variant flex-col z-40">
+      <nav
+        className={cn(
+          "hidden md:flex bg-surface-container-low fixed left-0 top-0 h-screen border-r border-outline-variant flex-col z-40 transition-[width] duration-200 ease-in-out",
+          collapsed ? "w-[72px]" : "w-[260px]"
+        )}
+      >
         {/* Brand */}
-        <div className="px-5 pt-5 pb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
+        <div className={cn("pt-5 pb-4", collapsed ? "px-2" : "px-5")}>
+          <div className={cn("flex items-center", collapsed ? "flex-col gap-2" : "justify-between")}>
+            <div className={cn("flex items-center", collapsed ? "justify-center" : "gap-2.5")}>
               <img src="/logo.jpg" alt="Aide logo" className="w-8 h-8 rounded-lg object-cover shadow-sm" />
-              <div className="flex items-center gap-1.5">
-                <span className="text-base font-bold text-primary font-headline">Aide</span>
-                <span className="text-[9px] font-bold tracking-wider text-on-surface-variant/50 bg-surface-container px-1.5 py-0.5 rounded">BETA</span>
-              </div>
+              {!collapsed && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-base font-bold text-primary font-headline">Aide</span>
+                  <span className="text-[9px] font-bold tracking-wider text-on-surface-variant/50 bg-surface-container px-1.5 py-0.5 rounded">BETA</span>
+                </div>
+              )}
             </div>
-            <ThemeToggle />
+            {!collapsed && <ThemeToggle />}
+            <button
+              onClick={toggleCollapsed}
+              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              className={cn(
+                "w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors",
+                collapsed && "mx-auto"
+              )}
+            >
+              {collapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
+            </button>
           </div>
-          <p className="text-xs text-on-surface-variant mt-2 truncate pl-[42px]">{businessName}</p>
+          {!collapsed && (
+            <p className="text-xs text-on-surface-variant mt-2 truncate pl-[42px]">{businessName}</p>
+          )}
         </div>
 
         {/* New Sale CTA */}
         {!isAdmin && (
-          <div className="px-4 mb-2">
+          <div className={cn("mb-2", collapsed ? "px-2" : "px-4")}>
             <Link
               href="/dashboard/pos"
-              className="w-full bg-primary text-on-primary font-semibold py-2.5 rounded-xl hover:opacity-90 transition-all flex items-center justify-center gap-2 text-sm shadow-md shadow-primary/20"
+              title={collapsed ? "New Sale" : undefined}
+              className={cn(
+                "bg-primary text-on-primary font-semibold py-2.5 hover:opacity-90 transition-all flex items-center justify-center gap-2 text-sm shadow-md shadow-primary/20",
+                collapsed ? "rounded-xl px-0" : "rounded-xl w-full"
+              )}
             >
               <ShoppingCart className="w-4 h-4" strokeWidth={2.5} />
-              New Sale
+              {!collapsed && "New Sale"}
             </Link>
           </div>
         )}
@@ -213,41 +243,73 @@ export default function Sidebar() {
         </div>
       </nav>
 
-      {/* Mobile Bottom Nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-surface/95 backdrop-blur-xl border-t border-outline-variant z-50 px-1 pb-safe">
-        <div className="flex items-center justify-around h-14">
-          {mobileNavItems.map((item) => {
-            const active = isActive(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors min-w-[52px]",
-                  active ? "text-primary" : "text-on-surface-variant"
-                )}
-              >
-                <span className={active ? "text-primary" : "text-on-surface-variant"}>
-                  <NavIcon name={item.icon} className="w-[20px] h-[20px]" />
-                </span>
-                <span className="text-[9px] font-medium">{item.label}</span>
-              </Link>
-            );
-          })}
-          {/* More button */}
+      {/* Mobile Bottom Nav — floating, glassmorphic, centered More (+) button */}
+      <nav
+        className="md:hidden fixed bottom-4 left-4 right-4 z-50"
+        aria-label="Primary navigation"
+      >
+        <div className="flex items-center justify-between gap-2 rounded-2xl border border-outline-variant/40 bg-surface/70 px-3 py-2 shadow-2xl backdrop-blur-2xl">
+          {/* Left group: Home, Sale */}
+          <div className="flex items-center gap-1">
+            {mobileNavItems.slice(0, 2).map((item) => {
+              const active = isActive(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl transition-colors min-w-[48px]",
+                    active ? "text-primary bg-primary/15" : "text-on-surface-variant"
+                  )}
+                >
+                  <span className={active ? "text-primary" : "text-on-surface-variant"}>
+                    <NavIcon name={item.icon} className="w-[22px] h-[22px]" />
+                  </span>
+                  <span className="text-[9px] font-medium">{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* Center: More button — + icon that rotates to × when open */}
           <button
-            onClick={() => setMoreOpen(true)}
+            onClick={() => setMoreOpen((v) => !v)}
             className={cn(
-              "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors min-w-[52px]",
-              moreOpen || ["/dashboard/reports", "/dashboard/settings", "/dashboard/calculator", "/help", "/dashboard/admin"].some((h) => isActive(h))
-                ? "text-primary"
-                : "text-on-surface-variant"
+              "flex flex-col items-center justify-center gap-0.5 w-12 h-12 rounded-full transition-all min-w-[40px]",
+              moreOpen
+                ? "bg-primary text-on-primary rotate-45 shadow-lg shadow-primary/30"
+                : "text-on-surface-variant hover:text-primary hover:bg-primary/10"
             )}
-            aria-label="More navigation"
+            aria-label={moreOpen ? "Close menu" : "More navigation"}
+            aria-expanded={moreOpen}
           >
-            <NavIcon name="more" className="w-[20px] h-[20px]" />
-            <span className="text-[9px] font-medium">More</span>
+            <NavIcon
+              name={moreOpen ? "plus" : "more"}
+              className={cn("w-[24px] h-[24px]", moreOpen && "rotate-45")}
+            />
           </button>
+
+          {/* Right group: History, Stock */}
+          <div className="flex items-center gap-1">
+            {mobileNavItems.slice(2).map((item) => {
+              const active = isActive(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl transition-colors min-w-[48px]",
+                    active ? "text-primary bg-primary/15" : "text-on-surface-variant"
+                  )}
+                >
+                  <span className={active ? "text-primary" : "text-on-surface-variant"}>
+                    <NavIcon name={item.icon} className="w-[22px] h-[22px]" />
+                  </span>
+                  <span className="text-[9px] font-medium">{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
         </div>
       </nav>
 

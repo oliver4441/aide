@@ -176,10 +176,11 @@ export default function InventoryPage() {
       createdAt: editing?.createdAt || now,
     };
     await mutateProduct(record);
+    // Close the modal in both flows — previously a new product kept the form
+    // open (to show the generated SKU) and had to be dismissed by hand.
+    setShowModal(false);
     if (!editing) {
       setGeneratedSku(sku || null);
-    } else {
-      setShowModal(false);
     }
   };
 

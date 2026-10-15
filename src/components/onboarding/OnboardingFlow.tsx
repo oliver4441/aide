@@ -21,5 +21,15 @@ export default function OnboardingFlow() {
 
   if (!show) return null;
 
-  return <OnboardingModal storageKey={storageKey} onClose={() => setShow(false)} />;
+  // Mark onboarding as done on ANY exit path — completing the tour, tapping
+  // Skip, or pressing Escape. Previously only the final "Done" click set the
+  // flag, so skipping the tour brought it back on every login.
+  const handleClose = () => {
+    if (storageKey) {
+      localStorage.setItem(storageKey, "true");
+    }
+    setShow(false);
+  };
+
+  return <OnboardingModal storageKey={storageKey} onClose={handleClose} />;
 }
