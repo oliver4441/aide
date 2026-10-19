@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 import db from "@/lib/db";
+import { getSyncStatus } from "@/lib/sync";
 import { liveQuery } from "dexie";
 import {
   isNotificationsEnabled,
@@ -51,6 +52,7 @@ function ToggleRow({
 export default function SettingsPage() {
   const { data: session } = useSession();
   const { data: business, mutate: mutateBusiness } = useBusinessSettings();
+  const sync = getSyncStatus();
   const [conflicts, setConflicts] = useState<any[]>([]);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [newCategory, setNewCategory] = useState("");

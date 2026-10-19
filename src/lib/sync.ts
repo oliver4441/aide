@@ -1,4 +1,12 @@
 import db, { SyncQueueItem } from './db';
+import {
+  processStaleQueue,
+  countPendingSyncQueue,
+  getSyncStatus as getBackfillStatus,
+} from './syncBackfill';
+
+const SYNC_RETRY_THRESHOLD_MS = 60 * 60 * 1000;
+const SYNC_MAX_ATTEMPTS = 5;
 
 function getDeviceId(): string {
   if (typeof window === 'undefined') return 'server';
@@ -18,6 +26,7 @@ function getActiveBusinessId(): string | null {
 class SyncEngine {
   private isOnline: boolean = typeof navigator !== 'undefined' ? navigator.onLine : true;
   private isSyncing: boolean = false;
+  private pendingCount: number = 0;
   private listeners: Set<() => void> = new Set();
   private syncInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -25,6 +34,7 @@ class SyncEngine {
     if (typeof window !== 'undefined') {
       window.addEventListener('online', this.handleOnline);
       window.addEventListener('offline', this.handleOffline);
+      void this.refreshPending();
     }
   }
 
@@ -32,6 +42,7 @@ class SyncEngine {
     this.isOnline = true;
     this.notifyListeners();
     this.sync();
+    void this.backfill();
   };
 
   private handleOffline = () => {
@@ -39,9 +50,25 @@ class SyncEngine {
     this.notifyListeners();
   };
 
+  private backfill = async (): Promise<void> => {
+    try {
+      await processStaleQueue({
+        retryThresholdMs: SYNC_RETRY_THRESHOLD_MS,
+        maxAttempts: SYNC_MAX_ATTEMPTS,
+        debug: true,
+      });
+      await this.refreshPending();
+    } catch {
+      // Never block the online event on a backfill failure.
+    }
+  };
+
   subscribe(listener: () => void) {
     this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
+    // Must return void: this is used as a React effect cleanup.
+    return () => {
+      this.listeners.delete(listener);
+    };
   }
 
   private notifyListeners() {
@@ -52,8 +79,23 @@ class SyncEngine {
     return {
       isOnline: this.isOnline,
       isSyncing: this.isSyncing,
+      pending: this.pendingCount,
     };
   }
+
+  /**
+   * The outbox count has to be readable synchronously (badges render during
+   * React render), so it is mirrored in memory and refreshed wherever the queue
+   * changes rather than queried on demand.
+   */
+  private refreshPending = async (): Promise<void> => {
+    try {
+      this.pendingCount = await countPendingSyncQueue();
+    } catch {
+      // The badge is advisory: a failed count must never break the sync path.
+    }
+    this.notifyListeners();
+  };
 
   startAutoSync(intervalMs: number = 30000) {
     if (this.syncInterval) clearInterval(this.syncInterval);
@@ -79,6 +121,7 @@ class SyncEngine {
       data,
       timestamp: new Date().toISOString(),
       deviceId: getDeviceId(),
+      status: 'pending',
     };
     await db.syncQueue.add(item);
 
@@ -90,7 +133,7 @@ class SyncEngine {
       await db.sales.update(recordId, { syncStatus: 'pending' });
     }
 
-    this.notifyListeners();
+    await this.refreshPending();
   }
 
   async push(): Promise<{ synced: number; conflicts: any[] }> {
@@ -136,7 +179,7 @@ class SyncEngine {
       return { synced: 0, conflicts: [] };
     } finally {
       this.isSyncing = false;
-      this.notifyListeners();
+      await this.refreshPending();
     }
   }
 
@@ -193,7 +236,7 @@ class SyncEngine {
       return 0;
     } finally {
       this.isSyncing = false;
-      this.notifyListeners();
+      await this.refreshPending();
     }
   }
 
@@ -214,6 +257,8 @@ class SyncEngine {
 }
 
 export const syncEngine = new SyncEngine();
+
+export { getSyncStatus } from './syncBackfill';
 
 export async function seedFromSession(businessId: string): Promise<number> {
   if (typeof window === 'undefined') return 0;

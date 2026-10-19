@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import db from "@/lib/db";
 import { syncEngine } from "@/lib/sync";
+import { useSyncStatus } from "@/hooks/useSyncStatus";
 import { sounds } from "@/lib/sounds";
 import UiSpinner from "@/components/ui/UiSpinner";
 import { addNotification, syncNotificationsWithServer } from "@/lib/notifications";
@@ -12,6 +13,7 @@ export default function SyncNowButton() {
   const [online, setOnline] = useState(true);
   const [syncing, setSyncing] = useState(false);
 
+  const status = useSyncStatus();
   const pending = useLiveQuery(() => db.syncQueue.count(), [], 0);
 
   useEffect(() => {
@@ -50,7 +52,7 @@ export default function SyncNowButton() {
   };
 
   // Show only when online with pending local changes
-  if (!online || !pending) return null;
+  if (!online || !pending || status.isSyncing) return null;
 
   return (
     <button

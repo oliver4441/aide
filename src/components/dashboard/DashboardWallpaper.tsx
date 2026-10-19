@@ -13,6 +13,12 @@ export const DASHBOARD_WALLPAPERS = [
 export type DashboardWallpaperId = (typeof DASHBOARD_WALLPAPERS)[number]["id"];
 export const DEFAULT_DASHBOARD_WALLPAPER: DashboardWallpaperId = "dusk-lake";
 
+/** Scrim alpha pair per wallpaper tone, per theme. */
+const SCRIM: Record<"dark" | "light", { dark: [number, number]; light: [number, number] }> = {
+  dark: { dark: [0.14, 0.18], light: [0.46, 0.5] },
+  light: { dark: [0.4, 0.42], light: [0.22, 0.26] },
+};
+
 function getWallpaper(id: string) {
   return DASHBOARD_WALLPAPERS.find((wallpaper) => wallpaper.id === id) ?? DASHBOARD_WALLPAPERS[0];
 }
@@ -31,9 +37,13 @@ export default function DashboardWallpaper() {
     const apply = (id: string) => {
       const wallpaper = getWallpaper(id);
       const isDark = document.documentElement.classList.contains("dark");
-      const overlay = isDark
-        ? "rgba(10, 12, 18, 0.48), rgba(10, 12, 18, 0.64)"
-        : "rgba(247, 247, 250, 0.48), rgba(247, 247, 250, 0.62)";
+      // The scrim has to flex with the photo: a dark picture under a heavy wash
+      // flattens to near-black, a bright one under a light wash blows out the
+      // text. `tone` is set per wallpaper, so dark photos get a barely-there
+      // scrim on the dark theme and bright ones get enough to keep contrast.
+      const [top, bottom] = SCRIM[wallpaper.tone][isDark ? "dark" : "light"];
+      const scrim = isDark ? "10, 12, 18" : "247, 247, 250";
+      const overlay = `rgba(${scrim}, ${top}), rgba(${scrim}, ${bottom})`;
       document.body.style.backgroundImage = `linear-gradient(${overlay}), url("${wallpaper.src}")`;
       document.body.style.backgroundColor = isDark ? "#121217" : "#f9f9ff";
       document.body.style.backgroundSize = "cover";

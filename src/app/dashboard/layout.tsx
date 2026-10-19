@@ -8,6 +8,7 @@ import ReviewPrompt from "@/components/reviews/ReviewPrompt";
 import InstallPrompt from "@/components/pwa/InstallPrompt";
 import UpdatePrompt from "@/components/pwa/UpdatePrompt";
 import SyncNowButton from "@/components/pwa/SyncNowButton";
+import OfflineStatus from "@/components/OfflineStatus";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import NotificationPermissionPrompt from "@/components/notifications/NotificationPermissionPrompt";
 import Link from "next/link";
@@ -35,6 +36,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </nav>
           {children}
         </div>
+      </div>
+      {/* Offline indicator (bottom-left) */}
+      <div className="fixed bottom-4 left-4 z-50 pointer-events-none">
+        <OfflineStatus />
       </div>
       <HelpWidget />
       <ReviewPrompt />

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
-import { seedFromSession } from "@/lib/sync";
+import { seedFromSession, getSyncStatus } from "@/lib/sync";
 import db from "@/lib/db";
 
 export default function DashboardInit() {
@@ -12,12 +12,16 @@ export default function DashboardInit() {
   useEffect(() => {
     if (seeded.current || status !== "authenticated" || !session?.user) return;
 
+    const { isOnline } = getSyncStatus();
+
     const businessId = (session.user as any).businessId || localStorage.getItem("aide_business_id");
     if (!businessId) return;
 
     seeded.current = true;
 
-    // Seed Dexie from server on first load
+    // Seed Dexie from server on first load. The backfill runner re-queues
+    // this when connectivity returns, so a temporary offline state here
+    // doesn't leave the store empty.
     (async () => {
       try {
         const existing = await db.businesses.count();
