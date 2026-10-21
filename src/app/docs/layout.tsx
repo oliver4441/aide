@@ -19,6 +19,8 @@ import { SITE_URL, SUPPORT_EMAIL } from "@/lib/site";
  */
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
+  // Team-only documentation must not appear in search results.
+  robots: { index: false, follow: false },
   openGraph: {
     type: "article",
     siteName: "Aide",
