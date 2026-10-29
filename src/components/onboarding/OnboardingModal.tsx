@@ -60,13 +60,8 @@ export default function OnboardingModal({ storageKey, onClose }: { storageKey: s
     step === 3;
 
   const renderStep = () => {
-    const animClass =
-      direction === "left"
-        ? "animate-slide-in-left"
-        : "animate-slide-in-right";
-
     return (
-      <div key={step} className={`w-full ${animClass}`}>
+      <div key={step} className="w-full font-display">
         {step === 0 && <SourceStep value={source} onSelect={setSource} />}
         {step === 1 && <GoalsStep values={goals} onToggle={toggleGoal} />}
         {step === 2 && (
@@ -85,21 +80,21 @@ export default function OnboardingModal({ storageKey, onClose }: { storageKey: s
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-on-surface/40 backdrop-blur-sm p-4">
-      <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-lg border border-outline-variant overflow-hidden">
-        <div className="p-4 border-b border-outline-variant">
-          <div className="flex items-center justify-center gap-2">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-ground/80 p-4">
+      <div className="border border-rule bg-ground w-full max-w-lg overflow-hidden">
+        <div className="p-4 border-b border-rule">
+          <div className="flex items-center justify-center gap-2 font-display">
             {STEPS.map((_, i) => (
               <div key={i} className="flex items-center">
                 <div
-                  className={`w-2.5 h-2.5 rounded-full transition-colors ${
-                    i <= step ? "bg-primary" : "bg-outline-variant"
+                  className={`w-2.5 h-2.5 rounded-full ${
+                    i <= step ? "bg-ink" : "bg-rule"
                   }`}
                 />
                 {i < STEPS.length - 1 && (
                   <div
-                    className={`w-8 h-0.5 mx-1 transition-colors ${
-                      i < step ? "bg-primary" : "bg-outline-variant"
+                    className={`w-8 h-0.5 mx-1 ${
+                      i < step ? "bg-ink" : "bg-rule"
                     }`}
                   />
                 )}
@@ -113,17 +108,17 @@ export default function OnboardingModal({ storageKey, onClose }: { storageKey: s
         </div>
 
         {step < 3 && (
-          <div className="p-4 border-t border-outline-variant flex justify-between">
+          <div className="p-4 border-t border-rule flex justify-between">
             <button
               onClick={step === 0 ? onClose : goPrev}
-              className="px-4 py-2 text-sm font-medium text-on-surface-variant hover:text-on-surface transition-colors"
+              className="px-4 py-2 text-sm font-display font-black text-secondary hover:text-ink"
             >
               {step === 0 ? "Skip" : "Back"}
             </button>
             <button
               onClick={goNext}
               disabled={!canAdvance}
-              className="px-6 py-2 rounded-xl text-sm font-semibold bg-primary text-on-primary hover:bg-primary-light transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-primary/20"
+              className="px-6 py-2 text-sm font-display font-black border border-ink bg-ink text-ground hover:bg-ground hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Next
             </button>

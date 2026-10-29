@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { formatMoney } from "@/lib/format";
+import UiSpinner from "@/components/ui/UiSpinner";
 
 interface Stats {
   totalBusinesses: number;
@@ -41,11 +42,11 @@ export default function AdminConsolePage() {
 
   if (status === "loading" || loading) {
     return (
-      <div className="space-y-6">
-        <div className="h-8 w-64 bg-surface-container rounded-lg animate-pulse" />
+      <div className="space-y-8 font-reading">
+        <div className="h-8 w-64 border-b border-rule" />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-28 bg-surface-container rounded-xl animate-pulse" />
+            <div key={i} className="h-28 border border-rule" />
           ))}
         </div>
       </div>
@@ -53,10 +54,10 @@ export default function AdminConsolePage() {
   }
 
   return (
-    <div className="space-y-8">
-      <div className="border-b border-outline-variant pb-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-on-surface font-headline">Admin Console</h1>
-        <p className="text-on-surface-variant text-sm mt-1">Platform management — Aide BETA</p>
+    <div className="space-y-8 font-reading">
+      <div className="border-b border-rule pb-6">
+        <h1 className="font-display text-2xl md:text-3xl font-black text-ink">Admin Console</h1>
+        <p className="font-display text-sm text-secondary mt-1">Platform management — Aide BETA</p>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -78,33 +79,36 @@ export default function AdminConsolePage() {
 
       <Link
         href="/dashboard/admin/reviews"
-        className="block bg-primary/10 border border-primary/20 rounded-xl px-5 py-4 text-sm font-semibold text-primary hover:bg-primary/20 transition-colors"
+        className="block border border-rule bg-ground p-5 text-sm font-display font-black text-ink hover:bg-ground/70"
       >
         Manage Reviews →
       </Link>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-surface-container-low border border-outline-variant rounded-xl overflow-hidden">
-          <div className="px-5 py-4 border-b border-outline-variant">
-            <h2 className="font-bold text-on-surface font-headline">Recent Businesses</h2>
+        <div className="border border-rule bg-ground overflow-hidden">
+          <div className="px-5 py-4 border-b border-rule">
+            <h2 className="font-display font-black text-ink">Recent Businesses</h2>
           </div>
           {!stats?.recentBusinesses.length ? (
-            <p className="px-5 py-8 text-center text-sm text-on-surface-variant">No businesses yet.</p>
+            <p className="px-5 py-8 text-center text-sm text-secondary">No businesses yet.</p>
           ) : (
-            <table className="w-full text-sm text-left">
+            <table className="w-full font-display text-sm text-left">
               <thead>
-                <tr className="border-b border-outline-variant">
-                  <th className="px-5 py-3 text-xs text-on-surface-variant uppercase">Name</th>
-                  <th className="px-5 py-3 text-xs text-on-surface-variant uppercase">Owner</th>
-                  <th className="px-5 py-3 text-xs text-on-surface-variant uppercase">Joined</th>
+                <tr className="border-b border-rule">
+                  <th className="px-5 py-3 text-xs font-black uppercase tracking-wider text-secondary">Name</th>
+                  <th className="px-5 py-3 text-xs font-black uppercase tracking-wider text-secondary">Owner</th>
+                  <th className="px-5 py-3 text-xs font-black uppercase tracking-wider text-secondary">Joined</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-outline-variant">
+              <tbody className="divide-y divide-rule">
                 {stats.recentBusinesses.map((b) => (
-                  <tr key={b.id} className="hover:bg-surface-container/30">
-                    <td className="px-5 py-3 text-on-surface">{b.name}<span className="block text-xs text-on-surface-variant">{b.type}</span></td>
-                    <td className="px-5 py-3 text-on-surface-variant">{b.ownerName}</td>
-                    <td className="px-5 py-3 text-on-surface-variant whitespace-nowrap">{new Date(b.createdAt).toLocaleDateString()}</td>
+                  <tr key={b.id} className="border-b border-rule last:border-b-0">
+                    <td className="px-5 py-3">
+                      <div className="font-black text-ink">{b.name}</div>
+                      <div className="text-xs text-secondary">{b.type}</div>
+                    </td>
+                    <td className="px-5 py-3 text-secondary">{b.ownerName}</td>
+                    <td className="px-5 py-3 text-secondary whitespace-nowrap">{new Date(b.createdAt).toLocaleDateString()}</td>
                   </tr>
                 ))}
               </tbody>
@@ -112,21 +116,21 @@ export default function AdminConsolePage() {
           )}
         </div>
 
-        <div className="bg-surface-container-low border border-outline-variant rounded-xl overflow-hidden">
-          <div className="px-5 py-4 border-b border-outline-variant">
-            <h2 className="font-bold text-on-surface font-headline">Recent Signups</h2>
+        <div className="border border-rule bg-ground overflow-hidden">
+          <div className="px-5 py-4 border-b border-rule">
+            <h2 className="font-display font-black text-ink">Recent Signups</h2>
           </div>
           {!stats?.recentUsers.length ? (
-            <p className="px-5 py-8 text-center text-sm text-on-surface-variant">No users yet.</p>
+            <p className="px-5 py-8 text-center text-sm text-secondary">No users yet.</p>
           ) : (
-            <ul className="divide-y divide-outline-variant">
+            <ul className="divide-y divide-rule">
               {stats.recentUsers.map((u) => (
                 <li key={u.id} className="flex items-center justify-between px-5 py-3">
                   <div>
-                    <div className="text-sm text-on-surface">{u.name}</div>
-                    <div className="text-xs text-on-surface-variant">{u.email}</div>
+                    <div className="text-sm font-black text-ink">{u.name}</div>
+                    <div className="text-xs text-secondary">{u.email}</div>
                   </div>
-                  <span className="text-xs text-on-surface-variant whitespace-nowrap">{new Date(u.createdAt).toLocaleDateString()}</span>
+                  <span className="text-xs text-secondary whitespace-nowrap">{new Date(u.createdAt).toLocaleDateString()}</span>
                 </li>
               ))}
             </ul>
@@ -139,9 +143,9 @@ export default function AdminConsolePage() {
 
 function Metric({ label, value, sub }: { label: string; value: string; sub?: React.ReactNode }) {
   return (
-    <div className="rounded-xl p-5 border bg-surface-container-low border-outline-variant hover:border-primary/30 transition-colors">
-      <span className="text-xs font-medium text-on-surface-variant uppercase tracking-wider block mb-2">{label}</span>
-      <div className="text-2xl font-bold text-on-surface font-headline">{value}</div>
+    <div className="border border-rule p-5 bg-ground">
+      <span className="text-xs font-display font-black uppercase tracking-wider text-secondary block mb-2">{label}</span>
+      <div className="font-display text-2xl font-black text-ink">{value}</div>
       {sub && <div className="text-xs mt-1">{sub}</div>}
     </div>
   );

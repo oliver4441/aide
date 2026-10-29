@@ -1,6 +1,5 @@
 "use client";
 
-import ScrollFadeIn from "./ScrollFadeIn";
 import Container from "@/components/ui/Container";
 
 const features = [
@@ -62,32 +61,28 @@ const features = [
 
 export default function Features() {
   return (
-    <section id="features" className="py-24">
+    <section id="features" className="py-16 border-t border-rule border-b border-rule">
       <Container wide>
-        <ScrollFadeIn>
-        <div className="mx-auto mb-16 max-w-2xl text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-on-surface mb-4 font-headline">
+        <div className="mx-auto mb-12 max-w-2xl text-center">
+          <h2 className="font-display text-3xl md:text-4xl font-black text-ink mb-4">
             Everything You Need
           </h2>
-          <p className="text-on-surface-variant text-lg">
+          <p className="font-reading text-secondary text-lg">
             A complete toolkit built for speed, reliability, and the businesses that depend on it every day.
           </p>
         </div>
-      </ScrollFadeIn>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {features.map((f, i) => (
-          <ScrollFadeIn key={i} delay={i * 80}>
-            <div className="bg-surface-container border border-outline-variant rounded-2xl p-6 md:p-8 hover:border-primary/30 transition-all group h-full">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-5 group-hover:bg-primary/20 transition-colors">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {features.map((f, i) => (
+            <div key={i} className="border border-rule p-6 md:p-8 h-full">
+              <div className="w-12 h-12 border border-rule flex items-center justify-center mb-5">
                 {f.icon}
               </div>
-              <h3 className="text-lg font-bold text-on-surface mb-2 font-headline">{f.title}</h3>
-              <p className="text-on-surface-variant text-sm leading-relaxed">{f.description}</p>
+              <h3 className="font-display text-lg font-black text-ink mb-2">{f.title}</h3>
+              <p className="font-reading text-secondary text-sm leading-relaxed">{f.description}</p>
             </div>
-          </ScrollFadeIn>
-        ))}
-      </div>
+          ))}
+        </div>
       </Container>
     </section>
   );

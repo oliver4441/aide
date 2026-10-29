@@ -8,51 +8,58 @@ const config: Config = {
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
+    colors: {
+      // Newsprint palette — no semantic tokens, no plum/ocean/forest/sunset
+      ground: "var(--dp-color-ground)",
+      ink: "var(--dp-color-ink)",
+      secondary: "var(--dp-color-secondary)",
+      rule: "var(--dp-color-rule)",
+      accent: "var(--dp-color-accent)",
+
+      // Keep functional colors for errors/success (not thematic)
+      error: "#ba1a1a",
+      "error-container": "#ffe0d6",
+      success: "#10b981",
+      warning: "#f59e0b",
+      danger: "#e11d48",
+    },
+    fontFamily: {
+      display: ["var(--dp-typography-display)", "Georgia", "serif"],
+      reading: ["var(--dp-typography-reading)", "Georgia", "serif"],
+    },
+    fontSize: {
+      body: ["20px", { lineHeight: "1.3" }],
+      "reading-compact": ["19px", { lineHeight: "1.3" }],
+      label: ["12px", { lineHeight: "1.2", letterSpacing: "0.09em" }],
+      control: ["15px", { lineHeight: "1.2" }],
+    },
+    borderRadius: {
+      none: "0",
+      control: "var(--dp-radius-control)",
+    },
+    boxShadow: {
+      // Newsprint uses flat, square style — no shadows
+      none: "none",
+    },
+    transitionProperty: {
+      none: "none",
+    },
+    screens: {
+      wp: "700px",
+      np: "1100px",
+    },
     extend: {
-      colors: {
-        primary: {
-          DEFAULT: "rgb(var(--primary) / <alpha-value>)",
-          light: "rgb(var(--primary-light) / <alpha-value>)",
-          container: "rgb(var(--primary-container) / <alpha-value>)",
-          dark: "#5a1f42",
-        },
-        surface: {
-          DEFAULT: "rgb(var(--surface) / <alpha-value>)",
-          dim: "rgb(var(--surface-dim) / <alpha-value>)",
-          bright: "rgb(var(--surface-bright) / <alpha-value>)",
-          plum: "rgb(var(--surface-plum) / <alpha-value>)",
-        },
-        "surface-container": {
-          DEFAULT: "rgb(var(--surface-container) / <alpha-value>)",
-          low: "rgb(var(--surface-container-low) / <alpha-value>)",
-          lowest: "rgb(var(--surface-container-lowest) / <alpha-value>)",
-          high: "rgb(var(--surface-container-high) / <alpha-value>)",
-          highest: "rgb(var(--surface-container-highest) / <alpha-value>)",
-        },
-        "on-surface": {
-          DEFAULT: "rgb(var(--on-surface) / <alpha-value>)",
-          variant: "rgb(var(--on-surface-variant) / <alpha-value>)",
-        },
-        outline: {
-          DEFAULT: "rgb(var(--outline) / <alpha-value>)",
-          variant: "rgb(var(--outline-variant) / <alpha-value>)",
-        },
-        error: {
-          DEFAULT: "rgb(var(--error) / <alpha-value>)",
-          container: "rgb(var(--error-container) / <alpha-value>)",
-        },
-        "on-error-container": "rgb(var(--on-error-container) / <alpha-value>)",
-        success: "rgb(var(--success) / <alpha-value>)",
-        warning: "rgb(var(--warning) / <alpha-value>)",
-        danger: "rgb(var(--danger) / <alpha-value>)",
+      spacing: {
+        column: "var(--dp-spacing-column)",
+        story: "var(--dp-spacing-story)",
       },
-      fontFamily: {
-        headline: ["var(--font-headline)", "Manrope", "sans-serif"],
-        body: ["var(--font-body)", "Inter", "sans-serif"],
-        mono: ["var(--font-mono)", "JetBrains Mono", "monospace"],
+      borderWidth: {
+        hairline: "var(--dp-border-hairline)",
+        section: "var(--dp-border-section)",
       },
     },
   },
   plugins: [],
 }
+
 export default config

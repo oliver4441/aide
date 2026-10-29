@@ -33,22 +33,20 @@ export function printReceipt(sale: PrintSale, business: PrintBusiness, shareUrl?
     <html>
     <head>
       <title>Receipt - ${sale.id.slice(0, 8).toUpperCase()}</title>
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
       <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-          font-family: 'JetBrains Mono', 'Courier New', monospace;
+          font-family: 'Courier New', monospace;
           font-size: 11px;
           line-height: 1.4;
           width: 80mm;
           padding: 4mm;
-          background: white;
-          color: #000;
+          background: #f3efe5;
+          color: #191916;
         }
         @media print {
           @page { size: 80mm auto; margin: 2mm; }
-          body { padding: 0; }
+          body { padding: 0; background: white; }
         }
       </style>
     </head>

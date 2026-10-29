@@ -1,4 +1,12 @@
 import db, { SyncQueueItem } from './db';
+import {
+  processStaleQueue,
+  countPendingSyncQueue,
+  getSyncStatus as getBackfillStatus,
+} from './syncBackfill';
+
+const SYNC_RETRY_THRESHOLD_MS = 60 * 60 * 1000;
+const SYNC_MAX_ATTEMPTS = 5;
 
 function getDeviceId(): string {
   if (typeof window === 'undefined') return 'server';
@@ -18,6 +26,7 @@ function getActiveBusinessId(): string | null {
 class SyncEngine {
   private isOnline: boolean = typeof navigator !== 'undefined' ? navigator.onLine : true;
   private isSyncing: boolean = false;
+  private pendingCount: number = 0;
   private listeners: Set<() => void> = new Set();
   private syncInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -25,6 +34,7 @@ class SyncEngine {
     if (typeof window !== 'undefined') {
       window.addEventListener('online', this.handleOnline);
       window.addEventListener('offline', this.handleOffline);
+      void this.refreshPending();
     }
   }
 
@@ -32,6 +42,7 @@ class SyncEngine {
     this.isOnline = true;
     this.notifyListeners();
     this.sync();
+    void this.backfill();
   };
 
   private handleOffline = () => {
@@ -39,9 +50,25 @@ class SyncEngine {
     this.notifyListeners();
   };
 
+  private backfill = async (): Promise<void> => {
+    try {
+      await processStaleQueue({
+        retryThresholdMs: SYNC_RETRY_THRESHOLD_MS,
+        maxAttempts: SYNC_MAX_ATTEMPTS,
+        debug: true,
+      });
+      await this.refreshPending();
+    } catch {
+      // Never block the online event on a backfill failure.
+    }
+  };
+
   subscribe(listener: () => void) {
     this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
+    // Must return void: this is used as a React effect cleanup.
+    return () => {
+      this.listeners.delete(listener);
+    };
   }
 
   private notifyListeners() {
@@ -52,8 +79,23 @@ class SyncEngine {
     return {
       isOnline: this.isOnline,
       isSyncing: this.isSyncing,
+      pending: this.pendingCount,
     };
   }
+
+  /**
+   * The outbox count has to be readable synchronously (badges render during
+   * React render), so it is mirrored in memory and refreshed wherever the queue
+   * changes rather than queried on demand.
+   */
+  private refreshPending = async (): Promise<void> => {
+    try {
+      this.pendingCount = await countPendingSyncQueue();
+    } catch {
+      // The badge is advisory: a failed count must never break the sync path.
+    }
+    this.notifyListeners();
+  };
 
   startAutoSync(intervalMs: number = 30000) {
     if (this.syncInterval) clearInterval(this.syncInterval);
@@ -79,6 +121,7 @@ class SyncEngine {
       data,
       timestamp: new Date().toISOString(),
       deviceId: getDeviceId(),
+      status: 'pending',
     };
     await db.syncQueue.add(item);
 
@@ -90,7 +133,7 @@ class SyncEngine {
       await db.sales.update(recordId, { syncStatus: 'pending' });
     }
 
-    this.notifyListeners();
+    await this.refreshPending();
   }
 
   async push(): Promise<{ synced: number; conflicts: any[] }> {
@@ -99,73 +142,44 @@ class SyncEngine {
     this.isSyncing = true;
     this.notifyListeners();
 
-    let syncedTotal = 0;
-    const conflicts: any[] = [];
-
     try {
       const mutations = await db.syncQueue.orderBy('timestamp').toArray();
       if (mutations.length === 0) return { synced: 0, conflicts: [] };
 
       const deviceId = getDeviceId();
+      const res = await fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mutations, deviceId }),
+      });
 
-      // Split the queue into batches that each stay well under the platform's
-      // ~4.5 MB request-body limit — image-bearing product mutations carry
-      // several hundred KB of base64 each, and one oversized POST used to
-      // fail the whole queue.
-      const MAX_BATCH_BYTES = 3 * 1024 * 1024;
-      const batches: SyncQueueItem[][] = [];
-      let batch: SyncQueueItem[] = [];
-      let batchBytes = 0;
+      if (!res.ok) throw new Error(`Sync failed: ${res.status}`);
+
+      const result = await res.json();
+
       for (const mutation of mutations) {
-        const size = JSON.stringify(mutation).length;
-        if (batch.length > 0 && batchBytes + size > MAX_BATCH_BYTES) {
-          batches.push(batch);
-          batch = [];
-          batchBytes = 0;
-        }
-        batch.push(mutation);
-        batchBytes += size;
-      }
-      if (batch.length > 0) batches.push(batch);
+        await db.syncQueue.where('key').equals(mutation.key!).delete();
 
-      for (const batchMutations of batches) {
-        const res = await fetch('/api/sync', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mutations: batchMutations, deviceId }),
-        });
-
-        if (!res.ok) throw new Error(`Sync failed: ${res.status}`);
-
-        const result = await res.json();
-
-        for (const mutation of batchMutations) {
-          await db.syncQueue.where('key').equals(mutation.key!).delete();
-
-          if (mutation.table === 'products') {
-            await db.products.update(mutation.recordId, { syncStatus: 'synced' }).catch(() => {});
-          } else if (mutation.table === 'categories') {
-            await db.categories.update(mutation.recordId, { syncStatus: 'synced' }).catch(() => {});
-          } else if (mutation.table === 'sales') {
-            await db.sales.update(mutation.recordId, { syncStatus: 'synced' }).catch(() => {});
-          }
-        }
-
-        syncedTotal += result.synced || batchMutations.length;
-
-        for (const conflict of result.conflicts || []) {
-          conflicts.push(conflict);
-          await db.syncConflicts.put(conflict);
+        if (mutation.table === 'products') {
+          await db.products.update(mutation.recordId, { syncStatus: 'synced' }).catch(() => {});
+        } else if (mutation.table === 'categories') {
+          await db.categories.update(mutation.recordId, { syncStatus: 'synced' }).catch(() => {});
+        } else if (mutation.table === 'sales') {
+          await db.sales.update(mutation.recordId, { syncStatus: 'synced' }).catch(() => {});
         }
       }
 
-      return { synced: syncedTotal, conflicts };
+      for (const conflict of result.conflicts || []) {
+        await db.syncConflicts.put(conflict);
+      }
+
+      return { synced: result.synced || mutations.length, conflicts: result.conflicts || [] };
     } catch (err) {
       console.error('Push failed:', err);
-      return { synced: syncedTotal, conflicts };
+      return { synced: 0, conflicts: [] };
     } finally {
       this.isSyncing = false;
-      this.notifyListeners();
+      await this.refreshPending();
     }
   }
 
@@ -192,18 +206,7 @@ class SyncEngine {
       }
       if (result.products) {
         for (const p of result.products) {
-          // The server is the source of truth for product fields, but never
-          // let a null image from the server wipe a photo that only exists
-          // locally (e.g. a still-pending edit that has not been pushed yet).
-          const local = await db.products.get(p.id);
-          const keepLocalImage = Boolean(local?.imageUrl) && local?.syncStatus !== 'synced';
-          const keepLocalThumb = Boolean(local?.thumbnailUrl) && local?.syncStatus !== 'synced';
-          await db.products.put({
-            ...p,
-            syncStatus: 'synced',
-            imageUrl: p.imageUrl || (keepLocalImage ? local!.imageUrl : undefined),
-            thumbnailUrl: p.thumbnailUrl || (keepLocalThumb ? local!.thumbnailUrl : undefined),
-          });
+          await db.products.put({ ...p, syncStatus: 'synced' });
           count++;
         }
       }
@@ -233,7 +236,7 @@ class SyncEngine {
       return 0;
     } finally {
       this.isSyncing = false;
-      this.notifyListeners();
+      await this.refreshPending();
     }
   }
 
@@ -254,6 +257,8 @@ class SyncEngine {
 }
 
 export const syncEngine = new SyncEngine();
+
+export { getSyncStatus } from './syncBackfill';
 
 export async function seedFromSession(businessId: string): Promise<number> {
   if (typeof window === 'undefined') return 0;

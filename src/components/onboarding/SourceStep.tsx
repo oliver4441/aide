@@ -17,11 +17,11 @@ export default function SourceStep({
   onSelect: (v: string) => void;
 }) {
   return (
-    <div className="flex flex-col items-center gap-6 w-full">
-      <h2 className="text-xl md:text-2xl font-headline font-bold text-on-surface text-center">
+    <div className="flex flex-col items-center gap-6 w-full font-reading">
+      <h2 className="font-display text-xl md:text-2xl font-black text-ink text-center">
         Where did you hear about us?
       </h2>
-      <p className="text-on-surface-variant text-sm text-center">
+      <p className="text-secondary text-sm text-center">
         Help us understand how you found Aide.
       </p>
       <div className="flex flex-wrap justify-center gap-3 mt-2">
@@ -29,10 +29,10 @@ export default function SourceStep({
           <button
             key={src}
             onClick={() => onSelect(src)}
-            className={`px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-200 border ${
+            className={`px-5 py-2.5 text-sm font-display font-black border border-rule ${
               value === src
-                ? "bg-primary text-on-primary border-primary shadow-lg shadow-primary/20"
-                : "bg-surface-container text-on-surface border-outline-variant hover:border-primary/50 hover:bg-surface-container-high"
+                ? "bg-ink text-ground"
+                : "text-secondary hover:text-ink bg-ground"
             }`}
           >
             {src}

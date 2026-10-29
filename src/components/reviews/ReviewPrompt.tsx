@@ -35,11 +35,11 @@ export default function ReviewPrompt() {
   }
 
   return (
-    <div className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 animate-slide-up">
-      <div className="bg-surface-container-high border border-outline-variant rounded-2xl shadow-xl px-5 py-3 flex items-center gap-4">
+    <div className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 font-display">
+      <div className="border border-rule bg-ground px-5 py-3 flex items-center gap-4">
         <button
           onClick={() => setShow(true)}
-          className="flex items-center gap-2 text-sm font-medium text-on-surface hover:text-primary transition-colors"
+          className="flex items-center gap-2 text-sm font-black text-secondary hover:text-ink"
         >
           <span className="text-warning text-lg">★</span>
           How is Aide working for you? Leave a review
@@ -49,12 +49,10 @@ export default function ReviewPrompt() {
             localStorage.setItem("aide_review_dismissed", "true");
             setVisible(false);
           }}
-          className="text-on-surface-variant hover:text-on-surface transition-colors ml-2"
+          className="text-secondary hover:text-ink ml-2"
           aria-label="Dismiss"
         >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          ×
         </button>
       </div>
     </div>

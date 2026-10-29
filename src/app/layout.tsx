@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { ThemeProvider } from "@/components/ThemeProvider";
 import Providers from "@/components/Providers";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import { SITE_URL, COMPANY_NAME, SUPPORT_EMAIL } from "@/lib/site";
@@ -56,9 +55,9 @@ export const metadata: Metadata = {
   },
   other: {
     "mobile-web-app-capable": "yes",
-    "msapplication-TileColor": "#6f264f",
+    "msapplication-TileColor": "#a3231d",
     "msapplication-tap-highlight": "no",
-    "theme-color": "#6f264f",
+    "theme-color": "#a3231d",
   },
 };
 
@@ -67,7 +66,7 @@ export const viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#6f264f",
+  themeColor: "#a3231d",
 };
 
 // Sign-in is email + password handled by NextAuth (see src/lib/auth.ts).
@@ -80,27 +79,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="apple-touch-icon" href="/logo.jpg" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Manrope:wght@200..800&family=JetBrains+Mono:wght@100..800&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..800;1,400..800&family=Source+Serif+4:ital,opsz,wght@0,8..60,200..900;1,8..60,200..900&display=swap" rel="stylesheet" />
         <meta name="application-name" content="Aide" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Aide" />
-        <meta name="theme-color" content="#6f264f" />
-        <meta name="msapplication-TileColor" content="#6f264f" />
+        <meta name="theme-color" content="#a3231d" />
+        <meta name="msapplication-TileColor" content="#a3231d" />
         <meta name="msapplication-tap-highlight" content="no" />
         <link rel="manifest" href="/manifest.webmanifest" />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var e=document.documentElement,t=localStorage.getItem('theme'),a=localStorage.getItem('accent');e.classList.toggle('dark',t==='dark'?true:t==='light'?false:window.matchMedia('(prefers-color-scheme: dark)').matches);if(a&&a!=='plum'&&/^[a-z]+$/.test(a)){e.setAttribute('data-theme',a)}else{e.removeAttribute('data-theme')}}catch(x){document.documentElement.classList.add('dark')}})()`,
-          }}
-        />
         <script
           type="text/javascript"
           dangerouslySetInnerHTML={{
             __html: `
-              var Tawk_API=Tawk_API||{};
               // Position the widget at the right-center ("equator") of the mobile
               // view so it clears the fixed bottom nav bar. Desktop stays bottom-right.
+              var Tawk_API=Tawk_API||{};
               Tawk_API.customStyle = {
                 visibility: {
                   desktop: { position: 'br', xOffset: 8, yOffset: 96 },
@@ -159,12 +153,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
       </head>
-      <body className="font-body bg-surface text-on-surface antialiased">
+      <body className="font-reading bg-ground text-ink antialiased">
         <Providers>
-          <ThemeProvider>
-            {children}
-            <ServiceWorkerRegister />
-          </ThemeProvider>
+          {children}
+          <ServiceWorkerRegister />
         </Providers>
       </body>
     </html>
