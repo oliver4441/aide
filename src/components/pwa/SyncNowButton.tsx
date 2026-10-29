@@ -1,12 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useLiveQuery } from "dexie-react-hooks";
 import db from "@/lib/db";
 import { syncEngine } from "@/lib/sync";
 import { useSyncStatus } from "@/hooks/useSyncStatus";
 import { sounds } from "@/lib/sounds";
-import UiSpinner from "@/components/ui/UiSpinner";
 import { addNotification, syncNotificationsWithServer } from "@/lib/notifications";
 
 export default function SyncNowButton() {
@@ -14,7 +12,17 @@ export default function SyncNowButton() {
   const [syncing, setSyncing] = useState(false);
 
   const status = useSyncStatus();
-  const pending = useLiveQuery(() => db.syncQueue.count(), [], 0);
+
+  const [pending, setPending] = useState(0);
+
+  useEffect(() => {
+    const fetchPending = async () => {
+      setPending(await db.syncQueue.count());
+    };
+    fetchPending();
+    const t = setInterval(fetchPending, 2000);
+    return () => clearInterval(t);
+  }, []);
 
   useEffect(() => {
     setOnline(navigator.onLine);
@@ -51,17 +59,16 @@ export default function SyncNowButton() {
     setSyncing(false);
   };
 
-  // Show only when online with pending local changes
   if (!online || !pending || status.isSyncing) return null;
 
   return (
     <button
       onClick={sync}
       disabled={syncing}
-      className="fixed bottom-20 md:bottom-6 left-4 md:left-6 z-[60] flex items-center gap-2 bg-primary text-on-primary text-xs font-semibold px-4 py-2.5 rounded-full shadow-lg shadow-primary/30 hover:bg-primary-light transition-colors disabled:opacity-70"
+      className="fixed bottom-20 md:bottom-6 left-4 md:left-6 z-[60] flex items-center gap-2 border border-accent bg-accent text-ground font-display font-black px-4 py-2.5 text-xs hover:bg-ground hover:text-ink disabled:opacity-70"
     >
       {syncing ? (
-        <UiSpinner size={14} />
+        <span className="w-4 h-4 border border-current border-t-transparent np-spinner" />
       ) : (
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />

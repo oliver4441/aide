@@ -14,8 +14,6 @@ import {
   NOTIFICATION_CATEGORIES,
   type NotificationType,
 } from "@/lib/notifications";
-import { ACCENTS, useTheme, type Accent } from "@/components/ThemeProvider";
-import WallpaperPicker from "@/components/dashboard/WallpaperPicker";
 
 function ToggleRow({
   label,
@@ -31,18 +29,18 @@ function ToggleRow({
   return (
     <label className="flex items-center justify-between gap-4">
       <div>
-        <div className="text-sm text-on-surface">{label}</div>
-        <div className="text-xs text-on-surface-variant">{desc}</div>
+        <div className="text-sm font-display font-black text-ink">{label}</div>
+        <div className="text-xs text-secondary">{desc}</div>
       </div>
       <button
         type="button"
         role="switch"
         aria-checked={value}
         onClick={() => onChange(!value)}
-        className={`h-6 w-11 shrink-0 rounded-full relative transition-colors ${value ? "bg-primary" : "bg-surface-container-high"}`}
+        className={`h-6 w-11 shrink-0 relative border border-rule ${value ? "bg-accent" : "bg-ground"}`}
       >
         <span
-          className={`absolute top-0.5 h-5 w-5 rounded-full shadow transition-all ${value ? "right-0.5 bg-on-primary" : "left-0.5 bg-on-surface"}`}
+          className={`absolute top-0.5 h-5 w-5 border border-rule ${value ? "right-0.5 bg-ground" : "left-0.5 bg-secondary"}`}
         />
       </button>
     </label>
@@ -58,9 +56,6 @@ export default function SettingsPage() {
   const [newCategory, setNewCategory] = useState("");
   const [notifEnabled, setNotifEnabledState] = useState(true);
   const [notifCats, setNotifCats] = useState<Record<string, boolean>>({});
-  const { theme, setTheme, accent, setAccent } = useTheme();
-  const [uiTheme, setUiTheme] = useState<"light" | "dark">("dark");
-  const [uiAccent, setUiAccent] = useState<Accent>("plum");
 
   useEffect(() => {
     let active = true;
@@ -76,15 +71,6 @@ export default function SettingsPage() {
       active = false;
     };
   }, []);
-
-  // Mirror the theme context into local state after mount, so the selected
-  // swatches render the stored choice instead of the pre-mount default.
-  useEffect(() => {
-    setUiTheme(theme);
-  }, [theme]);
-  useEffect(() => {
-    setUiAccent(accent);
-  }, [accent]);
 
   const setNotifEnabled = async (v: boolean) => {
     await setNotificationsEnabled(v);
@@ -176,116 +162,54 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 font-reading">
       <div>
-        <h1 className="text-2xl font-bold text-on-surface font-headline">Settings</h1>
-        <p className="text-on-surface-variant text-sm mt-1">Manage your business profile and preferences</p>
+        <h1 className="font-display text-2xl md:text-3xl font-black text-ink">Settings</h1>
+        <p className="font-display text-sm text-secondary mt-1">Manage your business profile and preferences</p>
       </div>
 
       {/* Account */}
-      <div className="bg-surface-container-low border border-outline-variant rounded-xl p-6">
-        <h2 className="text-lg font-bold text-on-surface font-headline mb-4">Account</h2>
+      <div className="border border-rule p-6 bg-ground">
+        <h2 className="font-display text-lg font-black text-ink mb-4">Account</h2>
         <div className="space-y-4">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-lg">
+            <div className="w-12 h-12 border border-rule flex items-center justify-center text-accent font-black text-lg">
               {session?.user?.name?.[0] || "U"}
             </div>
             <div>
-              <div className="text-sm font-medium text-on-surface">{session?.user?.name}</div>
-              <div className="text-xs text-on-surface-variant">{session?.user?.email}</div>
+              <div className="text-sm font-display font-black text-ink">{session?.user?.name}</div>
+              <div className="text-xs text-secondary">{session?.user?.email}</div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Appearance */}
-      <div className="bg-surface-container-low border border-outline-variant rounded-xl p-6">
-        <h2 className="text-lg font-bold text-on-surface font-headline mb-4">Appearance</h2>
-        <div className="space-y-5">
-          <div>
-            <div className="text-sm text-on-surface mb-2">Mode</div>
-            <div className="flex gap-2" role="group" aria-label="Colour mode">
-              {(["light", "dark"] as const).map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  aria-pressed={uiTheme === m}
-                  onClick={() => {
-                    setUiTheme(m);
-                    setTheme(m);
-                  }}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors border ${
-                    uiTheme === m
-                      ? "border-primary bg-primary/10 text-on-surface ring-2 ring-primary/30"
-                      : "border-outline-variant text-on-surface-variant hover:bg-surface-container"
-                  }`}
-                >
-                  {m}
-                </button>
-              ))}
-            </div>
-            <p className="text-xs text-on-surface-variant mt-1.5">
-              Follows your system setting until you pick one. A quick light/dark toggle also lives in the sidebar.
-            </p>
-          </div>
-
-          <div>
-            <div className="text-sm text-on-surface mb-2">Accent</div>
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Accent colour">
-              {ACCENTS.map((a) => (
-                <button
-                  key={a.id}
-                  type="button"
-                  aria-pressed={uiAccent === a.id}
-                  onClick={() => {
-                    setUiAccent(a.id);
-                    setAccent(a.id);
-                  }}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${
-                    uiAccent === a.id
-                      ? "border-primary bg-primary/10 text-on-surface ring-2 ring-primary/30"
-                      : "border-outline-variant text-on-surface-variant hover:bg-surface-container"
-                  }`}
-                >
-                  <span
-                    aria-hidden="true"
-                    className="w-4 h-4 rounded-full border border-black/10 shadow-sm"
-                    style={{ background: a.color }}
-                  />
-                  {a.label}
-                </button>
-              ))}
-            </div>
-            <p className="text-xs text-on-surface-variant mt-1.5">
-              Changes the highlight colour across the app. Saved on this device.
-            </p>
-          </div>
-          <div className="border-t border-outline-variant pt-5">
-            <WallpaperPicker />
-          </div>
-        </div>
+      <div className="border border-rule p-6 bg-ground">
+        <h2 className="font-display text-lg font-black text-ink mb-4">Appearance</h2>
+        <p className="font-display text-sm text-secondary">Newsprint uses a fixed newspaper style. Custom colour themes and wallpapers are no longer available.</p>
       </div>
 
       {/* Business Profile */}
-      <div className="bg-surface-container-low border border-outline-variant rounded-xl p-6">
-        <h2 className="text-lg font-bold text-on-surface font-headline mb-4">Business Profile</h2>
+      <div className="border border-rule p-6 bg-ground">
+        <h2 className="font-display text-lg font-black text-ink mb-4">Business Profile</h2>
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-on-surface-variant mb-1">Business Name</label>
+              <label className="block text-xs font-display font-black text-secondary mb-1">Business Name</label>
               <input
                 type="text"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="w-full px-3 py-2.5 rounded-lg bg-surface-container border border-outline-variant text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className="w-full px-3 py-2.5 border border-rule bg-ground text-ink font-display text-sm focus:outline-none focus:border-accent focus:ring-0"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-on-surface-variant mb-1">Business Type</label>
+              <label className="block text-xs font-display font-black text-secondary mb-1">Business Type</label>
               <select
                 value={form.type}
                 onChange={(e) => setForm({ ...form, type: e.target.value })}
-                className="w-full px-3 py-2.5 rounded-lg bg-surface-container border border-outline-variant text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className="w-full px-3 py-2.5 border border-rule bg-ground text-ink font-display text-sm focus:outline-none focus:border-accent focus:ring-0"
               >
                 <option>Salon</option>
                 <option>Shop</option>
@@ -301,32 +225,32 @@ export default function SettingsPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-on-surface-variant mb-1">Currency</label>
+              <label className="block text-xs font-display font-black text-secondary mb-1">Currency</label>
               <input
                 type="text"
                 value={form.currency}
                 onChange={(e) => setForm({ ...form, currency: e.target.value })}
-                className="w-full px-3 py-2.5 rounded-lg bg-surface-container border border-outline-variant text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className="w-full px-3 py-2.5 border border-rule bg-ground text-ink font-display text-sm focus:outline-none focus:border-accent focus:ring-0"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-on-surface-variant mb-1">Tax Rate (%)</label>
+              <label className="block text-xs font-display font-black text-secondary mb-1">Tax Rate (%)</label>
               <input
                 type="number"
                 value={form.taxRate}
                 onChange={(e) => setForm({ ...form, taxRate: e.target.value })}
-                className="w-full px-3 py-2.5 rounded-lg bg-surface-container border border-outline-variant text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className="w-full px-3 py-2.5 border border-rule bg-ground text-ink font-display text-sm focus:outline-none focus:border-accent focus:ring-0"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-on-surface-variant mb-1">Receipt Footer</label>
+            <label className="block text-xs font-display font-black text-secondary mb-1">Receipt Footer</label>
             <textarea
               value={form.receiptFooter}
               onChange={(e) => setForm({ ...form, receiptFooter: e.target.value })}
               rows={3}
-              className="w-full px-3 py-2.5 rounded-lg bg-surface-container border border-outline-variant text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
+              className="w-full px-3 py-2.5 border border-rule bg-ground text-ink font-display text-sm focus:outline-none focus:border-accent focus:ring-0 resize-none"
             />
           </div>
         </div>
@@ -334,7 +258,7 @@ export default function SettingsPage() {
         <div className="mt-6 flex gap-3">
           <button
             onClick={save}
-            className="px-5 py-2.5 rounded-xl bg-primary text-on-primary text-sm font-semibold hover:bg-primary-light transition-colors shadow-lg shadow-primary/20"
+            className="np-btn np-btn--accent px-5 py-2.5"
           >
             Save Changes
           </button>
@@ -350,7 +274,7 @@ export default function SettingsPage() {
                 });
               }
             }}
-            className="px-5 py-2.5 rounded-xl border border-outline-variant text-on-surface-variant text-sm font-medium hover:bg-surface-container transition-colors"
+            className="np-btn px-5 py-2.5"
           >
             Cancel
           </button>
@@ -358,19 +282,19 @@ export default function SettingsPage() {
       </div>
 
       {/* Sync & Conflicts */}
-      <div className="bg-surface-container-low border border-outline-variant rounded-xl p-6">
-        <h2 className="text-lg font-bold text-on-surface font-headline mb-4">Sync & Conflicts</h2>
+      <div className="border border-rule p-6 bg-ground">
+        <h2 className="font-display text-lg font-black text-ink mb-4">Sync & Conflicts</h2>
         {conflicts.length === 0 ? (
-          <p className="text-sm text-on-surface-variant">No pending conflicts.</p>
+          <p className="font-display text-sm text-secondary">No pending conflicts.</p>
         ) : (
           <div className="space-y-3">
             {conflicts.map((c) => (
-              <div key={c.id} className="flex items-center justify-between p-3 border border-outline-variant rounded-lg bg-surface-container/50">
+              <div key={c.id} className="flex items-center justify-between px-3 py-2 border border-rule">
                 <div>
-                  <div className="text-sm font-medium text-on-surface capitalize">{c.entityType} conflict</div>
-                  <div className="text-xs text-on-surface-variant font-mono">{c.entityId.slice(0, 8)}</div>
+                  <div className="text-sm font-display font-black text-ink capitalize">{c.entityType} conflict</div>
+                  <div className="text-xs text-secondary font-mono">{c.entityId.slice(0, 8)}</div>
                 </div>
-                <span className="text-xs text-warning font-medium">Pending</span>
+                <span className="text-xs text-warning font-black">Pending</span>
               </div>
             ))}
           </div>
@@ -378,8 +302,8 @@ export default function SettingsPage() {
       </div>
 
       {/* Product Categories */}
-      <div className="bg-surface-container-low border border-outline-variant rounded-xl p-6">
-        <h2 className="text-lg font-bold text-on-surface font-headline mb-4">Product Categories</h2>
+      <div className="border border-rule p-6 bg-ground">
+        <h2 className="font-display text-lg font-black text-ink mb-4">Product Categories</h2>
         <div className="space-y-3">
           <div className="flex gap-2">
             <input
@@ -388,29 +312,29 @@ export default function SettingsPage() {
               onChange={(e) => setNewCategory(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && addCategory()}
               placeholder="New category name..."
-              className="flex-1 px-3 py-2.5 rounded-lg bg-surface-container border border-outline-variant text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className="flex-1 px-3 py-2.5 border border-rule bg-ground text-ink font-display text-sm focus:outline-none focus:border-accent focus:ring-0"
             />
             <button
               onClick={addCategory}
               disabled={!newCategory.trim()}
-              className="px-4 py-2.5 rounded-lg bg-primary text-on-primary text-sm font-semibold hover:bg-primary-light transition-colors disabled:opacity-40"
+              className="np-btn np-btn--accent px-4 py-2.5 text-sm disabled:opacity-40"
             >
               Add
             </button>
           </div>
           {categories.length === 0 ? (
-            <p className="text-sm text-on-surface-variant">No categories yet. Add one above.</p>
+            <p className="font-display text-sm text-secondary">No categories yet. Add one above.</p>
           ) : (
             <div className="space-y-1">
               {categories.map((cat) => (
                 <div
                   key={cat.id}
-                  className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-surface-container/50 transition-colors"
+                  className="flex items-center justify-between px-3 py-2 border border-rule"
                 >
-                  <span className="text-sm text-on-surface">{cat.name}</span>
+                  <span className="font-display text-sm text-ink">{cat.name}</span>
                   <button
                     onClick={() => deleteCategory(cat.id)}
-                    className="text-xs text-on-surface-variant hover:text-danger transition-colors"
+                    className="text-xs font-display font-black text-secondary hover:text-error"
                   >
                     Remove
                   </button>
@@ -422,9 +346,9 @@ export default function SettingsPage() {
       </div>
 
       {/* In-app Notifications */}
-      <div className="bg-surface-container-low border border-outline-variant rounded-xl p-6">
-        <h2 className="text-lg font-bold text-on-surface font-headline mb-4">In-app Notifications</h2>
-        <p className="text-xs text-on-surface-variant mb-4">
+      <div className="border border-rule p-6 bg-ground">
+        <h2 className="font-display text-lg font-black text-ink mb-4">In-app Notifications</h2>
+        <p className="font-display text-xs text-secondary mb-4">
           Alerts appear inside Aide&apos;s notification centre — no browser push permission needed, and they work offline.
         </p>
         <div className="space-y-3">
@@ -434,7 +358,7 @@ export default function SettingsPage() {
             value={notifEnabled}
             onChange={setNotifEnabled}
           />
-          <div className="my-3 border-t border-outline-variant" />
+          <div className="border-t border-rule my-3" />
           {NOTIFICATION_CATEGORIES.map((cat) => (
             <ToggleRow
               key={cat.type}
@@ -448,17 +372,17 @@ export default function SettingsPage() {
       </div>
 
       {/* Danger Zone */}
-      <div className="bg-surface-container-low border border-danger/20 rounded-xl p-6">
-        <h2 className="text-lg font-bold text-danger font-headline mb-2">Danger Zone</h2>
-        <p className="text-xs text-on-surface-variant mb-4">These actions cannot be undone.</p>
+      <div className="border border-danger/30 p-6 bg-ground">
+        <h2 className="font-display text-lg font-black text-danger mb-2">Danger Zone</h2>
+        <p className="font-display text-xs text-secondary mb-4">These actions cannot be undone.</p>
         <div className="flex gap-3">
           <button
             onClick={exportData}
-            className="px-4 py-2 rounded-xl border border-danger/30 text-danger text-xs font-medium hover:bg-danger/10 transition-colors"
+            className="np-btn text-xs px-4 py-2 text-danger hover:text-danger hover:bg-danger/10"
           >
             Export All Data
           </button>
-          <button className="px-4 py-2 rounded-xl border border-danger/30 text-danger text-xs font-medium hover:bg-danger/10 transition-colors">
+          <button className="np-btn text-xs px-4 py-2 text-danger hover:text-danger hover:bg-danger/10">
             Delete Business
           </button>
         </div>

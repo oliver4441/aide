@@ -22,13 +22,13 @@ function StarRating({
   size?: string;
 }) {
   return (
-    <div className="flex gap-1">
+    <div className="flex gap-1 font-display">
       {[1, 2, 3, 4, 5].map((n) => (
         <button
           key={n}
           onClick={() => onRate(n)}
           className={`${size} transition-colors ${
-            n <= rating ? "text-warning" : "text-outline-variant hover:text-warning/50"
+            n <= rating ? "text-warning" : "text-secondary hover:text-warning/50"
           }`}
           aria-label={`${n} star${n > 1 ? "s" : ""}`}
         >
@@ -78,18 +78,18 @@ export default function ReviewModal({ onClose }: { onClose: () => void }) {
 
   if (submitted) {
     return (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-on-surface/40 backdrop-blur-sm p-4">
-        <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-md border border-outline-variant p-8 text-center">
-          <div className="w-14 h-14 rounded-full bg-success flex items-center justify-center mx-auto mb-4">
-            <svg className="w-7 h-7 text-on-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-ground/80 p-4">
+        <div className="border border-rule bg-ground w-full max-w-md p-8 text-center">
+          <div className="w-14 h-14 border border-ink bg-ground flex items-center justify-center mx-auto mb-4">
+            <svg className="w-7 h-7 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h3 className="text-lg font-headline font-bold text-on-surface mb-2">Thank you!</h3>
-          <p className="text-on-surface-variant text-sm mb-6">Your feedback helps us improve Aide.</p>
+          <h3 className="font-display text-lg font-black text-ink mb-2">Thank you!</h3>
+          <p className="text-secondary text-sm mb-6">Your feedback helps us improve Aide.</p>
           <button
             onClick={onClose}
-            className="bg-primary text-on-primary font-semibold py-2.5 px-8 rounded-xl hover:bg-primary-light transition-colors text-sm"
+            className="border border-ink bg-ink text-ground font-display font-black py-2.5 px-8 hover:bg-ground hover:text-ink text-sm"
           >
             Close
           </button>
@@ -99,27 +99,25 @@ export default function ReviewModal({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-on-surface/40 backdrop-blur-sm p-4">
-      <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-md border border-outline-variant overflow-hidden">
-        <div className="p-5 border-b border-outline-variant flex items-center justify-between">
-          <h3 className="text-lg font-headline font-bold text-on-surface">Leave a Review</h3>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-ground/80 p-4">
+      <div className="border border-rule bg-ground w-full max-w-md overflow-hidden">
+        <div className="p-5 border-b border-rule flex items-center justify-between font-display">
+          <h3 className="font-black text-ink">Leave a Review</h3>
           <button
             onClick={onClose}
-            className="text-on-surface-variant hover:text-on-surface transition-colors"
+            className="text-secondary hover:text-ink"
             aria-label="Close"
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            ×
           </button>
         </div>
 
-        <div className="p-5 space-y-5 max-h-[60vh] overflow-y-auto">
+        <div className="p-5 space-y-5 max-h-[60vh] overflow-y-auto font-reading">
           {categories.map((cat) => {
             const key = keyMap[cat];
             return (
               <div key={cat}>
-                <p className="text-sm font-medium text-on-surface mb-1.5">{cat}</p>
+                <p className="text-sm font-black text-ink mb-1.5">{cat}</p>
                 <StarRating
                   rating={ratings[key]}
                   onRate={(n) => setRatings((prev) => ({ ...prev, [key]: n }))}
@@ -129,27 +127,27 @@ export default function ReviewModal({ onClose }: { onClose: () => void }) {
           })}
 
           <div>
-            <label className="text-sm font-medium text-on-surface block mb-1.5">
-              Comment <span className="text-on-surface-variant font-normal">(optional)</span>
+            <label className="font-display text-sm font-black text-ink block mb-1.5">
+              Comment <span className="font-normal text-secondary">(optional)</span>
             </label>
             <textarea
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               rows={3}
-              className="w-full bg-surface-container border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary/40 resize-none"
+              className="w-full border border-rule bg-ground text-ink font-display text-sm placeholder:text-secondary focus:outline-none focus:border-accent resize-none"
               placeholder="Tell us what you think..."
             />
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 font-reading">
             <input
               type="checkbox"
               id="mayContact"
               checked={mayContact}
               onChange={(e) => setMayContact(e.target.checked)}
-              className="accent-primary"
+              className="w-4 h-4 border border-rule bg-ground text-accent"
             />
-            <label htmlFor="mayContact" className="text-sm text-on-surface-variant">
+            <label htmlFor="mayContact" className="text-sm text-secondary">
               May we contact you?
             </label>
           </div>
@@ -160,22 +158,22 @@ export default function ReviewModal({ onClose }: { onClose: () => void }) {
               value={contactEmail}
               onChange={(e) => setContactEmail(e.target.value)}
               placeholder="your@email.com"
-              className="w-full bg-surface-container border border-outline-variant rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary/40"
+              className="w-full border border-rule bg-ground text-ink font-display text-sm placeholder:text-secondary focus:outline-none focus:border-accent"
             />
           )}
         </div>
 
-        <div className="p-5 border-t border-outline-variant flex justify-end gap-3">
+        <div className="p-5 border-t border-rule flex justify-end gap-3 font-display">
           <button
             onClick={onClose}
-            className="px-4 py-2.5 text-sm font-medium text-on-surface-variant hover:text-on-surface transition-colors"
+            className="px-4 py-2.5 text-sm font-black text-secondary hover:text-ink"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={!allRated || submitting}
-            className="px-6 py-2.5 rounded-xl text-sm font-semibold bg-primary text-on-primary hover:bg-primary-light transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-primary/20"
+            className="px-6 py-2.5 text-sm font-black border border-ink bg-ink text-ground hover:bg-ground hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {submitting ? "Submitting..." : "Submit"}
           </button>

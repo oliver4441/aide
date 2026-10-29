@@ -5,10 +5,12 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import ThemeToggle from "@/components/ThemeToggle";
 import UiButton from "@/components/ui/UiButton";
 
 type Mode = "signin" | "signup";
+
+const inputClass =
+  "w-full px-4 py-3 border-b border-rule bg-transparent text-ink font-reading text-base focus:outline-none focus:border-ink";
 
 export default function LoginForm() {
   const [mode, setMode] = useState<Mode>("signin");
@@ -70,60 +72,46 @@ export default function LoginForm() {
     router.refresh();
   };
 
-  const inputClass =
-    "w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface-container-low text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors";
-
   return (
-    <div className="min-h-screen bg-surface flex items-center justify-center p-4 relative">
-      <div className="absolute top-4 right-4">
-        <ThemeToggle />
-      </div>
+    <div className="min-h-screen flex items-center justify-center p-4">
 
       {/* Back to home */}
       <Link
         href="/"
-        className="absolute top-4 left-4 inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-on-surface-variant hover:text-on-surface hover:bg-surface-container/60 transition-colors"
+        className="absolute top-4 left-4 inline-flex items-center gap-1.5 border-b border-transparent px-3 py-2 text-sm font-medium text-secondary hover:border-rule hover:text-ink"
       >
         <ArrowLeft className="w-4 h-4" />
         Back to Home
       </Link>
 
-      {/* Background blobs */}
-      <div className="fixed top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
-        <div className="absolute top-[-10%] right-[-5%] w-[40vw] h-[40vw] rounded-full bg-primary-container opacity-10 blur-[100px]" />
-        <div className="absolute bottom-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-primary opacity-5 blur-[120px]" />
-      </div>
-
       <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="flex items-center justify-center gap-3 mb-8">
-          <img src="/logo.jpg" alt="Aide logo" className="w-10 h-10 rounded-xl object-cover shadow-md" />
-          <span className="text-2xl font-bold text-primary font-headline">Aide</span>
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-warning/20 text-warning border border-warning/30">BETA</span>
+        {/* Masthead */}
+        <div className="text-center mb-8">
+          <span className="font-display text-3xl font-black tracking-tight text-ink">Aide</span>
         </div>
 
-        {/* Card */}
-        <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant shadow-lg p-8">
-          <h1 className="text-2xl font-bold text-on-surface mb-2 text-center font-headline">
+        {/* Form block — ruled */}
+        <div className="border border-rule">
+          <h1 className="font-display text-xl font-black text-ink p-6 pb-2 text-center">
             {isSignUp ? "Create your account" : "Welcome back"}
           </h1>
-          <p className="text-on-surface-variant text-center mb-8 text-sm">
+          <p className="text-secondary text-center text-sm px-6 pb-6">
             {isSignUp
               ? "Set up your business space in under a minute"
               : "Sign in to your business dashboard"}
           </p>
 
           {error && (
-            <div className="bg-error-container text-on-error-container px-4 py-3 rounded-lg mb-6 text-sm font-medium">
+            <div className="mx-6 mb-6 border-b border-danger/60 pb-2 text-danger text-sm font-medium">
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="px-6 pb-6 space-y-4">
             {isSignUp && (
               <>
                 <div>
-                  <label className="block text-sm font-medium text-on-surface mb-1.5" htmlFor="name">
+                  <label className="block text-xs font-bold text-secondary mb-1" htmlFor="name">
                     Your name
                   </label>
                   <input
@@ -138,8 +126,8 @@ export default function LoginForm() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-on-surface mb-1.5" htmlFor="businessName">
-                    Business name <span className="text-on-surface-variant font-normal">(optional)</span>
+                  <label className="block text-xs font-bold text-secondary mb-1" htmlFor="businessName">
+                    Business name <span className="font-normal">(optional)</span>
                   </label>
                   <input
                     id="businessName"
@@ -154,7 +142,7 @@ export default function LoginForm() {
             )}
 
             <div>
-              <label className="block text-sm font-medium text-on-surface mb-1.5" htmlFor="email">
+              <label className="block text-xs font-bold text-secondary mb-1" htmlFor="email">
                 Email
               </label>
               <input
@@ -170,7 +158,7 @@ export default function LoginForm() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-on-surface mb-1.5" htmlFor="password">
+              <label className="block text-xs font-bold text-secondary mb-1" htmlFor="password">
                 Password
               </label>
               <input
@@ -198,22 +186,22 @@ export default function LoginForm() {
             </UiButton>
           </form>
 
-          <div className="mt-6 text-center">
+          <div className="border-t border-rule px-6 py-4 text-center">
             <button
               type="button"
               onClick={() => {
                 setMode(isSignUp ? "signin" : "signup");
                 setError("");
               }}
-              className="text-sm text-primary hover:underline font-medium"
+              className="text-sm font-bold text-secondary hover:text-ink hover:underline"
             >
               {isSignUp ? "Already have an account? Sign in" : "New here? Create an account"}
             </button>
           </div>
         </div>
 
-        <p className="text-center text-xs text-on-surface-variant mt-6">
-          Your data stays on this device and syncs when you&apos;re online.
+        <p className="text-center text-xs text-secondary mt-6">
+          Your data stays on this device and syncs when you're online.
         </p>
       </div>
     </div>

@@ -1,47 +1,35 @@
 "use client";
 
 import Link from "next/link";
-import ScrollFadeIn from "./ScrollFadeIn";
 import Container from "@/components/ui/Container";
 
 export default function CtaSection() {
   return (
-    <section className="py-24">
+    <section className="border-t border-rule border-b border-rule py-16">
       <Container>
-      <ScrollFadeIn>
-        <div className="bg-primary rounded-2xl p-8 md:p-16 text-center relative overflow-hidden">
-          <div
-            className="absolute inset-0 opacity-10"
-            style={{
-              backgroundImage: "radial-gradient(#ffffff 1px, transparent 1px)",
-              backgroundSize: "20px 20px",
-            }}
+        <div className="border border-rule p-8 md:p-16 text-center">
+          <img
+            src="/logo.jpg"
+            alt="Aide logo"
+            className="w-16 h-16 md:w-20 md:h-20 mx-auto mb-5 object-cover border border-rule"
           />
-          <div className="relative z-10">
-            <img
-              src="/logo.jpg"
-              alt="Aide logo"
-              className="w-16 h-16 md:w-20 md:h-20 mx-auto mb-5 rounded-2xl object-cover shadow-lg ring-4 ring-on-primary/20"
-            />
-            <h2 className="text-3xl md:text-4xl font-bold text-on-primary mb-4 font-headline">
-              Ready to take control?
-            </h2>
-            <p className="text-on-primary/80 text-lg mb-8 max-w-xl mx-auto">
-              Join hundreds of businesses streamlining their operations with Aide. No credit card required.
-            </p>
-            <Link
-              href="/login"
-              className="inline-flex items-center gap-2 bg-on-primary text-primary font-bold px-8 py-4 rounded-xl hover:opacity-90 transition-opacity"
-            >
-              Get Started Free
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-            </Link>
-            <p className="text-xs text-on-primary/50 mt-4">14-day free trial &bull; Cancel anytime</p>
-          </div>
+          <h2 className="font-display text-3xl md:text-4xl font-black text-ink mb-4">
+            Ready to take control?
+          </h2>
+          <p className="font-reading text-secondary text-lg mb-8 max-w-xl mx-auto">
+            Join hundreds of businesses streamlining their operations with Aide. No credit card required.
+          </p>
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-2 np-btn np-btn--accent font-display font-black px-8 py-4"
+          >
+            Get Started Free
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+          </Link>
+          <p className="font-reading text-xs text-secondary mt-4">14-day free trial &bull; Cancel anytime</p>
         </div>
-      </ScrollFadeIn>
       </Container>
     </section>
   );

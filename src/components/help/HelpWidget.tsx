@@ -10,7 +10,7 @@ export default function HelpWidget() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="fixed bottom-24 md:bottom-8 right-6 z-40 w-12 h-12 bg-primary text-on-primary rounded-full shadow-lg shadow-primary/30 flex items-center justify-center hover:bg-primary-light transition-all hover:scale-105"
+        className="fixed bottom-24 md:bottom-8 right-6 z-40 w-12 h-12 border border-ink bg-ground text-ink flex items-center justify-center hover:bg-ink hover:text-ground font-display"
         aria-label="Open Help Center"
       >
         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

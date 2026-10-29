@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import ThemeToggle from "@/components/ThemeToggle";
 import DocsMobileNav from "@/components/docs/DocsMobileNav";
 import DocsSidebar from "@/components/docs/DocsSidebar";
 import { SITE_URL, SUPPORT_EMAIL } from "@/lib/site";
@@ -75,11 +74,10 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
             </a>
           </nav>
 
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
+    <div className="flex items-center gap-2">
             <Link
               href="/login"
-              className="rounded-lg bg-primary px-3.5 py-2 text-sm font-semibold text-on-primary shadow-sm transition-colors hover:bg-primary-light"
+              className="np-btn np-btn--accent"
             >
               Open Aide
             </Link>

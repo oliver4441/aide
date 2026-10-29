@@ -18,11 +18,11 @@ export default function OnlineStatus() {
   }, []);
 
   return (
-    <div className="flex items-center gap-2 px-4 py-2 text-xs text-on-surface-variant">
+    <div className="flex items-center gap-2 px-4 py-2 text-xs font-display text-secondary">
       <span
-        className={`w-2 h-2 rounded-full ${online ? "bg-success" : "bg-danger"}`}
+        className={`w-2 h-2 border border-current ${online ? "border-accent text-accent" : "border-danger text-danger"}`}
       />
-      {online ? "Online" : "Offline — changes will sync later"}
+      {online ? "Online" : "Offline"}
     </div>
   );
 }

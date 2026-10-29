@@ -40,7 +40,7 @@ export default function ReceiptQR({
       alt="Scan for receipt"
       width={size}
       height={size}
-      className="rounded bg-white p-1"
+      className="border border-rule bg-ground p-1"
     />
   );
 }

@@ -52,47 +52,45 @@ export default function AdminReviewsPage() {
 
   const renderStars = (rating: number) =>
     Array.from({ length: 5 }, (_, i) => (
-      <span key={i} className={i < rating ? "text-warning" : "text-outline-variant"}>
-        ★
-      </span>
+      <span key={i} className={i < rating ? "text-warning" : "text-secondary"}>&starf;</span>
     ));
 
   if (status === "loading" || loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <UiSpinner size={32} className="text-primary" />
+        <UiSpinner size={32} className="text-ink" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-headline font-bold text-on-surface">Reviews</h1>
-        <p className="text-on-surface-variant text-sm mt-1">Customer feedback and ratings</p>
+    <div className="space-y-8 font-reading">
+      <div className="border-b border-rule pb-6">
+        <h1 className="font-display text-2xl md:text-3xl font-black text-ink">Reviews</h1>
+        <p className="font-display text-sm text-secondary mt-1">Customer feedback and ratings</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-surface-container rounded-xl p-5 border border-outline-variant">
-          <p className="text-on-surface-variant text-xs uppercase tracking-wider">Average Rating</p>
+        <div className="border border-rule p-5 bg-ground">
+          <p className="font-display text-xs font-black uppercase tracking-wider text-secondary">Average Rating</p>
           <div className="flex items-center gap-2 mt-2">
-            <span className="text-3xl font-bold text-on-surface">{averageRating.toFixed(1)}</span>
+            <span className="font-display text-3xl font-black text-ink">{averageRating.toFixed(1)}</span>
             <div className="flex">{renderStars(Math.round(averageRating))}</div>
           </div>
         </div>
-        <div className="bg-surface-container rounded-xl p-5 border border-outline-variant">
-          <p className="text-on-surface-variant text-xs uppercase tracking-wider">Total Reviews</p>
-          <p className="text-3xl font-bold text-on-surface mt-2">{total}</p>
+        <div className="border border-rule p-5 bg-ground">
+          <p className="font-display text-xs font-black uppercase tracking-wider text-secondary">Total Reviews</p>
+          <p className="font-display text-3xl font-black text-ink mt-2">{total}</p>
         </div>
-        <div className="bg-surface-container rounded-xl p-5 border border-outline-variant">
-          <p className="text-on-surface-variant text-xs uppercase tracking-wider">Filter</p>
+        <div className="border border-rule p-5 bg-ground">
+          <p className="font-display text-xs font-black uppercase tracking-wider text-secondary">Filter</p>
           <div className="flex gap-2 mt-2 flex-wrap">
             <button
               onClick={() => setFilterRating(null)}
-              className={`px-3 py-1 rounded-lg text-xs font-medium border transition-colors ${
+              className={`px-3 py-1 text-xs font-black border border-rule ${
                 filterRating === null
-                  ? "bg-primary text-on-primary border-primary"
-                  : "bg-surface-container text-on-surface border-outline-variant"
+                  ? "bg-ink text-ground"
+                  : "text-secondary hover:text-ink"
               }`}
             >
               All
@@ -101,10 +99,10 @@ export default function AdminReviewsPage() {
               <button
                 key={r}
                 onClick={() => setFilterRating(r)}
-                className={`px-3 py-1 rounded-lg text-xs font-medium border transition-colors ${
+                className={`px-3 py-1 text-xs font-black border border-rule ${
                   filterRating === r
-                    ? "bg-primary text-on-primary border-primary"
-                    : "bg-surface-container text-on-surface border-outline-variant"
+                    ? "bg-ink text-ground"
+                    : "text-secondary hover:text-ink"
                 }`}
               >
                 {r}★
@@ -114,37 +112,37 @@ export default function AdminReviewsPage() {
         </div>
       </div>
 
-      <div className="bg-surface-container rounded-xl border border-outline-variant overflow-hidden">
+      <div className="border border-rule bg-ground overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full font-display">
             <thead>
-              <tr className="border-b border-outline-variant">
-                <th className="text-left px-4 py-3 text-on-surface-variant font-medium">Rating</th>
-                <th className="text-left px-4 py-3 text-on-surface-variant font-medium">Comment</th>
-                <th className="text-left px-4 py-3 text-on-surface-variant font-medium">Contact</th>
-                <th className="text-left px-4 py-3 text-on-surface-variant font-medium">Date</th>
+              <tr className="border-b border-rule">
+                <th className="text-left px-4 py-3 text-xs font-black uppercase tracking-wider text-secondary">Rating</th>
+                <th className="text-left px-4 py-3 text-xs font-black uppercase tracking-wider text-secondary">Comment</th>
+                <th className="text-left px-4 py-3 text-xs font-black uppercase tracking-wider text-secondary">Contact</th>
+                <th className="text-left px-4 py-3 text-xs font-black uppercase tracking-wider text-secondary">Date</th>
               </tr>
             </thead>
             <tbody>
               {reviews.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-on-surface-variant">
+                  <td colSpan={4} className="px-4 py-8 text-center text-secondary">
                     No reviews yet.
                   </td>
                 </tr>
               ) : (
                 reviews.map((review) => (
-                  <tr key={review.id} className="border-b border-outline-variant/50 hover:bg-surface-container-high/50 transition-colors">
+                  <tr key={review.id} className="border-b border-rule">
                     <td className="px-4 py-3">
                       <div className="flex">{renderStars(review.rating)}</div>
                     </td>
-                    <td className="px-4 py-3 text-on-surface max-w-xs truncate">
+                    <td className="px-4 py-3 text-ink max-w-xs truncate">
                       {review.comment || "—"}
                     </td>
-                    <td className="px-4 py-3 text-on-surface-variant">
+                    <td className="px-4 py-3 text-secondary">
                       {review.contactEmail || "—"}
                     </td>
-                    <td className="px-4 py-3 text-on-surface-variant whitespace-nowrap">
+                    <td className="px-4 py-3 text-secondary whitespace-nowrap">
                       {new Date(review.createdAt).toLocaleDateString()}
                     </td>
                   </tr>

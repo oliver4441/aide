@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { X } from "lucide-react";
 
 const DISMISS_KEY = "aide_install_dismissed";
 
@@ -30,7 +28,6 @@ export default function InstallPrompt() {
     window.addEventListener("beforeinstallprompt", onBeforeInstall);
     window.addEventListener("appinstalled", onInstalled);
 
-    // Soft nudge for browsers without a native prompt (e.g. iOS Safari).
     if (!isStandalone && !localStorage.getItem(DISMISS_KEY)) {
       const t = setTimeout(() => setVisible(true), 4000);
       return () => {
@@ -68,47 +65,37 @@ export default function InstallPrompt() {
   if (installed || !visible) return null;
 
   return (
-    <AnimatePresence>
-      {visible && (
-        <motion.div
-          className="fixed left-1/2 -translate-x-1/2 z-[60] w-[94%] max-w-sm bottom-16 md:bottom-6"
-          initial={{ y: 80, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 80, opacity: 0 }}
-          transition={{ type: "spring", stiffness: 300, damping: 28 }}
-        >
-          <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl shadow-2xl overflow-hidden">
-            <div className="flex items-center gap-3 p-4">
-              <img src="/logo.jpg" alt="" className="w-11 h-11 rounded-xl object-cover shrink-0 shadow-sm" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-on-surface">Install Aide</p>
-                <p className="text-[11px] text-on-surface-variant leading-snug">
-                  {showInstructions
-                    ? "Android/Chrome: menu ⋮ → Add to Home screen. iOS Safari: Share → Add to Home Screen."
-                    : "Works offline and lives right on your home screen."}
-                </p>
-              </div>
-              <button
-                onClick={dismiss}
-                className="text-on-surface-variant/60 hover:text-on-surface p-1.5 shrink-0 rounded-lg hover:bg-surface-container transition-colors"
-                aria-label="Dismiss"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            {!showInstructions && (
-              <div className="px-4 pb-4">
-                <button
-                  onClick={install}
-                  className="w-full bg-primary text-on-primary text-sm font-semibold py-2.5 rounded-xl hover:bg-primary-light transition-colors active:scale-[0.99]"
-                >
-                  Install
-                </button>
-              </div>
-            )}
+    <div className="fixed left-1/2 z-[60] w-[94%] max-w-sm -translate-x-1/2 bottom-16 md:bottom-6 font-display">
+      <div className="border border-rule bg-ground p-4">
+        <div className="flex items-center gap-3">
+          <img src="/logo.jpg" alt="" className="w-11 h-11 object-cover shrink-0 border border-rule" />
+          <div className="flex-1 min-w-0">
+            <p className="font-black text-ink">Install Aide</p>
+            <p className="font-reading text-[11px] text-secondary">
+              {showInstructions
+                ? "Android/Chrome: menu ⋮ → Add to Home screen. iOS Safari: Share → Add to Home Screen."
+                : "Works offline and lives right on your home screen."}
+            </p>
           </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+          <button
+            onClick={dismiss}
+            className="text-secondary hover:text-ink p-1.5"
+            aria-label="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+        {!showInstructions && (
+          <div className="pt-3">
+            <button
+              onClick={install}
+              className="w-full border border-ink bg-ink text-ground font-black text-sm py-2.5 hover:bg-ground hover:text-accent"
+            >
+              Install
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
