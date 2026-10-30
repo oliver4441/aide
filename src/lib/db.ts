@@ -8,6 +8,10 @@ export interface SyncQueueItem {
   data: any;
   timestamp: string;
   deviceId: string;
+  status?: 'pending' | 'retry' | 'quarantined' | 'synced';
+  attempts?: number;
+  /** Last time the outbox touched this row (retry bookkeeping only). */
+  updatedAt?: string;
 }
 
 export interface SyncConflictRecord {
@@ -127,6 +131,15 @@ interface AideDB {
 
 const db = new Dexie('AideDB') as Dexie & AideDB;
 
+/**
+ * Migrations:
+ *  - version 1 is the original schema.
+ *  - version 2 adds the notification tables.
+ *  - version 3 adds `status` + `attempts` to syncQueue so stuck outbox rows can
+ *    be retried or quarantined instead of sitting forever in `pending`. Dexie
+ *    applies each version as a diff, so the earlier versions must stay declared
+ *    and sequential — never renumber or drop them.
+ */
 db.version(1).stores({
   products: 'id, businessId, categoryId, name, syncStatus, updatedAt',
   categories: 'id, businessId, name, syncStatus',
@@ -144,6 +157,18 @@ db.version(2).stores({
   saleItems: 'id, saleId, productId',
   businesses: 'id, slug',
   syncQueue: '++key, action, table, recordId, timestamp',
+  syncConflicts: 'id, entityType, entityId, status, createdAt',
+  notifications: 'id, businessId, type, read, createdAt',
+  notificationPrefs: 'key',
+});
+
+db.version(3).stores({
+  products: 'id, businessId, categoryId, name, syncStatus, updatedAt',
+  categories: 'id, businessId, name, syncStatus',
+  sales: 'id, businessId, createdAt, syncStatus, deviceId',
+  saleItems: 'id, saleId, productId',
+  businesses: 'id, slug',
+  syncQueue: '++key, action, table, recordId, timestamp, status, attempts',
   syncConflicts: 'id, entityType, entityId, status, createdAt',
   notifications: 'id, businessId, type, read, createdAt',
   notificationPrefs: 'key',

@@ -4,379 +4,186 @@
 
 @layer base {
   :root {
-    --primary: 111 38 79;
-    --primary-light: 139 61 103;
-    --primary-container: 139 61 103;
-    --surface: 249 249 255;
-    --surface-dim: 211 218 234;
-    --surface-bright: 249 249 255;
-    --surface-container-lowest: 255 255 255;
-    --surface-container-low: 240 243 255;
-    --surface-container: 231 238 254;
-    --surface-container-high: 226 232 248;
-    --surface-container-highest: 220 226 243;
-    --surface-plum: 244 239 241;
-    --on-surface: 21 28 39;
-    --on-surface-variant: 82 67 73;
-    --outline: 132 114 121;
-    --outline-variant: 215 193 200;
-    --error: 186 26 26;
-    --error-container: 255 218 214;
-    --on-error-container: 147 0 10;
-    --success: 16 185 129;
-    --warning: 245 158 11;
-    --danger: 225 29 72;
-  }
+    --dp-color-ground: #f3efe5;
+    --dp-color-ink: #191916;
+    --dp-color-secondary: #494843;
+    --dp-color-rule: #9b978e;
+    --dp-color-accent: #a3231d;
 
-  .dark {
-    --primary: 255 175 212;
-    --primary-light: 219 151 187;
-    --primary-container: 139 61 103;
-    --surface: 18 18 23;
-    --surface-dim: 18 18 23;
-    --surface-bright: 38 36 44;
-    --surface-container-lowest: 13 13 17;
-    --surface-container-low: 24 22 30;
-    --surface-container: 30 28 38;
-    --surface-container-high: 40 37 48;
-    --surface-container-highest: 50 46 60;
-    --surface-plum: 35 25 35;
-    --on-surface: 245 240 245;
-    --on-surface-variant: 200 188 196;
-    --outline: 120 110 118;
-    --outline-variant: 60 52 60;
-    --error: 255 180 180;
-    --error-container: 80 30 35;
-    --on-error-container: 255 218 214;
-    --success: 52 211 153;
-    --warning: 251 191 36;
-    --danger: 251 113 133;
-  }
+    --dp-typography-display: "Newsprint Display", Georgia, serif;
+    --dp-typography-reading: "Newsprint Reading", Georgia, serif;
+    --dp-typography-body: 20px;
+    --dp-typography-reading-compact: 19px;
+    --dp-typography-label: 12px;
+    --dp-typography-control: 15px;
+    --dp-typography-label-weight: 650;
+    --dp-typography-display-weight: 900;
+    --dp-typography-body-leading: 1.3;
+    --dp-typography-control-leading: 1.2;
+    --dp-typography-label-tracking: 0.09em;
 
-  /* Accent palettes — data-theme on <html>, chosen in Settings → Appearance.
-     Plum (the default) is what :root and .dark already define, so it needs no
-     override. Each palette restyles only the accent trio; surfaces, text and
-     outlines stay shared. These blocks sit after .dark so an explicit palette
-     wins over the default in both light and dark mode. */
-  [data-theme="ocean"] {
-    --primary: 37 99 235;
-    --primary-light: 59 130 246;
-    --primary-container: 59 130 246;
-  }
-  .dark[data-theme="ocean"] {
-    --primary: 147 197 253;
-    --primary-light: 191 219 254;
-    --primary-container: 30 58 138;
-  }
+    --dp-spacing-column: 24px;
+    --dp-spacing-story: 22px;
 
-  [data-theme="forest"] {
-    --primary: 22 101 52;
-    --primary-light: 34 129 68;
-    --primary-container: 34 129 68;
-  }
-  .dark[data-theme="forest"] {
-    --primary: 134 239 172;
-    --primary-light: 110 213 150;
-    --primary-container: 20 83 45;
-  }
-
-  [data-theme="sunrise"] {
-    --primary: 234 88 12;
-    --primary-light: 249 115 22;
-    --primary-container: 249 115 22;
-  }
-  .dark[data-theme="sunrise"] {
-    --primary: 253 186 116;
-    --primary-light: 251 146 60;
-    --primary-container: 154 52 18;
-  }
-
-  [data-theme="graphite"] {
-    --primary: 55 65 81;
-    --primary-light: 75 85 99;
-    --primary-container: 75 85 99;
-  }
-  .dark[data-theme="graphite"] {
-    --primary: 209 213 219;
-    --primary-light: 156 163 175;
-    --primary-container: 55 65 81;
-  }
-
-  [data-theme="violet"] {
-    --primary: 109 40 217;
-    --primary-light: 124 58 237;
-    --primary-container: 124 58 237;
-  }
-  .dark[data-theme="violet"] {
-    --primary: 196 181 253;
-    --primary-light: 221 214 254;
-    --primary-container: 91 33 182;
-  }
-
-  [data-theme="rose"] {
-    --primary: 225 29 72;
-    --primary-light: 244 63 94;
-    --primary-container: 244 63 94;
-  }
-  .dark[data-theme="rose"] {
-    --primary: 253 164 175;
-    --primary-light: 254 205 211;
-    --primary-container: 159 18 57;
-  }
-
-  [data-theme="teal"] {
-    --primary: 13 148 136;
-    --primary-light: 20 184 166;
-    --primary-container: 20 184 166;
-  }
-  .dark[data-theme="teal"] {
-    --primary: 94 234 212;
-    --primary-light: 153 246 228;
-    --primary-container: 17 94 89;
-  }
-
-  [data-theme="gold"] {
-    --primary: 180 83 9;
-    --primary-light: 217 119 6;
-    --primary-container: 217 119 6;
-  }
-  .dark[data-theme="gold"] {
-    --primary: 252 211 77;
-    --primary-light: 253 230 138;
-    --primary-container: 146 64 14;
-  }
-
-  [data-theme="crimson"] {
-    --primary: 220 38 38;
-    --primary-light: 239 68 68;
-    --primary-container: 239 68 68;
-  }
-  .dark[data-theme="crimson"] {
-    --primary: 252 165 165;
-    --primary-light: 254 202 202;
-    --primary-container: 153 27 27;
-  }
-
-  [data-theme="indigo"] {
-    --primary: 79 70 229;
-    --primary-light: 99 102 241;
-    --primary-container: 99 102 241;
-  }
-  .dark[data-theme="indigo"] {
-    --primary: 165 180 252;
-    --primary-light: 199 210 254;
-    --primary-container: 55 48 163;
+    --dp-radius-control: 0;
+    --dp-border-hairline: 1px;
+    --dp-border-section: 4px;
+    --dp-border-focus: 2px;
+    --dp-motion-transition: none;
   }
 
   body {
-    font-family: var(--font-body), "Inter", sans-serif;
+    font-family: var(--dp-typography-reading), Georgia, serif;
+    background: var(--dp-color-ground);
+    color: var(--dp-color-ink);
+    line-height: var(--dp-typography-body-leading);
+    font-size: var(--dp-typography-body);
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-headline), "Manrope", sans-serif;
+    font-family: var(--dp-typography-display), Georgia, serif;
+    font-weight: var(--dp-typography-display-weight);
+    color: var(--dp-color-ink);
+    margin-top: 0;
+    margin-bottom: var(--dp-spacing-story);
+  }
+
+  a {
+    color: var(--dp-color-accent);
+    text-decoration: none;
+  }
+
+  a:hover {
+    text-decoration: underline;
+  }
+
+  /* Scrollbar styling — ruled, not rounded */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--dp-color-secondary);
+    border-radius: 0;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--dp-color-secondary);
+  }
+
+  /* Square, clearly labeled actions with thin black border.
+     Hover and selection invert foreground and background immediately. */
+  .np-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: var(--dp-border-hairline) solid var(--dp-color-ink);
+    border-radius: var(--dp-radius-control);
+    padding: 10px 18px;
+    font-family: var(--dp-typography-display), Georgia, serif;
+    font-size: var(--dp-typography-control);
+    font-weight: var(--dp-typography-label-weight);
+    color: var(--dp-color-ink);
+    background: var(--dp-color-ground);
+    cursor: pointer;
+    transition: none;
+  }
+
+  .np-btn:hover {
+    background: var(--dp-color-ink);
+    color: var(--dp-color-ground);
+  }
+
+  .np-btn:focus-visible {
+    outline: var(--dp-border-focus) solid var(--dp-color-accent);
+    outline-offset: 2px;
+  }
+
+  .np-btn--accent {
+    border-color: var(--dp-color-accent);
+    color: var(--dp-color-accent);
+  }
+
+  .np-btn--accent:hover {
+    background: var(--dp-color-accent);
+    color: var(--dp-color-ground);
+  }
+
+  /* Ruled question rows — native disclosures */
+  .np-disclosure > summary {
+    cursor: pointer;
+    font-family: var(--dp-typography-display), Georgia, serif;
+    font-weight: 650;
+    font-size: var(--dp-typography-control);
+    letter-spacing: var(--dp-typography-label-tracking);
+    padding: var(--dp-spacing-story) 0;
+    border-bottom: var(--dp-border-hairline) solid var(--dp-color-rule);
+    list-style: none;
+  }
+
+  .np-disclosure > summary::marker,
+  .np-disclosure > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .np-disclosure > summary::after {
+    content: "+";
+    float: right;
+    font-weight: 650;
+  }
+
+  .np-disclosure[open] > summary::after {
+    content: "−";
+  }
+
+  .np-disclosure > div {
+    padding: var(--dp-spacing-story) 0;
+    border-bottom: var(--dp-border-hairline) solid var(--dp-color-rule);
+  }
+
+  /* Section rules */
+  .np-section-rule {
+    border-bottom: var(--dp-border-section) solid var(--dp-color-ink);
+    margin: var(--dp-spacing-story) 0;
+  }
+
+  .np-column-divider {
+    border-left: var(--dp-border-hairline) solid var(--dp-color-rule);
+  }
+
+  /* Focus style for all interactive elements */
+  :focus-visible {
+    outline: var(--dp-border-focus) solid var(--dp-color-accent);
+    outline-offset: 2px;
   }
 }
 
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* Responsive breakpoints */
+@media (max-width: 1100px) {
+  :root {
+    --dp-spacing-column: 18px;
+    --dp-spacing-story: 18px;
+  }
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
+@media (max-width: 700px) {
+  :root {
+    --dp-typography-body: 18px;
+    --dp-typography-reading-compact: 17px;
+    --dp-spacing-column: 14px;
+    --dp-spacing-story: 16px;
+  }
 }
 
-::-webkit-scrollbar-thumb {
-  background: rgb(var(--primary) / 0.2);
-  border-radius: 3px;
+/* Border-based spinner (no animation keyframes per Newsprint) */
+.np-spinner {
+  animation: np-rotate 0.6s linear infinite;
 }
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgb(var(--primary) / 0.4);
-}
-
-/* Glass panel utility */
-.glass-panel {
-  background: rgba(15, 17, 21, 0.7);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(45, 52, 63, 0.5);
-}
-
-/* Subtle page animation */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-out;
-}
-
-/* ---- Optional page backgrounds (Settings → Appearance → Background) ----
-   A fixed layer sits behind the app; presets paint pure-CSS gradient art via
-   [data-bg] on <html>, a custom photo is injected inline as --app-bg-art.
-   Scrims keep both light and dark mode readable, and the opaque page wrapper
-   (app-page-bg) goes transparent so the art can show through. */
-
-.app-bg-layer {
-  display: none;
-}
-
-[data-bg] .app-bg-layer {
-  display: block;
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-}
-
-html:not(.dark) [data-bg] .app-bg-layer {
-  background-image:
-    linear-gradient(rgba(249, 249, 255, 0.72), rgba(249, 249, 255, 0.72)),
-    var(--app-bg-art);
-}
-
-.dark [data-bg] .app-bg-layer {
-  background-image:
-    linear-gradient(rgba(18, 18, 23, 0.66), rgba(18, 18, 23, 0.66)),
-    var(--app-bg-art);
-}
-
-[data-bg] .app-page-bg,
-html[data-bg] .app-page-bg {
-  background-color: transparent !important;
-}
-
-/* ---- Glassmorphism when a page background is active ----
-   Surfaces turn translucent with a backdrop blur so the wallpaper shows
-   through the UI while text stays readable on the frosted panels. */
-
-[data-bg] .bg-surface {
-  background-color: rgb(var(--surface) / 0.6);
-  backdrop-filter: blur(18px) saturate(150%);
-  -webkit-backdrop-filter: blur(18px) saturate(150%);
-}
-
-[data-bg] .bg-surface-container-lowest {
-  background-color: rgb(var(--surface-container-lowest) / 0.8);
-  backdrop-filter: blur(14px) saturate(140%);
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
-}
-
-[data-bg] .bg-surface-container-low {
-  background-color: rgb(var(--surface-container-low) / 0.72);
-  backdrop-filter: blur(14px) saturate(140%);
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
-}
-
-[data-bg] .bg-surface-container {
-  background-color: rgb(var(--surface-container) / 0.68);
-  backdrop-filter: blur(14px) saturate(140%);
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
-}
-
-[data-bg] .bg-surface-container-high {
-  background-color: rgb(var(--surface-container-high) / 0.66);
-  backdrop-filter: blur(14px) saturate(140%);
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
-}
-
-[data-bg] .bg-surface-container-highest {
-  background-color: rgb(var(--surface-container-highest) / 0.64);
-  backdrop-filter: blur(14px) saturate(140%);
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
-}
-
-[data-bg] .bg-surface-dim,
-[data-bg] .bg-surface-bright,
-[data-bg] .bg-surface-plum {
-  background-color: rgb(var(--surface-container) / 0.68);
-  backdrop-filter: blur(14px) saturate(140%);
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
-}
-
-/* Common pre-translucent surface variants get the frost too. */
-[data-bg] .bg-surface-container\/50,
-[data-bg] .bg-surface-container\/40,
-[data-bg] .bg-surface-container-low\/50 {
-  backdrop-filter: blur(14px) saturate(140%);
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
-}
-
-[data-bg="aurora"] {
-  --app-bg-art: radial-gradient(900px 600px at 85% -10%, rgba(167, 139, 250, 0.55), transparent 60%),
-    radial-gradient(800px 600px at -10% 100%, rgba(52, 211, 153, 0.45), transparent 60%),
-    linear-gradient(135deg, #0f172a, #1e1b4b);
-}
-
-[data-bg="sunset"] {
-  --app-bg-art: radial-gradient(900px 600px at 80% -10%, rgba(251, 146, 60, 0.55), transparent 60%),
-    radial-gradient(800px 600px at 10% 110%, rgba(244, 63, 94, 0.45), transparent 60%),
-    linear-gradient(135deg, #1c1917, #431407);
-}
-
-[data-bg="ocean-depths"] {
-  --app-bg-art: radial-gradient(900px 600px at 85% -10%, rgba(56, 189, 248, 0.5), transparent 60%),
-    radial-gradient(800px 600px at -10% 100%, rgba(30, 64, 175, 0.55), transparent 60%),
-    linear-gradient(135deg, #082f49, #0c4a6e);
-}
-
-[data-bg="forest-mist"] {
-  --app-bg-art: radial-gradient(900px 600px at 85% -10%, rgba(134, 239, 172, 0.4), transparent 60%),
-    radial-gradient(800px 600px at -10% 100%, rgba(20, 184, 166, 0.4), transparent 60%),
-    linear-gradient(135deg, #0f1f1a, #14532d);
-}
-
-[data-bg="slate"] {
-  --app-bg-art: radial-gradient(900px 600px at 85% -10%, rgba(148, 163, 184, 0.35), transparent 60%),
-    radial-gradient(800px 600px at -10% 100%, rgba(100, 116, 139, 0.35), transparent 60%),
-    linear-gradient(135deg, #0f172a, #334155);
-}
-
-[data-bg="rose-dawn"] {
-  --app-bg-art: radial-gradient(900px 600px at 85% -10%, rgba(251, 113, 133, 0.5), transparent 60%),
-    radial-gradient(800px 600px at -10% 100%, rgba(192, 132, 252, 0.45), transparent 60%),
-    linear-gradient(135deg, #1f1117, #500724);
-}
-
-/* ---- uiverse-style micro-interactions ---- */
-
-/* Gradient ring loader (uiverse-style) */
-.ui-spinner {
-  border-radius: 9999px;
-  background: conic-gradient(from 0deg, transparent 15%, currentColor 100%);
-  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
-  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
-  animation: ui-spin 0.7s linear infinite;
-}
-@keyframes ui-spin {
+@keyframes np-rotate {
   to { transform: rotate(360deg); }
-}
-
-/* Shiny sweep button (uiverse-style sheen) */
-.ui-btn {
-  position: relative;
-  overflow: hidden;
-  -webkit-tap-highlight-color: transparent;
-}
-.ui-btn::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: -160%;
-  width: 45%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.38), transparent);
-  transform: skewX(-20deg);
-  animation: ui-sheen 3s ease-in-out infinite;
-  pointer-events: none;
-}
-@keyframes ui-sheen {
-  0%, 60% { left: -160%; }
-  100% { left: 160%; }
 }

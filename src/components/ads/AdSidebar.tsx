@@ -2,12 +2,12 @@
 
 export default function AdSidebar() {
   return (
-    <div className="bg-primary/10 border border-primary/20 rounded-xl px-4 py-3 text-sm">
+    <div className="border border-rule p-4 bg-ground text-sm font-reading">
       <div className="flex items-center gap-2 mb-1">
-        <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className="w-4 h-4 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
         </svg>
-        <span className="text-on-surface font-medium text-xs">
+        <span className="font-black text-ink">
           Built with Aide by OmixSystems
         </span>
       </div>
@@ -15,7 +15,7 @@ export default function AdSidebar() {
         href="https://omixsystems.store"
         target="_blank"
         rel="noopener noreferrer"
-        className="text-xs text-primary font-semibold hover:underline"
+        className="font-black text-ink hover:underline"
       >
         Create your own business app →
       </a>

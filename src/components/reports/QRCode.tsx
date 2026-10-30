@@ -35,10 +35,10 @@ export default function QRCode({ url, size = 200, label }: QRCodeProps) {
   if (error || !dataUrl) {
     return (
       <div
-        className="flex items-center justify-center bg-surface-container border border-outline-variant rounded-xl"
+        className="flex items-center justify-center border border-rule bg-ground"
         style={{ width: size, height: size }}
       >
-        <p className="text-xs text-on-surface-variant p-4 text-center">QR unavailable</p>
+        <p className="text-xs text-secondary p-4 text-center font-display">QR unavailable</p>
       </div>
     );
   }
@@ -50,9 +50,9 @@ export default function QRCode({ url, size = 200, label }: QRCodeProps) {
         alt={label || "QR Code"}
         width={size}
         height={size}
-        className="rounded-lg border border-outline-variant bg-white"
+        className="border border-rule bg-ground"
       />
-      {label && <p className="text-xs text-on-surface-variant text-center">{label}</p>}
+      {label && <p className="text-xs text-secondary text-center font-display">{label}</p>}
     </div>
   );
 }

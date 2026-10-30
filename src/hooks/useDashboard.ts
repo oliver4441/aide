@@ -2,6 +2,7 @@
 import { useMemo } from "react";
 import db from "@/lib/db";
 import { useLiveQuery } from "dexie-react-hooks";
+import { useSyncStatus } from "@/hooks/useSyncStatus";
 
 interface DashboardData {
   todaySalesCount: number;
@@ -42,6 +43,8 @@ export function useDashboard(businessId?: string): DashboardData {
   // ⚡ Bolt Optimization: Memoize metrics computation and collapse multiple array
   // traversals into a single pass to eliminate redundant computations and object
   // allocations on component re-renders when underlying IndexedDB data hasn't changed.
+  const status = useSyncStatus();
+
   return useMemo(() => {
     const loading = todaySales === undefined || products === undefined;
 
@@ -80,6 +83,8 @@ export function useDashboard(businessId?: string): DashboardData {
       totalProducts: activeCount,
       recentSales: salesList.slice(-10).reverse(),
       loading,
+      syncStatus: status.isOnline ? 'online' : 'offline',
+      syncError: null,
     };
-  }, [todaySales, products]);
+  }, [todaySales, products, status.isOnline]);
 }

@@ -4,14 +4,6 @@ import Image from "next/image";
 import UiButton from "@/components/ui/UiButton";
 import Container from "@/components/ui/Container";
 
-/**
- * Hero framing knob.
- *
- * The photo is a 4:3 shot (sky on top, tea leaves at the bottom). `object-cover`
- * crops it to whatever the viewport shape is, so this value decides which slice
- * survives: a lower Y% shows more sky, a higher Y% shows more tea leaves.
- * Tune here, not in the markup.
- */
 const PHOTO_FOCUS = "50% 30%";
 
 export default function Hero() {
@@ -20,7 +12,6 @@ export default function Hero() {
       id="product"
       className="relative isolate overflow-hidden pb-20 pt-32 md:pb-28 md:pt-40"
     >
-      {/* ---- Background photo: tea plantation ---- */}
       <Image
         src="/hero/hero-bg.jpg"
         alt=""
@@ -33,40 +24,29 @@ export default function Hero() {
         style={{ objectPosition: PHOTO_FOCUS }}
       />
 
-      {/*
-        ---- Legibility scrim ----
-        Theme-aware because this sits on top of the photo: in light mode the
-        headline is dark-on-light, in dark mode it is light-on-dark. The scrim
-        is heaviest at the top (behind the nav + headline) and at the bottom
-        (where it dissolves into the next section), leaving the middle band of
-        the photo visible.
-      */}
       <div
         aria-hidden="true"
-        className="absolute inset-0 -z-10 bg-gradient-to-b from-surface/90 via-surface/60 to-surface"
+        className="absolute inset-0 -z-10 bg-ground"
       />
 
-      {/* ---- Soft brand glow ---- */}
-      <div className="pointer-events-none absolute left-1/2 top-10 -z-10 h-[620px] w-[620px] -translate-x-1/2 rounded-full bg-primary/10 blur-[150px]" />
-
       <Container className="relative z-10 text-center">
-        <div className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3.5 py-1.5 text-xs font-semibold text-primary backdrop-blur-sm">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
+        <div className="mx-auto mb-6 inline-flex items-center gap-2 border border-accent bg-accent/10 px-3.5 py-1.5 text-xs font-display font-black text-accent">
+          <span className="h-1.5 w-1.5 border border-accent text-accent" />
           Offline-first business workspace
         </div>
 
-        <h1 className="mx-auto max-w-5xl font-headline text-5xl font-bold tracking-[-0.04em] text-on-surface sm:text-6xl md:text-7xl lg:text-[84px] lg:leading-[0.98]">
+        <h1 className="mx-auto max-w-5xl font-display text-5xl font-black tracking-[-0.04em] text-ink sm:text-6xl md:text-7xl lg:text-[84px] lg:leading-[0.98]">
           Run your business.
           <br />
-          <span className="bg-gradient-to-r from-primary to-primary-light bg-clip-text text-transparent">Even offline.</span>
+          <span className="text-accent">Even offline.</span>
         </h1>
 
-        <p className="mx-auto mt-7 max-w-2xl text-base leading-7 text-on-surface-variant md:text-lg">
+        <p className="mx-auto mt-7 max-w-2xl text-base leading-7 text-secondary md:text-lg font-reading">
           Aide brings sales, inventory, receipts, payments and reports into one simple PWA built for small businesses. Open it in your browser, install it on your device, and keep working when the connection drops.
         </p>
 
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <UiButton href="/login" className="w-full sm:w-auto">
+          <UiButton href="/login" className="w-full sm:w-auto" variant="primary">
             Start free
             <span aria-hidden>→</span>
           </UiButton>
@@ -75,7 +55,7 @@ export default function Hero() {
           </UiButton>
         </div>
 
-        <div className="mt-7 flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-on-surface-variant">
+        <div className="mt-7 flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-secondary font-display">
           <span>✓ Works offline</span>
           <span>✓ Installable PWA</span>
           <span>✓ KSh &amp; M-Pesa ready</span>
@@ -83,37 +63,36 @@ export default function Hero() {
         </div>
 
         <div className="relative mx-auto mt-14 max-w-5xl text-left" aria-label="Aide PWA product preview">
-          <div className="absolute -inset-8 rounded-[2rem] bg-primary/5 blur-3xl" />
-          <div className="relative overflow-hidden rounded-2xl border border-outline-variant bg-surface-container shadow-2xl">
-            <div className="flex items-center justify-between border-b border-outline-variant px-4 py-3 md:px-5">
+          <div className="relative overflow-hidden border border-rule bg-ground">
+            <div className="flex items-center justify-between border-b border-rule px-4 py-3 md:px-5">
               <div className="flex items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-full bg-danger/60" />
-                <span className="h-2.5 w-2.5 rounded-full bg-warning/60" />
-                <span className="h-2.5 w-2.5 rounded-full bg-success/60" />
-                <span className="ml-2 font-mono text-[10px] text-on-surface-variant">aide / workspace</span>
+                <span className="h-2.5 w-2.5 border border-danger text-danger" />
+                <span className="h-2.5 w-2.5 border border-warning text-warning" />
+                <span className="h-2.5 w-2.5 border border-success text-success" />
+                <span className="ml-2 font-mono text-[10px] text-secondary">aide / workspace</span>
               </div>
-              <span className="rounded-full border border-success/20 bg-success/10 px-2.5 py-1 text-[10px] font-medium text-success">offline ready</span>
+              <span className="border border-success text-success px-2.5 py-1 text-[10px] font-display font-black">offline ready</span>
             </div>
 
             <div className="grid gap-0 md:grid-cols-[180px_1fr]">
-              <aside className="hidden border-r border-outline-variant bg-surface-container-low p-3 md:block">
-                <div className="mb-5 px-2 text-sm font-bold text-on-surface">Aide</div>
+              <aside className="hidden border-r border-rule bg-ground p-3 md:block">
+                <div className="mb-5 px-2 text-sm font-display font-black text-ink">Aide</div>
                 <div className="space-y-1 text-xs">
                   {['Overview', 'Point of sale', 'Inventory', 'Sales', 'Reports'].map((item, index) => (
-                    <div key={item} className={`rounded-lg px-3 py-2 ${index === 0 ? 'bg-primary/10 font-semibold text-primary' : 'text-on-surface-variant'}`}>
+                    <div key={item} className={`px-3 py-2 font-display ${index === 0 ? 'border-l-2 border-ink font-black text-ink' : 'text-secondary'}`}>
                       {item}
                     </div>
                   ))}
                 </div>
               </aside>
 
-              <div className="p-4 md:p-6">
-                <div className="flex items-end justify-between gap-4">
+              <div className="p-4 md:p-6 font-reading">
+                <div className="flex items-end justify-between gap-4 border-b border-rule pb-2">
                   <div>
-                    <p className="text-xs text-on-surface-variant">Business overview</p>
-                    <h2 className="mt-1 font-headline text-xl font-bold text-on-surface md:text-2xl">Today at a glance</h2>
+                    <p className="text-xs text-secondary">Business overview</p>
+                    <h2 className="mt-1 font-display text-xl font-black text-ink md:text-2xl">Today at a glance</h2>
                   </div>
-                  <span className="hidden rounded-lg border border-outline-variant px-3 py-2 text-[10px] text-on-surface-variant sm:block">Last 7 days</span>
+                  <span className="border border-rule text-[10px] text-secondary sm:block">Last 7 days</span>
                 </div>
 
                 <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -123,39 +102,38 @@ export default function Hero() {
                     ['Stock', '126', 'Products'],
                     ['Low stock', '4', 'Needs attention'],
                   ].map(([label, value, meta]) => (
-                    <div key={label} className="rounded-xl border border-outline-variant bg-surface-container-low p-3.5">
-                      <div className="text-[10px] uppercase tracking-wider text-on-surface-variant">{label}</div>
-                      <div className="mt-1 text-lg font-bold text-on-surface">{value}</div>
+                    <div key={label} className="border border-rule p-3.5">
+                      <div className="text-[10px] font-display font-black uppercase tracking-wider text-secondary">{label}</div>
+                      <div className="mt-1 text-lg font-display font-black text-ink">{value}</div>
                       <div className="mt-1 text-[9px] text-success">{meta}</div>
                     </div>
                   ))}
                 </div>
 
                 <div className="mt-3 grid gap-3 lg:grid-cols-[1.4fr_0.6fr]">
-                  <div className="rounded-xl border border-outline-variant bg-surface-container-low p-4">
+                  <div className="border border-rule p-4">
                     <div className="mb-4 flex items-center justify-between">
-                      <span className="text-xs font-semibold text-on-surface">Sales activity</span>
-                      <span className="text-[10px] text-on-surface-variant">KES</span>
+                      <span className="text-xs font-display font-black text-secondary">Sales activity</span>
+                      <span className="text-[10px] text-secondary">KES</span>
                     </div>
                     <div className="flex h-28 items-end gap-1.5">
                       {[34, 48, 42, 65, 57, 82, 72, 92, 68, 88, 76, 96].map((height, index) => (
-                        <div key={index} className="flex-1 rounded-t bg-primary/25 last:bg-primary/80" style={{ height: `${height}%` }} />
+                        <div key={index} className="flex-1 border-l border-accent" style={{ height: `${height}%` }} />
                       ))}
                     </div>
                   </div>
-                  <div className="rounded-xl border border-outline-variant bg-surface-container-low p-4">
-                    <div className="text-xs font-semibold text-on-surface">Quick actions</div>
-                    <div className="mt-3 space-y-2 text-[10px]">
-                      <div className="rounded-lg bg-primary/10 px-3 py-2 font-medium text-primary">New sale →</div>
-                      <div className="rounded-lg border border-outline-variant px-3 py-2 text-on-surface-variant">Add product →</div>
-                      <div className="rounded-lg border border-outline-variant px-3 py-2 text-on-surface-variant">View report →</div>
+                  <div className="border border-rule p-4">
+                    <div className="text-xs font-display font-black text-secondary">Quick actions</div>
+                    <div className="mt-3 space-y-2 text-[10px] font-display">
+                      <div className="border-l-2 border-ink px-3 py-2 font-black text-ink">New sale →</div>
+                      <div className="border-b border-rule px-3 py-2 text-secondary">Add product →</div>
+                      <div className="border-b border-rule px-3 py-2 text-secondary">View report →</div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-          <p className="mt-4 text-center font-mono text-[10px] text-on-surface-variant/60">The PWA keeps the core workflow available locally, then syncs when connectivity returns.</p>
         </div>
       </Container>
     </section>

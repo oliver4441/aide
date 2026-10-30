@@ -12,47 +12,32 @@ export default function FAQSection() {
   const groups = getFaqsByCategory();
 
   return (
-    <section>
-      <h2 className="mb-6 font-headline text-2xl font-bold text-on-surface">
+    <section className="font-reading">
+      <h2 className="font-display text-2xl font-black text-ink mb-6">
         Frequently Asked Questions
       </h2>
 
       <div className="space-y-8">
         {groups.map((group) => (
           <div key={group.category}>
-            <h3 className="mb-3 text-xs font-bold uppercase tracking-widest text-on-surface-variant/70">
+            <h3 className="font-display text-xs font-black uppercase tracking-widest text-secondary mb-3">
               {group.category}
             </h3>
-            <div className="space-y-3">
+            <div className="space-y-0 font-display">
               {group.items.map((faq) => {
                 const isOpen = expanded === faq.question;
                 return (
-                  <div
-                    key={faq.question}
-                    className="overflow-hidden rounded-xl border border-outline-variant transition-colors duration-200 ease-out hover:border-primary/30"
-                  >
+                  <div key={faq.question} className="np-disclosure">
                     <button
                       type="button"
                       aria-expanded={isOpen}
                       onClick={() => setExpanded(isOpen ? null : faq.question)}
-                      className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left text-sm font-medium text-on-surface transition-colors duration-200 hover:bg-surface-container"
+                      className="text-sm font-black text-ink"
                     >
-                      <span>{faq.question}</span>
-                      <svg
-                        aria-hidden="true"
-                        className={`h-5 w-5 shrink-0 text-on-surface-variant transition-transform duration-200 ease-out ${
-                          isOpen ? "rotate-180" : ""
-                        }`}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                      </svg>
+                      {faq.question}
                     </button>
                     {isOpen && (
-                      <div className="border-t border-outline-variant px-5 pb-5 pt-4 text-sm leading-relaxed text-on-surface-variant">
+                      <div className="pt-2 text-sm text-secondary leading-relaxed">
                         {faq.answer}
                       </div>
                     )}

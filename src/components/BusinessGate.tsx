@@ -23,9 +23,7 @@ export default function BusinessGate() {
         const res = await fetch("/api/business");
         const data = await res.json();
         if (!cancelled && !data.business) setShow(true);
-      } catch {
-        // offline or failed — don't block the app
-      }
+      } catch {}
     })();
     return () => { cancelled = true; };
   }, [status, session]);
@@ -54,37 +52,37 @@ export default function BusinessGate() {
   if (!show) return null;
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-on-surface/50 backdrop-blur-sm p-4">
-      <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-md border border-outline-variant p-8">
+    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-ink/50 p-4">
+      <div className="bg-ground border border-rule w-full max-w-md p-8">
         <div className="flex items-center gap-3 mb-6">
-          <img src="/logo.jpg" alt="" className="w-10 h-10 rounded-xl object-cover" />
+          <span className="font-display text-2xl font-black text-ink">Aide</span>
           <div>
-            <h2 className="text-lg font-bold text-on-surface font-headline">Name your business</h2>
-            <p className="text-xs text-on-surface-variant">This creates your own private workspace</p>
+            <h2 className="font-display text-lg font-black text-ink">Name your business</h2>
+            <p className="text-xs text-secondary">This creates your own private workspace</p>
           </div>
         </div>
 
         {error && (
-          <div className="bg-error-container text-on-error-container px-4 py-3 rounded-lg mb-4 text-sm">
+          <div className="border-b border-danger pb-2 mb-4 text-sm text-danger font-display">
             {error}
           </div>
         )}
 
-        <label className="block text-sm font-medium text-on-surface mb-1.5">Business name</label>
+        <label className="block text-xs font-black text-secondary mb-1">Business name</label>
         <input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g. Mama Njeri Store"
           autoFocus
-          className="w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface-container-low text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30 mb-4"
+          className="w-full px-4 py-3 border-b border-rule bg-transparent text-ink focus:outline-none focus:border-ink mb-4 font-reading"
         />
 
-        <label className="block text-sm font-medium text-on-surface mb-1.5">Business type</label>
+        <label className="block text-xs font-black text-secondary mb-1">Business type</label>
         <select
           value={type}
           onChange={(e) => setType(e.target.value)}
-          className="w-full px-4 py-3 rounded-lg border border-outline-variant bg-surface-container-low text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30 mb-6"
+          className="w-full px-4 py-3 border-b border-rule bg-transparent text-ink focus:outline-none focus:border-ink mb-6 font-reading"
         >
           {TYPES.map((t) => (
             <option key={t} value={t}>{t.charAt(0) + t.slice(1).toLowerCase()}</option>
@@ -94,7 +92,7 @@ export default function BusinessGate() {
         <button
           onClick={create}
           disabled={!name.trim() || saving}
-          className="w-full bg-primary text-on-primary font-semibold py-3 rounded-xl hover:bg-primary-light transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="np-btn np-btn--accent w-full py-3 font-display font-black"
         >
           {saving ? "Creating..." : "Create My Business"}
         </button>
