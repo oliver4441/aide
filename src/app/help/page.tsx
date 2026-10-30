@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { SITE_URL, SUPPORT_EMAIL } from "@/lib/site";
 import FAQSection from "@/components/help/FAQSection";
+import ThemeToggle from "@/components/ui/ThemeToggle";
 import ContactSection from "@/components/help/ContactSection";
 import type { Metadata } from "next";
 
@@ -47,12 +48,15 @@ export default function HelpPage() {
             <img src="/logo.jpg" alt="Aide logo" className="w-8 h-8 object-cover" />
             <span className="text-lg font-bold text-accent font-display">Aide</span>
           </Link>
-          <Link
-            href="/login"
-            className="bg-accent text-ground px-4 py-2 text-sm font-semibold hover:bg-ink transition-colors"
-          >
-            Open App
-          </Link>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Link
+              href="/login"
+              className="bg-accent text-ground px-4 py-2 text-sm font-semibold hover:bg-ink transition-colors"
+            >
+              Open App
+            </Link>
+          </div>
         </div>
       </header>
 

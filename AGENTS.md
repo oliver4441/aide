@@ -20,7 +20,8 @@
 - **PWA (web)** — offline-first *and* cloud-synced. Dexie outbox pushes to `/api/sync`; it is the only client that talks to the server.
 - **Android APK** — local-only. Room is the sole store; there is no account, no server, and no sync. The `sync/` package, Retrofit/OkHttp, the auth layer, and the mutation outbox were all removed. `LocalBusinessStore` generates a stable local `businessId` on first launch. Uninstalling the app deletes all data, so the More screen warns users to export anything they need.
 - **DashboardInit** component seeds Dexie from Neon on first login.
-- **Newsprint tokens**: CSS variables in `src/app/globals.css` (`--dp-color-*`, `--dp-typography-*`, `--dp-spacing-*`) exposed through `tailwind.config.ts`. Single theme — no dark mode, no accent picker.
+- **Newsprint tokens**: CSS variables in `src/app/globals.css` (`--dp-color-*`, `--dp-typography-*`, `--dp-spacing-*`, `--dp-photo-*`) exposed through `tailwind.config.ts`.
+- **Light / dark theme**: the `.dark` class on `<html>` re-points the same tokens (dark edition palette + dimmed hero photo). `src/app/layout.tsx` sets it from `localStorage["aide-theme"]` (falling back to `prefers-color-scheme`) in a blocking head script, and `src/components/ui/ThemeToggle.tsx` flips it. No provider, no context — colours stay in CSS.
 - **`tailwind.config.ts` must stay additive** (`theme.extend`). Replacing `theme.fontSize` / `theme.screens` / `theme.colors` silently deletes utilities the whole app still uses (`text-sm`, `md:*`, `rounded-lg`, `font-mono`).
 - **No build step for styling** — CSS `@import` for Google Fonts, Tailwind via PostCSS.
 

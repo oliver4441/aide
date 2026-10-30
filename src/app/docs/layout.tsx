@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import DocsMobileNav from "@/components/docs/DocsMobileNav";
 import DocsSidebar from "@/components/docs/DocsSidebar";
+import ThemeToggle from "@/components/ui/ThemeToggle";
 import { SITE_URL, SUPPORT_EMAIL } from "@/lib/site";
 
 /**
@@ -75,6 +76,7 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
           </nav>
 
           <div className="flex items-center gap-2">
+            <ThemeToggle />
             <Link
               href="/login"
               className="np-btn np-btn--accent"

@@ -4,6 +4,8 @@
 
 @layer base {
   :root {
+    color-scheme: light;
+
     /* Palette. Each colour is declared twice: once as a hex value for plain CSS
        and once as an "R G B" triplet so Tailwind opacity modifiers
        (`bg-accent/10`, `bg-ink/50`, `border-rule/60`) actually generate CSS. */
@@ -62,6 +64,38 @@
     --dp-motion-transition: none;
   }
 
+  /*
+   * Dark edition: same newspaper, printed on black stock. Ink and ground swap,
+   * the accent lifts to a lighter red so it still clears 4.5:1 on the dark
+   * ground, and the hero photo dims so display type keeps its contrast.
+   * Toggled by the `.dark` class on <html> (see ThemeToggle + layout.tsx).
+   */
+  .dark {
+    color-scheme: dark;
+
+    --dp-color-ground: #14130f;
+    --dp-color-ground-rgb: 20 19 15;
+    --dp-color-ink: #f2ede2;
+    --dp-color-ink-rgb: 242 237 226;
+    --dp-color-secondary: #b3ada0;
+    --dp-color-secondary-rgb: 179 173 160;
+    --dp-color-rule: #6b675d;
+    --dp-color-rule-rgb: 107 103 93;
+    --dp-color-accent: #e4655a;
+    --dp-color-accent-rgb: 228 101 90;
+
+    --dp-color-error-rgb: 255 143 134;
+    --dp-color-success-rgb: 74 222 128;
+    --dp-color-warning-rgb: 240 180 41;
+    --dp-color-danger-rgb: 255 143 134;
+
+    /* A bright daylight photo under a dark ground needs a heavier hand than it
+       does on cream, or the display type loses contrast. */
+    --dp-photo-opacity: 0.7;
+    --dp-photo-wash-top: 0.7;
+    --dp-photo-wash-mid: 0.84;
+  }
+
   body {
     font-family: var(--dp-typography-reading), Georgia, serif;
     background: var(--dp-color-ground);
@@ -107,6 +141,27 @@
   ::selection {
     background: var(--dp-color-ink);
     color: var(--dp-color-ground);
+  }
+
+  /* The brand mark is opaque white stock. On the dark ground it reads as a
+     blown-out square, so give it a ruled edge — a pasted label, not a glare. */
+  .dark img[src="/logo.jpg"] {
+    outline: 1px solid rgb(var(--dp-color-rule-rgb) / 0.6);
+    outline-offset: -1px;
+  }
+
+  /* Preflight's defaults are a cool grey that belongs to no palette: make a
+     bare `border` draw a newsprint hairline and placeholders sit at secondary,
+     so both follow the light/dark ground. */
+  *,
+  ::before,
+  ::after {
+    border-color: rgb(var(--dp-color-rule-rgb) / 1);
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: rgb(var(--dp-color-secondary-rgb) / 0.65);
   }
 
   /* Scrollbar styling — ruled, not rounded */

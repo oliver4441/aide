@@ -10,6 +10,7 @@ import UpdatePrompt from "@/components/pwa/UpdatePrompt";
 import SyncNowButton from "@/components/pwa/SyncNowButton";
 import OfflineStatus from "@/components/OfflineStatus";
 import NotificationBell from "@/components/notifications/NotificationBell";
+import ThemeToggle from "@/components/ui/ThemeToggle";
 import NotificationPermissionPrompt from "@/components/notifications/NotificationPermissionPrompt";
 import Link from "next/link";
 
@@ -19,8 +20,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <DashboardInit />
       <OnboardingFlow />
       <BusinessGate />
-      {/* Top-right notification bell */}
-      <div className="fixed top-4 right-4 z-[60]">
+      {/* Top-right utility cluster */}
+      <div className="fixed top-4 right-4 z-[60] flex items-center gap-2">
+        <ThemeToggle />
         <NotificationBell />
       </div>
       <Sidebar />
