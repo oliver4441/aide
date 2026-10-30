@@ -36,36 +36,47 @@ fun ReceiptScreen(
     val saleData = saleWithItems
     val settings = LocalAideSettings.current
 
+    // Built in the composable body, not inside shareReceipt(): money() reads the
+    // shop's currency from a CompositionLocal, so it may only be called from a
+    // composable — a plain local function is neither. Doing it here also means
+    // the text is produced once per sale rather than rebuilt on every tap.
+    val receiptText: String = if (saleData == null) {
+        ""
+    } else {
+        buildString {
+            appendLine("===============================")
+            appendLine(settings.businessName.ifBlank { "Aide Business Register" })
+            appendLine("Receipt #${saleData.sale.id.takeLast(8)}")
+            appendLine("Date: ${saleData.sale.createdAt}")
+            appendLine("-------------------------------")
+            saleData.items.forEach { item ->
+                appendLine("${item.name} x${item.quantity}  ${money(item.price * item.quantity)}")
+            }
+            appendLine("-------------------------------")
+            appendLine("TOTAL PAID: ${money(saleData.sale.total)}")
+            appendLine("Payment Method: ${saleData.sale.paymentMethod}")
+            if (saleData.sale.change > 0) {
+                appendLine("Change: ${money(saleData.sale.change)}")
+            }
+            if (saleData.sale.tax > 0.0) {
+                appendLine(
+                    "VAT (${"%.0f".format(saleData.sale.taxRate)}%): ${money(saleData.sale.tax)}"
+                )
+            }
+            if (settings.receiptFooter.isNotBlank()) {
+                appendLine("-------------------------------")
+                appendLine(settings.receiptFooter)
+            }
+            appendLine("===============================")
+        }
+    }
+
     fun shareReceipt() {
-        if (saleData == null) return
-        val bName = settings.businessName.ifBlank { "Aide Business Register" }
-        val sb = StringBuilder()
-        sb.appendLine("===============================")
-        sb.appendLine(bName)
-        sb.appendLine("Receipt #${saleData.sale.id.takeLast(8)}")
-        sb.appendLine("Date: ${saleData.sale.createdAt}")
-        sb.appendLine("-------------------------------")
-        saleData.items.forEach { item ->
-            sb.appendLine("${item.name} x${item.quantity}  ${money(item.price * item.quantity)}")
-        }
-        sb.appendLine("-------------------------------")
-        sb.appendLine("TOTAL PAID: ${money(saleData.sale.total)}")
-        sb.appendLine("Payment Method: ${saleData.sale.paymentMethod}")
-        if (saleData.sale.change > 0) {
-            sb.appendLine("Change: ${money(saleData.sale.change)}")
-        }
-        if (saleData.sale.tax > 0.0) {
-            sb.appendLine("VAT (${"%.0f".format(saleData.sale.taxRate)}%): ${money(saleData.sale.tax)}")
-        }
-        if (settings.receiptFooter.isNotBlank()) {
-            sb.appendLine("-------------------------------")
-            sb.appendLine(settings.receiptFooter)
-        }
-        sb.appendLine("===============================")
+        if (receiptText.isEmpty()) return
 
         val sendIntent = Intent().apply {
             action = Intent.ACTION_SEND
-            putExtra(Intent.EXTRA_TEXT, sb.toString())
+            putExtra(Intent.EXTRA_TEXT, receiptText)
             type = "text/plain"
         }
         val shareIntent = Intent.createChooser(sendIntent, "Share Receipt")
