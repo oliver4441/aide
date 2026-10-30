@@ -56,6 +56,7 @@ import com.omix.aide.ui.screens.CustomersScreen
 import com.omix.aide.ui.screens.ExpensesScreen
 import com.omix.aide.ui.screens.HomeScreen
 import com.omix.aide.ui.screens.MoreScreen
+import com.omix.aide.ui.screens.OnboardingScreen
 import com.omix.aide.ui.screens.ReceiptScreen
 import com.omix.aide.ui.screens.ReportsScreen
 import com.omix.aide.ui.screens.SettingsScreen
@@ -81,29 +82,14 @@ import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
-    /** Route requested by a tapped notification, consumed once by the nav host. */
     private val pendingRoute = mutableStateOf<String?>(null)
-
-    /**
-     * The saved business settings, held as state so that changing the accent or
-     * currency re-themes and re-formats the running app instead of only taking
-     * effect after a restart.
-     */
     private val settings = mutableStateOf(SettingsStore.read(applicationContext))
-
-    /**
-     * The newest published release, fetched on launch. Null until the check
-     * finishes, which is deliberately invisible -- the app must never look
-     * broken because a network call is slow.
-     */
     private val updateCheck = mutableStateOf<UpdateCheck?>(null)
 
     init {
-        // Fire and forget: the UI never waits on this.
         kotlinx.coroutines.CoroutineScope(Dispatchers.Main).launch {
             val result = UpdateChecker.check()
             if (result.newer) {
-                // Persist so the splash banner can pick it up next launch.
                 LocalBusinessStore(applicationContext).markOutOfDate()
             }
             updateCheck.value = result
@@ -125,9 +111,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // If the database could not be opened at startup, stop here and offer
-        // recovery. Continuing would crash on the first query and take the user
-        // into a loop they cannot escape.
         if (DatabaseHealth.isBroken(applicationContext)) {
             showDatabaseRecovery()
             return
@@ -135,8 +118,6 @@ class MainActivity : ComponentActivity() {
 
         pendingRoute.value = routeFromIntent(intent)
 
-        // Everything below reads and writes Room on this device only — there is
-        // no account, no server, and no sync.
         database = AideDatabase.getDatabase(applicationContext)
         businessStore = LocalBusinessStore(applicationContext)
         businessId = businessStore.getBusinessId()
@@ -169,9 +150,6 @@ class MainActivity : ComponentActivity() {
             businessId
         )
 
-        // The branded View-based splash owns the content view until the local
-        // database is ready; setupContent then replaces it with the Compose UI.
-        // Only one setContent call may happen per activity, hence the handoff.
         setContentView(R.layout.splash)
         val accent = Palette.read(this)
         showSplash(
@@ -180,13 +158,6 @@ class MainActivity : ComponentActivity() {
         )
     }
 
-    /**
-     * Last-resort UI shown when the local database cannot be opened.
-     *
-     * Nothing here touches Room: the whole point is that it works when Room does
-     * not. Retry re-runs the probe and reopens normally on success; reset is
-     * destructive and only reachable behind a confirmation on that screen.
-     */
     private fun showDatabaseRecovery() {
         setContent {
             CompositionLocalProvider(LocalAideSettings provides settings.value) {
@@ -217,7 +188,6 @@ class MainActivity : ComponentActivity() {
     private fun routeFromIntent(intent: Intent?): String? =
         intent?.getStringExtra(AideNotifications.EXTRA_ROUTE)
 
-    /** Maps a notification's deep link onto a screen in the nav graph. */
     private fun destinationForRoute(route: String?): String? =
         when (AideRoute.fromRoute(route)) {
             AideRoute.DASHBOARD -> Screen.Home.route
@@ -227,26 +197,20 @@ class MainActivity : ComponentActivity() {
             null -> null
         }
 
-    /**
-     * Switches to the main Compose content. Kept as a separate function so the
-     * splash can present the same content without blocking on compose.
-     */
     private fun setupContent() {
         setContent {
             val navController = rememberNavController()
             val navBackStackEntry by navController.currentBackStackEntryAsState()
             val currentRoute = navBackStackEntry?.destination?.route
 
-            // First-time Android users pick a theme before anything else.
             val startDestination = remember {
                 if (businessStore.hasCompletedSetup()) {
                     Screen.Home.route
                 } else {
-                    Screen.ThemePicker.route
+                    Screen.Onboarding.route
                 }
             }
 
-            // Ask for notification permission once on Android 13+.
             val permissionLauncher = rememberLauncherForActivityResult(
                 contract = ActivityResultContracts.RequestPermission()
             ) { granted ->
@@ -265,7 +229,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            // Follow a notification tap to the screen it points at.
             LaunchedEffect(pendingRoute.value) {
                 val target = pendingRoute.value ?: return@LaunchedEffect
                 val destination = destinationForRoute(target)
@@ -346,6 +309,17 @@ class MainActivity : ComponentActivity() {
                         startDestination = startDestination,
                         modifier = Modifier.padding(innerPadding)
                     ) {
+                        composable(Screen.Onboarding.route) {
+                            OnboardingScreen(
+                                onComplete = {
+                                    settings.value = SettingsStore.read(applicationContext)
+                                    navController.navigate(Screen.Home.route) {
+                                        popUpTo(Screen.Onboarding.route) { inclusive = true }
+                                    }
+                                }
+                            )
+                        }
+
                         composable(Screen.Home.route) {
                             HomeScreen(
                                 homeViewModel = homeViewModel,
@@ -410,8 +384,6 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        // These four were menu rows with empty onClick lambdas,
-                        // so tapping them did nothing.
                         composable(Screen.Customers.route) {
                             CustomersScreen(
                                 customerViewModel = customerViewModel,
@@ -446,8 +418,6 @@ class MainActivity : ComponentActivity() {
                             CalculatorScreen(onBack = { navController.popBackStack() })
                         }
 
-                        // First-time Android users pick a theme here instead of
-                        // straight into the app.
                         composable(Screen.ThemePicker.route) {
                             Column(modifier = Modifier.fillMaxSize()) {
                                 ThemePickerScreen(

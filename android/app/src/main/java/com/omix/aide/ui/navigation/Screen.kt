@@ -17,4 +17,7 @@ sealed class Screen(val route: String) {
 
     /** The themed theme-selection screen, shown to first-time Android users. */
     object ThemePicker : Screen("theme-picker")
+
+    /** The one-time welcome & onboarding screen for new users. */
+    object Onboarding : Screen("onboarding")
 }
