@@ -17,8 +17,15 @@ enum class ThemeMode {
     }
 
     companion object {
+        /**
+         * Dark unless the shop deliberately chose otherwise.
+         *
+         * This used to fall back to [SYSTEM], so a phone in light mode opened a
+         * light app on first launch and the theme picker came second. The app is
+         * designed dark-first; light is the opt-in.
+         */
         fun from(raw: String?): ThemeMode =
-            entries.firstOrNull { it.name.equals(raw, ignoreCase = true) } ?: SYSTEM
+            entries.firstOrNull { it.name.equals(raw, ignoreCase = true) } ?: DARK
     }
 }
 
@@ -40,7 +47,7 @@ data class BusinessSettings(
     val taxRate: Double = 0.0,
     val receiptFooter: String = "Thank you for your business",
     val accent: String = "plum",
-    val themeMode: ThemeMode = ThemeMode.SYSTEM,
+    val themeMode: ThemeMode = ThemeMode.DARK,
     val soundsEnabled: Boolean = true,
     /** Local hour the daily summary notification fires at (24h clock). */
     val summaryHour: Int = 18,

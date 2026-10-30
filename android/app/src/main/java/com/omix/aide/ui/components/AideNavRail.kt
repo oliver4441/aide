@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -75,13 +76,24 @@ fun AideNavRail(
         modifier = modifier
             .width(width)
             .fillMaxHeight()
-            .background(MaterialTheme.colorScheme.surface)
+            // Floating card rather than an edge-to-edge slab: the app background
+            // shows around it, which does most of the work of making the screen
+            // feel lighter. The declared width stays the same, so nothing that
+            // places the rail has to change.
+            .padding(vertical = 12.dp, horizontal = 8.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxHeight()
                 .weight(1f)
-                .padding(vertical = 12.dp, horizontal = 8.dp)
+                .clip(RoundedCornerShape(24.dp))
+                .background(MaterialTheme.colorScheme.surface)
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.30f),
+                    shape = RoundedCornerShape(24.dp)
+                )
+                .padding(vertical = 10.dp, horizontal = 6.dp)
         ) {
             RailBrandHeader(
                 expanded = expanded,
@@ -123,15 +135,6 @@ fun AideNavRail(
                 }
             }
         }
-
-        // Hairline rule against the content, in keeping with the ruled look of
-        // the rest of the app rather than a shadow.
-        Box(
-            modifier = Modifier
-                .fillMaxHeight()
-                .width(1.dp)
-                .background(MaterialTheme.colorScheme.outlineVariant)
-        )
     }
 }
 

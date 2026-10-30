@@ -23,6 +23,28 @@ Seen-ness is remembered separately from setup completion (`welcome_seen` in
 `aide_business`), so closing the app on the theme picker returns to the picker
 rather than replaying the introduction.
 
+The screen has depth: the brand mark is a disc that turns on its own axis
+(`rotationY`, 6.5 s a revolution) inside a halo that does not turn, so the mark
+still reads when the disc is edge-on; the copy, the four points and the buttons
+follow it in on one staggered timeline, and the points sit on a slightly tilted
+plane. Every one of these is skipped when the phone has animations switched off
+(`ui/components/Motion.kt`), and the final layout is identical either way.
+
+## Look and feel
+
+- **Dark by default.** `ThemeMode.DARK` is the default and also the fallback for
+  an unreadable saved value; light is the opt-in in Settings, and `SYSTEM` is
+  there for anyone who wants the phone to decide.
+- **The accent drives the containers.** `primaryContainer`,
+  `secondaryContainer` and their `on*` pairs are mixed from the chosen accent
+  over the surface (`ui/theme/Theme.kt`), so picking Plum, Teal or Amber re-tints
+  the welcome mark, the badges, the selected rail pill and the dashboard's
+  warning card. They used to be left undefined and fell back to Material's
+  baseline purple.
+- **The rail floats.** It is inset from the edges with a 24 dp radius rather than
+  ruling a full-height slab down the side of the screen, so the app background
+  shows around it.
+
 ## Navigation
 
 - **Collapsible left rail** (`ui/components/AideNavRail.kt`) is the primary

@@ -32,20 +32,23 @@ class ThemeSettingsTest {
     }
 
     @Test
-    fun anUnrecognisedStoredModeFallsBackToSystem() {
-        // A corrupt or future value must not leave the app un-themed.
-        assertEquals(ThemeMode.SYSTEM, ThemeMode.from("sepia"))
-        assertEquals(ThemeMode.SYSTEM, ThemeMode.from(null))
-        assertEquals(ThemeMode.SYSTEM, ThemeMode.from(""))
+    fun anUnrecognisedStoredModeFallsBackToDark() {
+        // A corrupt or future value must not leave the app un-themed. The
+        // fallback is dark: the app is designed dark-first and light is the
+        // opt-in, so a phone left in light mode must not decide this itself.
+        assertEquals(ThemeMode.DARK, ThemeMode.from("sepia"))
+        assertEquals(ThemeMode.DARK, ThemeMode.from(null))
+        assertEquals(ThemeMode.DARK, ThemeMode.from(""))
         assertEquals(ThemeMode.DARK, ThemeMode.from("dark"))
         assertEquals(ThemeMode.LIGHT, ThemeMode.from("LIGHT"))
+        assertEquals(ThemeMode.SYSTEM, ThemeMode.from("system"))
     }
 
     @Test
     fun defaultsAreUsableWithoutAnySavedSettings() {
         val defaults = BusinessSettings()
         assertEquals("plum", defaults.accent)
-        assertEquals(ThemeMode.SYSTEM, defaults.themeMode)
+        assertEquals(ThemeMode.DARK, defaults.themeMode)
         assertTrue(defaults.soundsEnabled)
     }
 

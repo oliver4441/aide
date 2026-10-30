@@ -94,13 +94,13 @@ fun AideCard(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     containerColor: Color = MaterialTheme.colorScheme.surface,
-    borderColor: Color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
+    borderColor: Color = MaterialTheme.colorScheme.outline.copy(alpha = 0.18f),
     content: @Composable ColumnScope.() -> Unit
 ) {
     val cardModifier = if (onClick != null) {
         modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(20.dp))
             .clickable(onClick = onClick)
     } else {
         modifier.fillMaxWidth()
@@ -108,7 +108,7 @@ fun AideCard(
 
     Card(
         modifier = cardModifier,
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = containerColor),
         border = BorderStroke(1.dp, borderColor),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
