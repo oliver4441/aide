@@ -57,7 +57,10 @@ jobs:
       - name: Derive version from the tag
         id: version
         env:
-          TAG: ${{ github.ref_name }}
+          # On a tag push the tag is the version. The workflow_dispatch input was
+          # declared but never read, so a manual run derived the version from the
+          # branch name and always failed the numeric check.
+          TAG: ${{ inputs.version || github.ref_name }}
         run: |
           set -euo pipefail
           # The tag is the single source of truth. Grepping versionName out of
@@ -110,45 +113,72 @@ jobs:
       # that disagrees with the tag. All three are checked here, before publish.
       - name: Verify the APK's signature and identity
         id: verify
+        env:
+          APK_PATH: ${{ steps.apk.outputs.path }}
+          EXPECTED_CODE: ${{ steps.version.outputs.version_code }}
+          EXPECTED_NAME: ${{ steps.version.outputs.version }}
         run: |
+          set -uo pipefail
+
+          # The checks live in a child shell run under `bash -x`. If one fails,
+          # the tail of the trace is published as a check annotation, because a
+          # bare "Process completed with exit code 1" says nothing about which
+          # of the checks died -- and the raw job log is not reachable from every
+          # tool that needs to look.
+          cat > "$RUNNER_TEMP/verify.sh" <<'SCRIPT'
           set -euo pipefail
-          APK="${{ steps.apk.outputs.path }}"
+          APK="$1"
+          EXPECTED_CODE="$2"
+          EXPECTED_NAME="$3"
+
           BUILD_TOOLS=$(ls -1 "$ANDROID_HOME/build-tools" | sort -V | tail -1)
           TOOLS="$ANDROID_HOME/build-tools/$BUILD_TOOLS"
           APKSIGNER="$TOOLS/apksigner"
-          if [ ! -x "$APKSIGNER" ]; then
-            echo "::error::apksigner not found under $ANDROID_HOME/build-tools"
+          [ -x "$APKSIGNER" ] || { echo "::error::no apksigner under $ANDROID_HOME/build-tools"; exit 1; }
+
+          # Android 11+ refuses an APK carrying only a v1 (JAR) signature and
+          # reports it as a bare "App not installed", so the v2 scheme is
+          # required, not merely a signature of any kind.
+          if ! "$APKSIGNER" verify --verbose --print-certs "$APK" > "$RUNNER_TEMP/apksigner.txt" 2>&1; then
+            echo "::error::apksigner could not verify $APK"
+            cat "$RUNNER_TEMP/apksigner.txt"
             exit 1
           fi
+          cat "$RUNNER_TEMP/apksigner.txt"
 
-          "$APKSIGNER" verify --verbose --print-certs "$APK" | tee "$RUNNER_TEMP/apksigner.txt"
-
-          # Android 11+ refuses an APK that carries only a v1 (JAR) signature,
-          # and reports it as a bare "App not installed".
-          if ! grep -q "Verified using v2 scheme (APK Signature Scheme v2): true" "$RUNNER_TEMP/apksigner.txt"; then
+          grep -q "Verified using v2 scheme (APK Signature Scheme v2): true" "$RUNNER_TEMP/apksigner.txt" || {
             echo "::error::$APK has no v2 signature; Android 11+ will refuse to install it."
             exit 1
-          fi
+          }
 
-          CERT_SHA=$(grep -m1 'Signer #1 certificate SHA-256 digest:' "$RUNNER_TEMP/apksigner.txt" \
-            | sed 's/.*digest:[[:space:]]*//')
-          CERT_DN=$(grep -m1 'Signer #1 certificate DN:' "$RUNNER_TEMP/apksigner.txt" \
-            | sed 's/.*DN:[[:space:]]*//')
+          # No `| head -1` anywhere below: `sed | head` returns 141 (SIGPIPE)
+          # under `set -o pipefail`, which killed this step silently on the
+          # first v1.0.9 attempt. Badging prints exactly one `package:` line.
+          # Unanchored on purpose: the signer prefix is not stable across
+          # build-tools ("Signer #1 ...", indented, or
+          # "Signer (minSdkVersion=...) ..."). Match the field, take the first
+          # hit, and strip a stray CR so the value is safe for GITHUB_OUTPUT.
+          CERT_SHA=$(sed -n '/certificate SHA-256 digest:/{s/.*certificate SHA-256 digest:[[:space:]]*//p;q;}' \
+            "$RUNNER_TEMP/apksigner.txt" | tr -d '\r')
+          CERT_DN=$(sed -n '/certificate DN:/{s/.*certificate DN:[[:space:]]*//p;q;}' \
+            "$RUNNER_TEMP/apksigner.txt" | tr -d '\r')
           if [ -z "$CERT_SHA" ]; then
-            echo "::error::Could not read the signing certificate digest from apksigner."
+            # Say what apksigner actually printed, as an annotation: the raw log
+            # is not readable from outside, and guessing costs a six-minute run.
+            dump=$(tr '\n' '|' < "$RUNNER_TEMP/apksigner.txt" | tr -d '\r' | cut -c1-1200)
+            echo "::error::could not read the signing certificate digest; apksigner said: $dump"
             exit 1
           fi
 
-          # The manifest must agree with the tag; a mismatch installs as a
-          # downgrade ("App not installed") rather than an update.
           if [ -x "$TOOLS/aapt2" ]; then
             BADGING=$("$TOOLS/aapt2" dump badging "$APK")
           else
             BADGING=$("$TOOLS/aapt" dump badging "$APK")
           fi
-          PKG=$(printf '%s\n' "$BADGING" | sed -n "s/^package: name='\([^']*\)'.*/\1/p" | head -1)
-          CODE=$(printf '%s\n' "$BADGING" | sed -n "s/^package:.*versionCode='\([0-9]*\)'.*/\1/p" | head -1)
-          NAME=$(printf '%s\n' "$BADGING" | sed -n "s/^package:.*versionName='\([^']*\)'.*/\1/p" | head -1)
+
+          PKG=$(printf '%s\n' "$BADGING" | sed -n "s/^package: name='\([^']*\)'.*/\1/p")
+          CODE=$(printf '%s\n' "$BADGING" | sed -n "s/^package:.*versionCode='\([0-9]*\)'.*/\1/p")
+          NAME=$(printf '%s\n' "$BADGING" | sed -n "s/^package:.*versionName='\([^']*\)'.*/\1/p")
 
           echo "package:     $PKG"
           echo "versionName: $NAME"
@@ -156,12 +186,18 @@ jobs:
           echo "certificate: $CERT_SHA"
           echo "subject:     $CERT_DN"
 
-          [ "$PKG" = "com.omix.aide" ] || {
-            echo "::error::APK package is '$PKG', expected com.omix.aide"; exit 1; }
-          [ "$CODE" = "${{ steps.version.outputs.version_code }}" ] || {
-            echo "::error::APK versionCode is '$CODE' but the tag asks for ${{ steps.version.outputs.version_code }}"; exit 1; }
-          [ "$NAME" = "${{ steps.version.outputs.version }}" ] || {
-            echo "::error::APK versionName is '$NAME' but the tag asks for ${{ steps.version.outputs.version }}"; exit 1; }
+          if [ "$PKG" != "com.omix.aide" ]; then
+            echo "::error::APK package is '$PKG', expected com.omix.aide"
+            exit 1
+          fi
+          if [ "$CODE" != "$EXPECTED_CODE" ]; then
+            echo "::error::APK versionCode is '$CODE' but the tag asks for $EXPECTED_CODE"
+            exit 1
+          fi
+          if [ "$NAME" != "$EXPECTED_NAME" ]; then
+            echo "::error::APK versionName is '$NAME' but the tag asks for $EXPECTED_NAME"
+            exit 1
+          fi
 
           {
             echo "cert_sha256=$CERT_SHA"
@@ -170,6 +206,18 @@ jobs:
             echo "version_code=$CODE"
             echo "version_name=$NAME"
           } >> "$GITHUB_OUTPUT"
+          SCRIPT
+
+          if bash -x "$RUNNER_TEMP/verify.sh" "$APK_PATH" "$EXPECTED_CODE" "$EXPECTED_NAME" \
+               > "$RUNNER_TEMP/verify.out" 2> "$RUNNER_TEMP/verify.trace"; then
+            cat "$RUNNER_TEMP/verify.out"
+          else
+            status=$?
+            cat "$RUNNER_TEMP/verify.out"
+            tail_text=$(tail -n 8 "$RUNNER_TEMP/verify.trace" | tr '\n' '|' | cut -c1-3000)
+            echo "::error title=APK verification failed (exit $status)::last trace: $tail_text"
+            exit 1
+          fi
 
       # A keystore rotation is invisible until a user tries to update and gets
       # "App not installed". Pin the fingerprint in the repository variable
