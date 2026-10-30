@@ -151,8 +151,185 @@ fun StockScreen(
                 } else {
                     LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         items(displayedProducts) { product ->
-                            StockProductCard(product = product)
+                            StockProductCard(
+                                product = product,
+                                onClick = { stockViewModel.setEditingProduct(product) }
+                            )
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    // Edit Product Bottom Sheet
+    val editingProduct = uiState.editingProduct
+    if (editingProduct != null) {
+        var editName by remember(editingProduct) { mutableStateOf(editingProduct.name) }
+        var editBuyingPrice by remember(editingProduct) { mutableStateOf(editingProduct.buyingPrice.toString()) }
+        var editSellingPrice by remember(editingProduct) { mutableStateOf(editingProduct.sellingPrice.toString()) }
+        var editQuantity by remember(editingProduct) { mutableStateOf(editingProduct.quantity.toString()) }
+        var editLowStock by remember(editingProduct) { mutableStateOf(editingProduct.lowStock.toString()) }
+        var editSku by remember(editingProduct) { mutableStateOf(editingProduct.sku ?: "") }
+        var editImagePath by remember(editingProduct) { mutableStateOf(editingProduct.imageUrl) }
+        var showDeleteConfirm by remember { mutableStateOf(false) }
+
+        if (showDeleteConfirm) {
+            AlertDialog(
+                onDismissRequest = { showDeleteConfirm = false },
+                title = { Text("Delete Product?") },
+                text = { Text("Are you sure you want to delete '${editingProduct.name}'? This action cannot be undone.") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            stockViewModel.deleteProduct(editingProduct.id)
+                            showDeleteConfirm = false
+                        }
+                    ) {
+                        Text("Delete", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteConfirm = false }) {
+                        Text("Cancel")
+                    }
+                }
+            )
+        }
+
+        ModalBottomSheet(
+            onDismissRequest = { stockViewModel.setEditingProduct(null) },
+            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(horizontal = 24.dp, vertical = 16.dp)
+                    .fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Edit Product",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    IconButton(onClick = { showDeleteConfirm = true }) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Delete Product",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedTextField(
+                    value = editName,
+                    onValueChange = { editName = it },
+                    label = { Text("Product Name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                ProductImagePicker(imagePath = editImagePath, onImagePicked = { editImagePath = it })
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(
+                        value = editBuyingPrice,
+                        onValueChange = { editBuyingPrice = it },
+                        label = { Text("Buying Cost") },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(14.dp),
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = editSellingPrice,
+                        onValueChange = { editSellingPrice = it },
+                        label = { Text("Selling Price") },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(14.dp),
+                        singleLine = true
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(
+                        value = editQuantity,
+                        onValueChange = { editQuantity = it },
+                        label = { Text("Current Stock") },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(14.dp),
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = editLowStock,
+                        onValueChange = { editLowStock = it },
+                        label = { Text("Low Alert Qty") },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(14.dp),
+                        singleLine = true
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                OutlinedTextField(
+                    value = editSku,
+                    onValueChange = { editSku = it },
+                    label = { Text("SKU / Barcode (Optional)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = { stockViewModel.setEditingProduct(null) },
+                        modifier = Modifier.weight(1f).height(50.dp),
+                        shape = RoundedCornerShape(14.dp)
+                    ) {
+                        Text("Cancel")
+                    }
+                    Button(
+                        onClick = {
+                            val bp = editBuyingPrice.toDoubleOrNull() ?: editingProduct.buyingPrice
+                            val sp = editSellingPrice.toDoubleOrNull() ?: editingProduct.sellingPrice
+                            val qty = editQuantity.toIntOrNull() ?: editingProduct.quantity
+                            val alertQty = editLowStock.toIntOrNull() ?: editingProduct.lowStock
+                            if (editName.isNotBlank() && sp > 0) {
+                                stockViewModel.updateProduct(
+                                    id = editingProduct.id,
+                                    name = editName,
+                                    buyingPrice = bp,
+                                    sellingPrice = sp,
+                                    quantity = qty,
+                                    lowStock = alertQty,
+                                    sku = editSku.ifBlank { null },
+                                    imagePath = editImagePath
+                                )
+                            }
+                        },
+                        modifier = Modifier.weight(1.5f).height(50.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    ) {
+                        Text("Save Changes", fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -281,13 +458,16 @@ fun StockScreen(
  * Expressive Inventory Item Card with visual stock progress bar
  */
 @Composable
-fun StockProductCard(product: ProductEntity) {
+fun StockProductCard(
+    product: ProductEntity,
+    onClick: () -> Unit = {}
+) {
     val isLow = product.quantity <= product.lowStock
     val margin = if (product.sellingPrice > 0) {
         ((product.sellingPrice - product.buyingPrice) / product.sellingPrice * 100).toInt()
     } else 0
 
-    AideCard {
+    AideCard(onClick = onClick) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),

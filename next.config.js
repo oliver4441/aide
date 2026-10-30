@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: "standalone",
   images: {
     // Serve AVIF first (much smaller for photography), WebP as the fallback.
     formats: ["image/avif", "image/webp"],
@@ -13,3 +14,4 @@ const nextConfig = {
 }
 
 module.exports = nextConfig
+

@@ -1,19 +1,23 @@
 package com.omix.aide.ui.screens
 
+import android.content.Intent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.omix.aide.data.local.dao.SaleWithItems
 import com.omix.aide.data.repository.SaleRepository
 import com.omix.aide.ui.LocalAideSettings
 import com.omix.aide.ui.money
-import com.omix.aide.ui.components.AideButton
 import com.omix.aide.ui.components.AideCard
 
 @Composable
@@ -22,6 +26,7 @@ fun ReceiptScreen(
     saleRepository: SaleRepository,
     onDone: () -> Unit
 ) {
+    val context = LocalContext.current
     var saleWithItems by remember { mutableStateOf<SaleWithItems?>(null) }
 
     LaunchedEffect(saleId) {
@@ -29,8 +34,43 @@ fun ReceiptScreen(
     }
 
     val saleData = saleWithItems
-
     val settings = LocalAideSettings.current
+
+    fun shareReceipt() {
+        if (saleData == null) return
+        val bName = settings.businessName.ifBlank { "Aide Business Register" }
+        val sb = StringBuilder()
+        sb.appendLine("===============================")
+        sb.appendLine(bName)
+        sb.appendLine("Receipt #${saleData.sale.id.takeLast(8)}")
+        sb.appendLine("Date: ${saleData.sale.createdAt}")
+        sb.appendLine("-------------------------------")
+        saleData.items.forEach { item ->
+            sb.appendLine("${item.name} x${item.quantity}  ${money(item.price * item.quantity)}")
+        }
+        sb.appendLine("-------------------------------")
+        sb.appendLine("TOTAL PAID: ${money(saleData.sale.total)}")
+        sb.appendLine("Payment Method: ${saleData.sale.paymentMethod}")
+        if (saleData.sale.change > 0) {
+            sb.appendLine("Change: ${money(saleData.sale.change)}")
+        }
+        if (saleData.sale.tax > 0.0) {
+            sb.appendLine("VAT (${"%.0f".format(saleData.sale.taxRate)}%): ${money(saleData.sale.tax)}")
+        }
+        if (settings.receiptFooter.isNotBlank()) {
+            sb.appendLine("-------------------------------")
+            sb.appendLine(settings.receiptFooter)
+        }
+        sb.appendLine("===============================")
+
+        val sendIntent = Intent().apply {
+            action = Intent.ACTION_SEND
+            putExtra(Intent.EXTRA_TEXT, sb.toString())
+            type = "text/plain"
+        }
+        val shareIntent = Intent.createChooser(sendIntent, "Share Receipt")
+        context.startActivity(shareIntent)
+    }
 
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
@@ -61,7 +101,7 @@ fun ReceiptScreen(
             AideCard(modifier = Modifier.weight(1f)) {
                 Column(modifier = Modifier.padding(20.dp).fillMaxWidth()) {
                     Text(
-                        text = "Aide Business Register",
+                        text = settings.businessName.ifBlank { "Aide Business Register" },
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
@@ -153,10 +193,32 @@ fun ReceiptScreen(
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
-            AideButton(
-                text = "Done",
-                onClick = onDone
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedButton(
+                    onClick = { shareReceipt() },
+                    modifier = Modifier.weight(1f).height(50.dp),
+                    shape = RoundedCornerShape(14.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Share,
+                        contentDescription = "Share",
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Share")
+                }
+                Button(
+                    onClick = onDone,
+                    modifier = Modifier.weight(1f).height(50.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Text("Done", fontWeight = FontWeight.Bold)
+                }
+            }
         }
     }
 }

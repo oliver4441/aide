@@ -15,7 +15,8 @@ data class StockUiState(
     val categories: List<CategoryEntity> = emptyList(),
     val searchQuery: String = "",
     val isLoading: Boolean = false,
-    val isAddProductOpen: Boolean = false
+    val isAddProductOpen: Boolean = false,
+    val editingProduct: ProductEntity? = null
 )
 
 class StockViewModel(
@@ -25,13 +26,15 @@ class StockViewModel(
 
     private val _searchQuery = MutableStateFlow("")
     private val _isAddOpen = MutableStateFlow(false)
+    private val _editingProduct = MutableStateFlow<ProductEntity?>(null)
 
     val uiState: StateFlow<StockUiState> = combine(
         productRepository.getProducts(businessId),
         productRepository.getCategories(businessId),
         _searchQuery,
-        _isAddOpen
-    ) { products, categories, query, isAdd ->
+        _isAddOpen,
+        _editingProduct
+    ) { products, categories, query, isAdd, editing ->
         val filtered = if (query.isBlank()) products else products.filter {
             it.name.contains(query, ignoreCase = true) || (it.sku?.contains(query, ignoreCase = true) == true)
         }
@@ -39,7 +42,8 @@ class StockViewModel(
             products = filtered,
             categories = categories,
             searchQuery = query,
-            isAddProductOpen = isAdd
+            isAddProductOpen = isAdd,
+            editingProduct = editing
         )
     }.stateIn(
         scope = viewModelScope,
@@ -53,6 +57,10 @@ class StockViewModel(
 
     fun setAddProductOpen(isOpen: Boolean) {
         _isAddOpen.value = isOpen
+    }
+
+    fun setEditingProduct(product: ProductEntity?) {
+        _editingProduct.value = product
     }
 
     fun addProduct(
@@ -84,6 +92,49 @@ class StockViewModel(
             )
             productRepository.addOrUpdateProduct(product)
             _isAddOpen.value = false
+        }
+    }
+
+    fun updateProduct(
+        id: String,
+        name: String,
+        buyingPrice: Double,
+        sellingPrice: Double,
+        quantity: Int,
+        lowStock: Int = 5,
+        sku: String? = null,
+        imagePath: String? = null
+    ) {
+        viewModelScope.launch {
+            val isoFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
+                timeZone = TimeZone.getTimeZone("UTC")
+            }
+            val now = isoFormat.format(Date())
+            val existing = uiState.value.products.find { it.id == id }
+            val product = ProductEntity(
+                id = id,
+                businessId = businessId,
+                name = name,
+                buyingPrice = buyingPrice,
+                sellingPrice = sellingPrice,
+                quantity = quantity,
+                lowStock = lowStock,
+                sku = sku,
+                imageUrl = imagePath ?: existing?.imageUrl,
+                createdAt = existing?.createdAt ?: now,
+                updatedAt = now
+            )
+            productRepository.addOrUpdateProduct(product)
+            _editingProduct.value = null
+        }
+    }
+
+    fun deleteProduct(id: String) {
+        viewModelScope.launch {
+            productRepository.deleteProduct(id)
+            if (_editingProduct.value?.id == id) {
+                _editingProduct.value = null
+            }
         }
     }
 }

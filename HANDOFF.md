@@ -353,56 +353,75 @@ user guide" CTA, and the docs index's "New here?" note points at it.
 
 ## 4. Known issues / not done
 
-### 4.1 GitHub Actions (resolved 2026-10-30)
+### 4.1 GitHub Actions is green, except one workflow that never registered
 
-All three workflows run and pass:
+Re-verified on `6f67e64` (Android CI run `36917367806`, 1m16s):
 
-| Workflow | Trigger | Status |
+| Workflow | Status | Note |
 |---|---|---|
-| **Android CI** | pushes to `master`/`feat/*`/`fix/*`, PRs | PASS — tests, debug APK, R8 release APK |
-| **Android Release** | `v*` tag, manual dispatch | PASS — `v1.0.8`, signed APK published |
-| **Desktop App Release** | desktop release trigger | PASS — macOS / Windows / Linux builds |
+| **Android CI** | PASS - `build` **success** | The old `testDebugUnitTest` failure is fixed; this gate is now clear |
+| **Desktop App Release** | PASS - Build macOS / Windows / Linux all **success** | `Publish desktop release` is **skipped** by design (see 4.5) |
+| **`.github/workflows/android-release.yml`** | FAIL - **fails in 0s with no log** | See below |
 
-**The web app does not deploy through Actions at all** — Vercel builds it.
+**This does not affect the web app** - that deploys through Vercel, not Actions.
 
-<details>
-<summary>History: the "workflow never registered" symptom (2026-10-02)</summary>
+#### The `android-release.yml` failure is a workflow-file problem, not Gradle
 
-For a period the file reported its **path** instead of its name in
-`gh api .../actions/workflows` and failed in 0s with no log, which looked like
-GitHub rejecting the file. Two step-level `with:` blocks that collided with the
-step's own `name:` key were the cause; once the file parsed, it registered as
-"Android Release" and has built every release since. `v1.0.2`, `v1.0.7` and
-`v1.0.8` were all published by it.
+The run says so directly:
 
-</details>
+```
+X This run likely failed because of a workflow file issue.
+```
 
-### 4.2 Signed release APK published (resolved 2026-10-30)
+The proof is in the API - GitHub never read the `name:` key:
 
-`v1.0.8` is a signed release: `aide-1.0.8.apk`, 8,307,755 bytes, built by
-`android-release.yml` with the repository keystore, verified by `apksigner`
-before publication, with its SHA-256 in `public/apk-checksums.json` and in the
-release notes. `/api/latest-release` picks the newest release that carries an
-APK, so `/downloads` and the in-app update banner serve that build.
+```bash
+gh api repos/oliver4441/aide/actions/workflows/android-release.yml
+# {"name":".github/workflows/android-release.yml", ...}   <- name is the FILE PATH
+# {"badge_url":".../workflows/.github/workflows/android-release.yml/badge.svg"}
+```
 
-The pipeline now fails closed at four points instead of publishing something
-unusable:
+Compare `android-ci.yml` and `release-desktop.yml`, which report `Android CI` and
+`Desktop App Release`. `android-release.yml` has reported its own **path** as its
+name since `created_at: 2026-09-07` - **this workflow has never once run**.
 
-1. `verifyReleaseSigning` fails the Gradle build when `ANDROID_KEYSTORE_PATH` is
-   absent, unless `-PaideAllowUnsignedRelease=true` is passed (only CI's PR
-   builds do).
-2. The release workflow requires `ANDROID_KEYSTORE_BASE64` and decodes it.
-3. It verifies the APK with `apksigner`, requires a **v2** signature scheme,
-   and checks the manifest's package, `versionName` and `versionCode` against
-   the tag.
-4. It refuses to publish if the signing certificate differs from the pinned
-   `ANDROID_CERT_SHA256` repository variable, because a rotated key means no
-   existing install can update — see issue #20.
+That also explains the other oddity: a run appears on *every* push even though the
+file has not changed since `b50d7e6`. The file only triggers on `v*` tags and
+`workflow_dispatch`, so a push-triggered run is impossible unless the file is being
+rejected outright.
 
-**Historical:** before `v1.0.2` the download button served `app-debug.apk`
-because no signed release existed, and the secrets were unconfigured. Anything
-installed from that era carries the debug certificate and **cannot** be updated
-in place; it has to be uninstalled first (export data from Settings).
+**Still unresolved.** The file is byte-identical on `master` (md5 verified), pure
+ASCII, no BOM, no CRLF, no tabs, and parses cleanly under a standard YAML parser.
+Whatever GitHub's stricter validator objects to is not surfaced through `gh` - only
+the Actions UI shows it. Next step: open the run in a browser, or bisect by
+replacing the file with a minimal skeleton and adding steps back.
+
+### 4.2 No signed release APK is published, and the download button serves a debug build
+
+Two separate problems, both live today.
+
+**(a) The signing workflow has never run** - see 4.1. `android-release.yml` is
+rejected by GitHub, so the `v*`-tag path that would build a signed APK is dead.
+The secrets (`ANDROID_KEYSTORE_BASE64`, `ANDROID_STORE_PASSWORD`,
+`ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`) are also unconfigured, which would
+skip `assembleRelease` even if it did run.
+
+**(b) The public download is a debug APK.** `/api/latest-release` picks the
+newest stable release (v1.0.1) and its only asset is `app-debug.apk`:
+
+```json
+{ "version": "1.0.1", "versionCode": 0, "tag": "v1.0.1",
+  "downloadUrl": ".../releases/download/v1.0.1/app-debug.apk",
+  "apkName": "app-debug.apk", "sizeBytes": 4795842 }
+```
+
+`/downloads` links to exactly that URL, so every user who taps "Download the APK"
+gets an unsigned debug build. Note `versionCode: 0` - the tag `v1.0.1` has no
+`+N` suffix, so the API's `parseInt(... || "0")` yields 0.
+
+Also worth knowing: `v1.0.0` ships **both** `aide-release.apk` and
+`app-debug.apk` at the byte-identical size (4,145,362), which suggests the
+"release" asset is a debug build that was simply renamed.
 
 ### 4.3 Repo schema is behind production (intentionally not changed)
 Production Neon has **28 tables**; this repo's `schema.prisma` models only the core ones.

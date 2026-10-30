@@ -42,12 +42,12 @@ export async function GET() {
     totalProducts,
     avgReviewRating: Math.round((reviewAgg._avg.rating || 0) * 10) / 10,
     totalReviews,
-    recentBusinesses: recentBusinessRows.map((b) => ({
+    recentBusinesses: recentBusinessRows.map((b: any) => ({
       id: b.id,
       name: b.name,
       type: b.type,
       createdAt: b.createdAt,
-      ownerName: b.memberships[0]?.user.name || "—",
+      ownerName: b.memberships?.[0]?.user?.name || "—",
     })),
     recentUsers,
   });

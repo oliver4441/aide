@@ -1,0 +1,8 @@
+{
+  "name": "Aide — Offline-First Business Management",
+  "description": "Offline-first POS, inventory management, and analytics platform designed for businesses. Works completely offline with local storage and prints supermarket-grade receipts.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

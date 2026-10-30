@@ -46,8 +46,9 @@ design language, not a database.
   quantity, low-stock threshold, and a service flag for items that never
   decrement stock.
 - Margin preview per product.
-- **No edit or delete UI** for products in the APK — adding is supported, editing
-  is not (see the gap list below).
+- **Edit and delete UI**: Tapping any product opens the Edit Product sheet to adjust
+  name, pricing, current stock, low-stock threshold, SKU, and image, with a confirmation
+  dialog for deletion.
 
 ## Customers (`CustomersScreen`, `CustomerViewModel`)
 
@@ -74,8 +75,8 @@ design language, not a database.
 
 ## Receipt (`ReceiptScreen`)
 
-- Shows the sale: items, quantities, totals, VAT line, payment method, change.
-- On-device only. The APK has **no print and no share** for receipts.
+- Shows the sale: business name, items, quantities, totals, VAT line, payment method, change, and custom receipt footer.
+- **Share Receipt**: Built-in Android share sheet (`Intent.ACTION_SEND`) to send an itemized text receipt via WhatsApp, SMS, or email. The APK does not include Bluetooth or physical printer drivers.
 
 ## Settings (`SettingsScreen`)
 
@@ -173,13 +174,10 @@ Stated explicitly so the docs, the UI copy and the app agree:
 - No staff accounts, roles or permissions.
 - No barcode scanning (search only) and no camera-based product capture.
 - No discounts, no split or partial payments — one payment method per sale.
-- No printing or sharing receipts from the APK; the receipt is on-screen only.
-  (The web PWA prints.)
-- No Bluetooth or thermal-printer integration.
+- No direct Bluetooth or ESC/POS thermal-printer integration (receipt sharing via Android text share sheet is supported).
 - No remote push notifications: alerts are local and only arrive while the app is
   installed and notifications are permitted.
-- No product edit/delete UI, and no customer statement or ledger beyond the
-  stored balance.
+- No customer statement or ledger beyond the stored balance.
 - No cloud backup: the JSON export is a file on the phone and nothing uploads it.
 
 ## Where it lives
