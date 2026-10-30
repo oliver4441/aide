@@ -59,13 +59,6 @@ data class SaleItemEntity(
     val cost: Double
 )
 
-/**
- * A notification that has been shown on this device.
- *
- * Doubles as the idempotency log and the in-app notification inbox: the primary
- * key is the event id, so inserting the same business event twice is a no-op and
- * the notification is never displayed twice.
- */
 @Entity(
     tableName = "notified_events",
     indices = [Index("createdAt"), Index("read")]
@@ -80,14 +73,6 @@ data class NotifiedEventEntity(
     val createdAt: Long
 )
 
-
-/**
- * A business expense — rent, utilities, transport, restocking, wages.
- *
- * Kept separate from [SaleEntity] on purpose: sales are revenue, expenses are
- * cost, and net profit is only meaningful once both exist. Indexed by
- * createdAt because every report filters on a date range.
- */
 @Entity(
     tableName = "expenses",
     indices = [Index("businessId"), Index("createdAt")]
@@ -98,19 +83,11 @@ data class ExpenseEntity(
     val category: String,
     val description: String? = null,
     val amount: Double,
-    /** Shop overheads are not itemised against a product; COGS lives on the sale. */
     val isCogs: Boolean = false,
     val notes: String? = null,
     val createdAt: String
 )
 
-/**
- * A customer in the local directory.
- *
- * `balance` is denormalised on purpose: it is maintained when a sale is
- * recorded on credit, so the directory can be listed without joining every
- * time. Negative means the customer owes the business.
- */
 @Entity(
     tableName = "customers",
     indices = [Index("businessId"), Index("name")]
@@ -126,4 +103,21 @@ data class CustomerEntity(
     val isActive: Boolean = true,
     val createdAt: String,
     val updatedAt: String
+)
+
+/**
+ * A debt payment record for a customer.
+ */
+@Entity(
+    tableName = "customer_payments",
+    indices = [Index("businessId"), Index("customerId")]
+)
+data class CustomerPaymentEntity(
+    @PrimaryKey val id: String,
+    val businessId: String,
+    val customerId: String,
+    val amount: Double,
+    val paymentMethod: String = "CASH",
+    val notes: String? = null,
+    val createdAt: String
 )

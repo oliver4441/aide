@@ -8,6 +8,7 @@ import com.omix.aide.data.local.dao.SaleDao
 import com.omix.aide.data.local.dao.SalesTotalsRow
 import com.omix.aide.data.local.dao.TopProductRow
 import com.omix.aide.data.local.entities.CustomerEntity
+import com.omix.aide.data.local.entities.CustomerPaymentEntity
 import com.omix.aide.data.local.entities.ExpenseEntity
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -16,10 +17,6 @@ import java.util.TimeZone
 import java.util.UUID
 import kotlinx.coroutines.flow.Flow
 
-/**
- * Shop overheads. Local-only, like everything else in the Android app — no
- * account, no server, no sync.
- */
 class ExpenseRepository(
     private val expenseDao: ExpenseDao
 ) {
@@ -65,13 +62,16 @@ class ExpenseRepository(
         expenseDao.getCategoryTotalsSince(businessId, sinceIso)
 }
 
-/** The local customer directory and their outstanding balances. */
+/** The local customer directory, debt tracking and repayments. */
 class CustomerRepository(
     private val customerDao: CustomerDao
 ) {
 
     fun getCustomers(businessId: String): Flow<List<CustomerEntity>> =
         customerDao.getCustomers(businessId)
+
+    fun getPayments(customerId: String): Flow<List<CustomerPaymentEntity>> =
+        customerDao.getPaymentsByCustomer(customerId)
 
     suspend fun addCustomer(
         businessId: String,
@@ -105,18 +105,37 @@ class CustomerRepository(
         )
     }
 
+    suspend fun recordPayment(
+        businessId: String,
+        customerId: String,
+        amount: Double,
+        paymentMethod: String = "CASH",
+        notes: String? = null
+    ) {
+        if (amount <= 0.0) return
+        val existing = customerDao.getById(customerId) ?: return
+        val payment = CustomerPaymentEntity(
+            id = UUID.randomUUID().toString(),
+            businessId = businessId,
+            customerId = customerId,
+            amount = amount,
+            paymentMethod = paymentMethod,
+            notes = notes,
+            createdAt = nowIso()
+        )
+        customerDao.insertPayment(payment)
+        // Debt payment reduces customer balance
+        customerDao.insertOrUpdate(
+            existing.copy(balance = (existing.balance - amount).coerceAtLeast(0.0), updatedAt = nowIso())
+        )
+    }
+
     suspend fun deleteCustomer(id: String) = customerDao.deleteById(id)
 
     suspend fun getTotalOwed(businessId: String): Double =
         customerDao.getTotalOwed(businessId)
 }
 
-/**
- * Aggregates for the reports screen.
- *
- * Reads only the current business and only from `sinceIso` onwards, so opening
- * reports on a shop with years of history does not pull every row into memory.
- */
 class ReportRepository(
     private val saleDao: SaleDao,
     private val expenseRepository: ExpenseRepository
@@ -129,7 +148,6 @@ class ReportRepository(
         val payments: List<PaymentBreakdownRow>,
         val expenseCategories: List<CategoryExpenseRow>
     ) {
-        /** Gross profit less overheads — the number a shop owner actually wants. */
         val netProfit: Double get() = totals.profit - overheads
         val marginPercent: Double
             get() = if (totals.revenue <= 0.0) 0.0 else netProfit / totals.revenue * 100.0
@@ -148,7 +166,6 @@ class ReportRepository(
     }
 }
 
-/** ISO-8601 in UTC, matching the format the sales rows are stored in. */
 internal fun nowIso(): String {
     val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
     format.timeZone = TimeZone.getTimeZone("UTC")

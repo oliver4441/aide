@@ -1,176 +1,317 @@
 package com.omix.aide.ui.screens
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.omix.aide.data.local.LocalBusinessStore
+import com.omix.aide.data.local.entities.CustomerEntity
+import com.omix.aide.ui.components.*
 import com.omix.aide.ui.money
-import com.omix.aide.ui.components.AideCard
-import com.omix.aide.ui.components.AideEmptyState
-import com.omix.aide.ui.components.AideSearchBar
-import com.omix.aide.ui.components.AideStatCard
-import com.omix.aide.ui.components.LoadingState
 import com.omix.aide.ui.theme.DangerRed
 import com.omix.aide.ui.viewmodel.CustomerViewModel
 
-/**
- * The local customer directory. Another of the four More-menu rows whose
- * onClick was an empty lambda.
- */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomersScreen(
     customerViewModel: CustomerViewModel,
     onBack: () -> Unit
 ) {
     val uiState by customerViewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    val businessStore = remember { LocalBusinessStore(context) }
+
+    var paymentAmount by remember { mutableStateOf("") }
+    var paymentMethod by remember { mutableStateOf("CASH") }
+    var paymentNotes by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
+            Surface(
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 2.dp
             ) {
-                TextButton(onClick = onBack) { Text("Back") }
-                Text(
-                    text = "Customers",
-                    style = MaterialTheme.typography.headlineMedium,
-                    modifier = Modifier.weight(1f)
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Customer Credit & Debtors",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         },
         floatingActionButton = {
             if (!uiState.isLoading) {
                 ExtendedFloatingActionButton(
                     onClick = { customerViewModel.setAddOpen(true) },
-                    icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                    text = { Text("Add") }
+                    icon = { Icon(Icons.Default.PersonAdd, contentDescription = null) },
+                    text = { Text("Add Customer") },
+                    containerColor = MaterialTheme.colorScheme.primary
                 )
             }
         }
     ) { padding ->
-        if (uiState.isLoading) {
-            LoadingState(Modifier.padding(padding))
-            return@Scaffold
-        }
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            AideLocalOnlyBanner()
 
-        Column(Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                AideStatCard(
-                    title = "Total owed",
-                    value = money(uiState.totalOwed),
-                    modifier = Modifier.weight(1f),
-                    valueColor = if (uiState.totalOwed > 0.0) DangerRed
-                    else MaterialTheme.colorScheme.onSurface
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+            ) {
+                if (uiState.isLoading) {
+                    LoadingState()
+                    return@Column
+                }
+
+                // Top Metrics Cards
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    AideStatCard(
+                        title = "Total Outstanding",
+                        value = money(uiState.totalOwed),
+                        subtitle = "${uiState.owingCount} customer(s) owing",
+                        icon = Icons.Default.AccountBalance,
+                        modifier = Modifier.weight(1f),
+                        valueColor = if (uiState.totalOwed > 0.0) DangerRed else MaterialTheme.colorScheme.primary
+                    )
+                    AideStatCard(
+                        title = "Directory Size",
+                        value = "${uiState.customers.size}",
+                        subtitle = "Total accounts",
+                        icon = Icons.Default.People,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                AideSearchBar(
+                    query = uiState.searchQuery,
+                    onQueryChange = customerViewModel::setSearchQuery,
+                    placeholder = "Search customers by name or phone..."
                 )
-                AideStatCard(
-                    title = "Owing",
-                    value = uiState.owingCount.toString(),
-                    modifier = Modifier.weight(1f)
-                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                if (uiState.customers.isEmpty()) {
+                    AideEmptyState(
+                        message = if (uiState.searchQuery.isBlank()) "No customers in directory yet." else "No customers match \"${uiState.searchQuery}\".",
+                        actionLabel = if (uiState.searchQuery.isBlank()) "Add Customer" else null,
+                        onAction = if (uiState.searchQuery.isBlank()) {
+                            { customerViewModel.setAddOpen(true) }
+                        } else null
+                    )
+                } else {
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        items(uiState.customers, key = { it.id }) { customer ->
+                            CustomerCardItem(
+                                customer = customer,
+                                onPayClick = {
+                                    paymentAmount = if (customer.balance > 0) "%.2f".format(customer.balance) else ""
+                                    customerViewModel.setSelectedCustomerForPayment(customer)
+                                },
+                                onWhatsAppReminder = {
+                                    customerViewModel.sendWhatsAppReminder(
+                                        context,
+                                        customer,
+                                        businessStore.getBusinessName()
+                                    )
+                                },
+                                onDelete = { customerViewModel.deleteCustomer(customer.id) }
+                            )
+                        }
+                    }
+                }
             }
+        }
+    }
 
-            Spacer(Modifier.height(12.dp))
+    // Add Customer Dialog
+    if (uiState.isAddOpen) {
+        AddCustomerDialog(
+            onDismiss = { customerViewModel.setAddOpen(false) },
+            onSave = { name, phone, email, notes ->
+                customerViewModel.addCustomer(name, phone, email, notes)
+            }
+        )
+    }
 
-            AideSearchBar(
-                query = uiState.searchQuery,
-                onQueryChange = customerViewModel::setSearchQuery,
-                placeholder = "Search customers..."
-            )
+    // Record Debt Payment Modal Sheet
+    uiState.selectedCustomerForPayment?.let { customer ->
+        ModalBottomSheet(
+            onDismissRequest = { customerViewModel.setSelectedCustomerForPayment(null) },
+            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(horizontal = 24.dp, vertical = 16.dp)
+                    .fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "Record Debt Payment",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Customer: ${customer.name}",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    AideBadge(
+                        text = "Owes: ${money(customer.balance)}",
+                        containerColor = DangerRed.copy(alpha = 0.2f),
+                        contentColor = DangerRed
+                    )
+                }
 
-            Spacer(Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-            if (uiState.customers.isEmpty()) {
-                AideEmptyState(
-                    message = if (uiState.searchQuery.isBlank()) {
-                        "No customers yet."
-                    } else {
-                        "No customers match \"${uiState.searchQuery}\"."
-                    },
-                    actionLabel = if (uiState.searchQuery.isBlank()) "Add a customer" else null,
-                    onAction = if (uiState.searchQuery.isBlank()) {
-                        { customerViewModel.setAddOpen(true) }
-                    } else {
-                        null
+                OutlinedTextField(
+                    value = paymentAmount,
+                    onValueChange = { paymentAmount = it },
+                    label = { Text("Repayment Amount (KSh)") },
+                    placeholder = { Text("0.00") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Text(
+                    text = "Payment Method",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    listOf("CASH", "MOBILE_MONEY", "BANK").forEach { method ->
+                        val isSelected = paymentMethod == method
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { paymentMethod = method },
+                            label = { Text(method.replace("_", " ")) },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(44.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                OutlinedTextField(
+                    value = paymentNotes,
+                    onValueChange = { paymentNotes = it },
+                    label = { Text("Payment Reference / Notes (Optional)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp)
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                AideButton(
+                    text = "Record Repayment",
+                    onClick = {
+                        val amount = paymentAmount.toDoubleOrNull() ?: 0.0
+                        if (amount > 0) {
+                            customerViewModel.recordPayment(
+                                customerId = customer.id,
+                                amount = amount,
+                                method = paymentMethod,
+                                notes = paymentNotes.ifBlank { null }
+                            )
+                            paymentAmount = ""
+                            paymentNotes = ""
+                        }
                     }
                 )
-            } else {
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(uiState.customers, key = { it.id }) { customer ->
-                        AideCard {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    Icons.Default.Person,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                                Spacer(Modifier.width(12.dp))
-                                Column(
-                                    Modifier.weight(1f).padding(start = 12.dp)
+
+                // Repayment Transaction History List
+                if (uiState.selectedCustomerPayments.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(20.dp))
+                    Text(
+                        text = "Recent Payment History",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 160.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                    ) {
+                        LazyColumn(modifier = Modifier.padding(8.dp)) {
+                            items(uiState.selectedCustomerPayments) { payment ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(
-                                        text = customer.name,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                    customer.phone?.let {
+                                    Column {
                                         Text(
-                                            text = it,
+                                            text = "Received via ${payment.paymentMethod.replace("_", " ")}",
                                             style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                        Text(
+                                            text = payment.createdAt.take(10),
+                                            style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
-                                    if (customer.balance != 0.0) {
-                                        Text(
-                                            text = if (customer.balance > 0) {
-                                                "Owes KSh ${"%.2f".format(customer.balance)}"
-                                            } else {
-                                                "Credit KSh ${"%.2f".format(-customer.balance)}"
-                                            },
-                                            style = MaterialTheme.typography.labelMedium,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = if (customer.balance > 0) DangerRed
-                                            else MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                }
-                                IconButton(
-                                    onClick = { customerViewModel.deleteCustomer(customer.id) },
-                                    modifier = Modifier.height(48.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.Delete,
-                                        contentDescription = "Delete customer",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    Text(
+                                        text = "-${money(payment.amount)}",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
                                     )
                                 }
                             }
@@ -180,14 +321,132 @@ fun CustomersScreen(
             }
         }
     }
+}
 
-    if (uiState.isAddOpen) {
-        AddCustomerDialog(
-            onDismiss = { customerViewModel.setAddOpen(false) },
-            onSave = { name, phone, email, notes ->
-                customerViewModel.addCustomer(name, phone, email, notes)
+@Composable
+fun CustomerCardItem(
+    customer: CustomerEntity,
+    onPayClick: () -> Unit,
+    onWhatsAppReminder: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val owesMoney = customer.balance > 0.0
+
+    AideCard {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (owesMoney) DangerRed.copy(alpha = 0.15f)
+                                else MaterialTheme.colorScheme.primaryContainer
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = null,
+                            tint = if (owesMoney) DangerRed else MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column {
+                        Text(
+                            text = customer.name,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        if (!customer.phone.isNullOrBlank()) {
+                            Text(
+                                text = customer.phone,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = if (owesMoney) "Owes ${money(customer.balance)}" else "Clear Balance",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = if (owesMoney) DangerRed else MaterialTheme.colorScheme.primary
+                    )
+                }
             }
-        )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (owesMoney) {
+                        Button(
+                            onClick = onPayClick,
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                            modifier = Modifier.height(36.dp)
+                        ) {
+                            Icon(Icons.Default.Payment, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Record Pay", style = MaterialTheme.typography.labelMedium)
+                        }
+
+                        if (!customer.phone.isNullOrBlank()) {
+                            OutlinedButton(
+                                onClick = onWhatsAppReminder,
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                modifier = Modifier.height(36.dp)
+                            ) {
+                                Icon(Icons.Default.Send, contentDescription = null, modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("WhatsApp", style = MaterialTheme.typography.labelMedium)
+                            }
+                        }
+                    } else {
+                        OutlinedButton(
+                            onClick = onPayClick,
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                            modifier = Modifier.height(36.dp)
+                        ) {
+                            Text("History", style = MaterialTheme.typography.labelMedium)
+                        }
+                    }
+                }
+
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete Customer",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -203,34 +462,39 @@ private fun AddCustomerDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add a customer") },
+        title = { Text("Add Customer Account", fontWeight = FontWeight.Bold) },
         text = {
             Column {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Name") },
-                    singleLine = true
+                    label = { Text("Customer Name") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp)
                 )
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
                     value = phone,
                     onValueChange = { phone = it },
-                    label = { Text("Phone (optional)") },
-                    singleLine = true
+                    label = { Text("Phone Number") },
+                    placeholder = { Text("0712345678") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp)
                 )
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
-                    label = { Text("Email (optional)") },
-                    singleLine = true
+                    label = { Text("Email (Optional)") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp)
                 )
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
                     value = notes,
                     onValueChange = { notes = it },
-                    label = { Text("Notes (optional)") }
+                    label = { Text("Notes (Optional)") },
+                    shape = RoundedCornerShape(12.dp)
                 )
             }
         },
@@ -238,7 +502,7 @@ private fun AddCustomerDialog(
             TextButton(
                 enabled = name.isNotBlank(),
                 onClick = { onSave(name, phone, email, notes) }
-            ) { Text("Save") }
+            ) { Text("Save Customer", fontWeight = FontWeight.Bold) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
     )

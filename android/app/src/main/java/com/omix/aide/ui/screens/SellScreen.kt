@@ -12,6 +12,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -65,7 +67,7 @@ fun SellScreen(
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
-                            imageVector = if (isGridView) Icons.Default.ViewList else Icons.Default.GridView,
+                            imageVector = if (isGridView) Icons.AutoMirrored.Filled.ViewList else Icons.Default.GridView,
                             contentDescription = "Toggle View Mode",
                             tint = MaterialTheme.colorScheme.primary
                         )
@@ -169,7 +171,7 @@ fun SellScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Icon(
-                                imageVector = Icons.Default.ArrowForward,
+                                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                                 contentDescription = "Checkout",
                                 tint = MaterialTheme.colorScheme.primary
                             )
@@ -214,7 +216,7 @@ fun SellScreen(
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 200.dp),
+                        .heightIn(max = 180.dp),
                     shape = RoundedCornerShape(16.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
                 ) {
@@ -298,7 +300,7 @@ fun SellScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Payment Method Chips
+                // Payment Method Chips (Including Store Credit / Pay Later)
                 Text(
                     text = "Select Payment Method",
                     style = MaterialTheme.typography.labelMedium,
@@ -307,17 +309,22 @@ fun SellScreen(
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    listOf("CASH", "MOBILE_MONEY", "CARD").forEach { method ->
+                    listOf("CASH", "MOBILE_MONEY", "CARD", "CREDIT").forEach { method ->
                         val isSelected = uiState.paymentMethod == method
+                        val displayLabel = when(method) {
+                            "CREDIT" -> "STORE CREDIT"
+                            else -> method.replace("_", " ")
+                        }
                         FilterChip(
                             selected = isSelected,
                             onClick = { sellViewModel.setPaymentMethod(method) },
                             label = {
                                 Text(
-                                    text = method.replace("_", " "),
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                    text = displayLabel,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    fontSize = 11.sp
                                 )
                             },
                             modifier = Modifier
@@ -334,40 +341,66 @@ fun SellScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                OutlinedTextField(
-                    value = uiState.amountPaid,
-                    onValueChange = { sellViewModel.setAmountPaid(it) },
-                    label = { Text("Amount Received") },
-                    placeholder = { Text("%.2f".format(uiState.subtotal)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                    singleLine = true
-                )
+                if (uiState.paymentMethod != "CREDIT") {
+                    OutlinedTextField(
+                        value = uiState.amountPaid,
+                        onValueChange = { sellViewModel.setAmountPaid(it) },
+                        label = { Text("Amount Received") },
+                        placeholder = { Text("%.2f".format(uiState.subtotal)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        singleLine = true
+                    )
 
-                // Change calculation
-                val paid = uiState.amountPaid.toDoubleOrNull()
-                if (paid != null && paid > 0.0) {
-                    val due = paid - uiState.subtotal
-                    Spacer(modifier = Modifier.height(12.dp))
-                    AideCard(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = if (due >= 0) "Change due to customer" else "Balance owed",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Text(
-                                    text = money(kotlin.math.abs(due)),
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    fontFamily = FontFamily.Monospace,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (due >= 0) MaterialTheme.colorScheme.primary else WarningAmber
-                                )
+                    // Change calculation
+                    val paid = uiState.amountPaid.toDoubleOrNull()
+                    if (paid != null && paid > 0.0) {
+                        val due = paid - uiState.subtotal
+                        Spacer(modifier = Modifier.height(12.dp))
+                        AideCard(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = if (due >= 0) "Change due to customer" else "Balance owed",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Text(
+                                        text = money(kotlin.math.abs(due)),
+                                        style = MaterialTheme.typography.headlineMedium,
+                                        fontFamily = FontFamily.Monospace,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (due >= 0) MaterialTheme.colorScheme.primary else WarningAmber
+                                    )
+                                }
                             }
+                        }
+                    }
+                } else {
+                    Surface(
+                        color = WarningAmber.copy(alpha = 0.15f),
+                        shape = RoundedCornerShape(14.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Info,
+                                contentDescription = null,
+                                tint = WarningAmber
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = "Store Credit sale: Amount of ${money(uiState.subtotal)} will be recorded as credit.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
                         }
                     }
                 }

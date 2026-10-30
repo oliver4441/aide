@@ -17,9 +17,10 @@ import com.omix.aide.data.local.entities.*
         SaleItemEntity::class,
         NotifiedEventEntity::class,
         ExpenseEntity::class,
-        CustomerEntity::class
+        CustomerEntity::class,
+        CustomerPaymentEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class AideDatabase : RoomDatabase() {
@@ -33,13 +34,6 @@ abstract class AideDatabase : RoomDatabase() {
 
     companion object {
 
-        /**
-         * Adds the notification log.
-         *
-         * Written as an explicit migration rather than relying on
-         * `fallbackToDestructiveMigration`, so updating the app does not wipe a
-         * shop's products and sales history.
-         */
         private val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
@@ -65,16 +59,6 @@ abstract class AideDatabase : RoomDatabase() {
             }
         }
 
-        /**
-         * Adds the expense log and the customer directory.
-         *
-         * Explicit rather than destructive, because falling back would wipe a
-         * shop's products and sales history on upgrade. Column types mirror
-         * what Room generates for the Kotlin types (String -> TEXT,
-         * Double -> REAL, Int/Boolean -> INTEGER); a mismatch here makes Room
-         * throw "Migration didn't properly handle" at open time rather than
-         * silently falling back, because a path *is* registered.
-         */
         private val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
@@ -125,15 +109,34 @@ abstract class AideDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `customer_payments` (
+                        `id` TEXT NOT NULL,
+                        `businessId` TEXT NOT NULL,
+                        `customerId` TEXT NOT NULL,
+                        `amount` REAL NOT NULL,
+                        `paymentMethod` TEXT NOT NULL,
+                        `notes` TEXT,
+                        `createdAt` TEXT NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_customer_payments_businessId` ON `customer_payments` (`businessId`)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_customer_payments_customerId` ON `customer_payments` (`customerId`)"
+                )
+            }
+        }
+
         @Volatile
         private var INSTANCE: AideDatabase? = null
 
-        /**
-         * Drops the open instance.
-         *
-         * Called before a database reset: Room holds the file open, so deleting
-         * it underneath a live handle leaves a half-deleted database.
-         */
         fun closeInstance() {
             synchronized(this) {
                 INSTANCE?.close()
@@ -148,7 +151,7 @@ abstract class AideDatabase : RoomDatabase() {
                     AideDatabase::class.java,
                     "aide_database"
                 )
-                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
+                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance
