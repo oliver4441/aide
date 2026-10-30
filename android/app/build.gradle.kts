@@ -19,8 +19,8 @@ android {
         // literals below are the local-development fallback, kept level with the
         // last release so a sideloaded debug build does not claim to be older
         // than the published one.
-        versionCode = providers.gradleProperty("aideVersionCode").getOrElse("108").toInt()
-        versionName = providers.gradleProperty("aideVersionName").getOrElse("1.0.8")
+        versionCode = providers.gradleProperty("aideVersionCode").getOrElse("109").toInt()
+        versionName = providers.gradleProperty("aideVersionName").getOrElse("1.0.9")
 
         // Accent theme baked into the APK, read by theme/Palette.kt and the
         // release banner. Defaults to the first entry in Palette.
