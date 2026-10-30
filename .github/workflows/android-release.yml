@@ -154,9 +154,21 @@ jobs:
           # No `| head -1` anywhere below: `sed | head` returns 141 (SIGPIPE)
           # under `set -o pipefail`, which killed this step silently on the
           # first v1.0.9 attempt. Badging prints exactly one `package:` line.
-          CERT_SHA=$(sed -n 's/^Signer #1 certificate SHA-256 digest:[[:space:]]*//p' "$RUNNER_TEMP/apksigner.txt")
-          CERT_DN=$(sed -n 's/^Signer #1 certificate DN:[[:space:]]*//p' "$RUNNER_TEMP/apksigner.txt")
-          [ -n "$CERT_SHA" ] || { echo "::error::could not read the signing certificate digest"; exit 1; }
+          # Unanchored on purpose: the signer prefix is not stable across
+          # build-tools ("Signer #1 ...", indented, or
+          # "Signer (minSdkVersion=...) ..."). Match the field, take the first
+          # hit, and strip a stray CR so the value is safe for GITHUB_OUTPUT.
+          CERT_SHA=$(sed -n '/certificate SHA-256 digest:/{s/.*certificate SHA-256 digest:[[:space:]]*//p;q;}' \
+            "$RUNNER_TEMP/apksigner.txt" | tr -d '\r')
+          CERT_DN=$(sed -n '/certificate DN:/{s/.*certificate DN:[[:space:]]*//p;q;}' \
+            "$RUNNER_TEMP/apksigner.txt" | tr -d '\r')
+          if [ -z "$CERT_SHA" ]; then
+            # Say what apksigner actually printed, as an annotation: the raw log
+            # is not readable from outside, and guessing costs a six-minute run.
+            dump=$(tr '\n' '|' < "$RUNNER_TEMP/apksigner.txt" | tr -d '\r' | cut -c1-1200)
+            echo "::error::could not read the signing certificate digest; apksigner said: $dump"
+            exit 1
+          fi
 
           if [ -x "$TOOLS/aapt2" ]; then
             BADGING=$("$TOOLS/aapt2" dump badging "$APK")
