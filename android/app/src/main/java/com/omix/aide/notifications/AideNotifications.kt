@@ -212,16 +212,18 @@ object AideNotifications {
             .setContentIntent(pendingIntent)
             .setWhen(System.currentTimeMillis())
 
-        // The explicit type keeps inference from widening `apply`'s receiver to
-        // NotificationCompat.Style, which has neither addLine nor setSummaryText.
-        val style: NotificationCompat.Style = if (lines.isNotEmpty()) {
-            NotificationCompat.InboxStyle().apply {
-                setBigContentTitle(title)
-                lines.forEach { addLine(it) }
-                summary?.let { setSummaryText(it) }
-            }
+        // Built with a local receiver rather than `apply {}`: with an explicit
+        // NotificationCompat.Style target type, Kotlin widens apply's receiver to
+        // Style and then addLine/setSummaryText no longer resolve.
+        val style: NotificationCompat.Style
+        if (lines.isNotEmpty()) {
+            val inbox = NotificationCompat.InboxStyle()
+            inbox.setBigContentTitle(title)
+            lines.forEach { line -> inbox.addLine(line) }
+            summary?.let { inbox.setSummaryText(it) }
+            style = inbox
         } else {
-            NotificationCompat.BigTextStyle().bigText(message)
+            style = NotificationCompat.BigTextStyle().bigText(message)
         }
         builder.setStyle(style)
 
