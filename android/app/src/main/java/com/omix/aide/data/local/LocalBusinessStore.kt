@@ -33,6 +33,19 @@ class LocalBusinessStore(context: Context) {
 
     fun hasCompletedSetup(): Boolean = prefs.getBoolean(KEY_SETUP_DONE, false)
 
+    /**
+     * Whether the welcome screen has been shown.
+     *
+     * Kept separate from [hasCompletedSetup]: someone who reads the welcome and
+     * then closes the app on the theme picker should come back to the picker,
+     * not to the introduction again.
+     */
+    fun hasSeenWelcome(): Boolean = prefs.getBoolean(KEY_WELCOME_SEEN, false)
+
+    fun markWelcomeSeen() {
+        prefs.edit().putBoolean(KEY_WELCOME_SEEN, true).apply()
+    }
+
     fun markSetupComplete() {
         prefs.edit().putBoolean(KEY_SETUP_DONE, true).apply()
     }
@@ -55,6 +68,7 @@ class LocalBusinessStore(context: Context) {
         const val KEY_BUSINESS_ID = "business_id"
         const val KEY_BUSINESS_NAME = "business_name"
         const val KEY_SETUP_DONE = "setup_done"
+        const val KEY_WELCOME_SEEN = "welcome_seen"
         const val KEY_OUT_OF_DATE = "aide_out_of_date"
     }
 }
