@@ -212,13 +212,14 @@ object AideNotifications {
             .setContentIntent(pendingIntent)
             .setWhen(System.currentTimeMillis())
 
-        val style = if (lines.isNotEmpty()) {
-            NotificationCompat.InboxStyle()
-                .setBigContentTitle(title)
-                .apply {
-                    lines.forEach { addLine(it) }
-                    summary?.let { setSummaryText(it) }
-                }
+        // The explicit type keeps inference from widening `apply`'s receiver to
+        // NotificationCompat.Style, which has neither addLine nor setSummaryText.
+        val style: NotificationCompat.Style = if (lines.isNotEmpty()) {
+            NotificationCompat.InboxStyle().apply {
+                setBigContentTitle(title)
+                lines.forEach { addLine(it) }
+                summary?.let { setSummaryText(it) }
+            }
         } else {
             NotificationCompat.BigTextStyle().bigText(message)
         }
