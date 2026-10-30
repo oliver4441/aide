@@ -26,10 +26,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Assessment
-import androidx.compose.material.icons.filled.Inventory
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.rounded.Assessment
+import androidx.compose.material.icons.rounded.Inventory2
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.ShoppingCart
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -201,25 +201,25 @@ fun WelcomeScreen(
                     verticalArrangement = Arrangement.spacedBy(18.dp)
                 ) {
                     WelcomePoint(
-                        icon = Icons.Default.ShoppingCart,
+                        icon = Icons.Rounded.ShoppingCart,
                         title = "Ring up a sale in seconds",
                         detail = "Tap a product, take cash, mobile money or card, and share the receipt.",
                         reveal = band(0.30f)
                     )
                     WelcomePoint(
-                        icon = Icons.Default.Inventory,
+                        icon = Icons.Rounded.Inventory2,
                         title = "Know what's running out",
                         detail = "A low-stock alert names the products and how many units are left.",
                         reveal = band(0.40f)
                     )
                     WelcomePoint(
-                        icon = Icons.Default.Assessment,
+                        icon = Icons.Rounded.Assessment,
                         title = "Close the day with numbers",
                         detail = "Takings, profit and the payment split, at the closing time you pick.",
                         reveal = band(0.50f)
                     )
                     WelcomePoint(
-                        icon = Icons.Default.Lock,
+                        icon = Icons.Rounded.Lock,
                         title = "No account, no signal",
                         detail = "Everything stays on this phone. Export a copy from Settings whenever you like.",
                         reveal = band(0.60f)
