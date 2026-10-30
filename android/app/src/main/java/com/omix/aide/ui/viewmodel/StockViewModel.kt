@@ -62,7 +62,11 @@ class StockViewModel(
         quantity: Int,
         lowStock: Int = 5,
         sku: String? = null,
-        imagePath: String? = null
+        imagePath: String? = null,
+        packSize: Int = 1,
+        packPrice: Double = 0.0,
+        batchNumber: String? = null,
+        expiryDate: String? = null
     ) {
         viewModelScope.launch {
             val isoFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
@@ -80,7 +84,11 @@ class StockViewModel(
                 sku = sku,
                 imageUrl = imagePath,
                 createdAt = now,
-                updatedAt = now
+                updatedAt = now,
+                packSize = packSize,
+                packPrice = packPrice,
+                batchNumber = batchNumber,
+                expiryDate = expiryDate
             )
             productRepository.addOrUpdateProduct(product)
             _isAddOpen.value = false

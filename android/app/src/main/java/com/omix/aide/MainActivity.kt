@@ -44,8 +44,11 @@ import com.omix.aide.data.local.SettingsStore
 import com.omix.aide.data.repository.CustomerRepository
 import com.omix.aide.data.repository.ExpenseRepository
 import com.omix.aide.data.repository.ProductRepository
+import com.omix.aide.data.repository.QuotationRepository
 import com.omix.aide.data.repository.ReportRepository
 import com.omix.aide.data.repository.SaleRepository
+import com.omix.aide.data.repository.ShiftRepository
+import com.omix.aide.data.repository.SupplierRepository
 import com.omix.aide.notifications.AideNotifications
 import com.omix.aide.notifications.AideRoute
 import com.omix.aide.theme.Palette
@@ -57,11 +60,14 @@ import com.omix.aide.ui.screens.ExpensesScreen
 import com.omix.aide.ui.screens.HomeScreen
 import com.omix.aide.ui.screens.MoreScreen
 import com.omix.aide.ui.screens.OnboardingScreen
+import com.omix.aide.ui.screens.QuotationsScreen
 import com.omix.aide.ui.screens.ReceiptScreen
 import com.omix.aide.ui.screens.ReportsScreen
 import com.omix.aide.ui.screens.SettingsScreen
 import com.omix.aide.ui.screens.SellScreen
+import com.omix.aide.ui.screens.ShiftsScreen
 import com.omix.aide.ui.screens.StockScreen
+import com.omix.aide.ui.screens.SuppliersScreen
 import com.omix.aide.ui.screens.showSplash
 import com.omix.aide.ui.LocalAideSettings
 import com.omix.aide.ui.releases.UpdateCheck
@@ -72,9 +78,12 @@ import com.omix.aide.ui.theme.ThemePickerScreen
 import com.omix.aide.ui.viewmodel.CustomerViewModel
 import com.omix.aide.ui.viewmodel.ExpenseViewModel
 import com.omix.aide.ui.viewmodel.HomeViewModel
+import com.omix.aide.ui.viewmodel.QuotationViewModel
 import com.omix.aide.ui.viewmodel.ReportViewModel
 import com.omix.aide.ui.viewmodel.SellViewModel
+import com.omix.aide.ui.viewmodel.ShiftViewModel
 import com.omix.aide.ui.viewmodel.StockViewModel
+import com.omix.aide.ui.viewmodel.SupplierViewModel
 import com.omix.aide.work.AideWorkScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -107,6 +116,9 @@ class MainActivity : ComponentActivity() {
     private lateinit var expenseViewModel: ExpenseViewModel
     private lateinit var customerViewModel: CustomerViewModel
     private lateinit var reportViewModel: ReportViewModel
+    private lateinit var supplierViewModel: SupplierViewModel
+    private lateinit var shiftViewModel: ShiftViewModel
+    private lateinit var quotationViewModel: QuotationViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -147,6 +159,18 @@ class MainActivity : ComponentActivity() {
         )
         reportViewModel = ReportViewModel(
             ReportRepository(database.saleDao(), ExpenseRepository(database.expenseDao())),
+            businessId
+        )
+        supplierViewModel = SupplierViewModel(
+            SupplierRepository(database.supplierDao()),
+            businessId
+        )
+        shiftViewModel = ShiftViewModel(
+            ShiftRepository(database.shiftDao()),
+            businessId
+        )
+        quotationViewModel = QuotationViewModel(
+            QuotationRepository(database.quotationDao()),
             businessId
         )
 
@@ -362,7 +386,37 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onNavigateToCalculator = {
                                     navController.navigate(Screen.Calculator.route)
+                                },
+                                onNavigateToSuppliers = {
+                                    navController.navigate(Screen.Suppliers.route)
+                                },
+                                onNavigateToShifts = {
+                                    navController.navigate(Screen.Shifts.route)
+                                },
+                                onNavigateToQuotations = {
+                                    navController.navigate(Screen.Quotations.route)
                                 }
+                            )
+                        }
+
+                        composable(Screen.Suppliers.route) {
+                            SuppliersScreen(
+                                supplierViewModel = supplierViewModel,
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+
+                        composable(Screen.Shifts.route) {
+                            ShiftsScreen(
+                                shiftViewModel = shiftViewModel,
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+
+                        composable(Screen.Quotations.route) {
+                            QuotationsScreen(
+                                quotationViewModel = quotationViewModel,
+                                onBack = { navController.popBackStack() }
                             )
                         }
 

@@ -45,7 +45,6 @@ fun SellScreen(
         AideLocalOnlyBanner()
 
         Column(modifier = Modifier.padding(16.dp)) {
-            // Top Bar Controls: Search & Grid/List Toggle
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -77,7 +76,6 @@ fun SellScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Catalog Grid or List
             Box(modifier = Modifier.weight(1f)) {
                 if (uiState.products.isEmpty()) {
                     AideEmptyState(message = "No matching products in catalog.")
@@ -116,7 +114,6 @@ fun SellScreen(
                 }
             }
 
-            // Cart Summary Banner at Bottom
             if (uiState.cart.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(12.dp))
                 AideCard(
@@ -182,7 +179,6 @@ fun SellScreen(
         }
     }
 
-    // Checkout Modal Bottom Sheet
     if (showCheckoutSheet) {
         ModalBottomSheet(
             onDismissRequest = { showCheckoutSheet = false },
@@ -212,11 +208,10 @@ fun SellScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Cart Line Items List
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 180.dp),
+                        .heightIn(max = 160.dp),
                     shape = RoundedCornerShape(16.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
                 ) {
@@ -298,9 +293,38 @@ fun SellScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
-                // Payment Method Chips (Including Store Credit / Pay Later)
+                // Discount Selector Row
+                Text(
+                    text = "Apply Order Discount",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = uiState.discountAmount == 0.0,
+                        onClick = { sellViewModel.setDiscount(0.0) },
+                        label = { Text("None") }
+                    )
+                    FilterChip(
+                        selected = uiState.discountAmount > 0 && uiState.discountAmount == uiState.rawSubtotal * 0.05,
+                        onClick = { sellViewModel.setDiscount(uiState.rawSubtotal * 0.05) },
+                        label = { Text("5% OFF") }
+                    )
+                    FilterChip(
+                        selected = uiState.discountAmount > 0 && uiState.discountAmount == uiState.rawSubtotal * 0.10,
+                        onClick = { sellViewModel.setDiscount(uiState.rawSubtotal * 0.10) },
+                        label = { Text("10% OFF") }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
                 Text(
                     text = "Select Payment Method",
                     style = MaterialTheme.typography.labelMedium,
@@ -352,7 +376,6 @@ fun SellScreen(
                         singleLine = true
                     )
 
-                    // Change calculation
                     val paid = uiState.amountPaid.toDoubleOrNull()
                     if (paid != null && paid > 0.0) {
                         val due = paid - uiState.subtotal
@@ -421,9 +444,6 @@ fun SellScreen(
     }
 }
 
-/**
- * Grid View Card Item for POS Catalog
- */
 @Composable
 fun SellProductGridCard(
     product: ProductEntity,

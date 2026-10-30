@@ -19,7 +19,12 @@ data class ProductEntity(
     val imageUrl: String? = null,
     val isActive: Boolean = true,
     val createdAt: String,
-    val updatedAt: String
+    val updatedAt: String,
+    // Multi-unit & Expiry additions
+    val packSize: Int = 1,
+    val packPrice: Double = 0.0,
+    val batchNumber: String? = null,
+    val expiryDate: String? = null
 )
 
 @Entity(tableName = "categories")
@@ -46,6 +51,8 @@ data class SaleEntity(
     val paymentMethod: String = "CASH",
     val notes: String? = null,
     val createdAt: String,
+    val discount: Double = 0.0,
+    val customerId: String? = null
 )
 
 @Entity(tableName = "sale_items")
@@ -100,14 +107,12 @@ data class CustomerEntity(
     val email: String? = null,
     val notes: String? = null,
     val balance: Double = 0.0,
+    val loyaltyPoints: Int = 0,
     val isActive: Boolean = true,
     val createdAt: String,
     val updatedAt: String
 )
 
-/**
- * A debt payment record for a customer.
- */
 @Entity(
     tableName = "customer_payments",
     indices = [Index("businessId"), Index("customerId")]
@@ -119,5 +124,64 @@ data class CustomerPaymentEntity(
     val amount: Double,
     val paymentMethod: String = "CASH",
     val notes: String? = null,
+    val createdAt: String
+)
+
+@Entity(
+    tableName = "suppliers",
+    indices = [Index("businessId"), Index("name")]
+)
+data class SupplierEntity(
+    @PrimaryKey val id: String,
+    val businessId: String,
+    val name: String,
+    val phone: String? = null,
+    val email: String? = null,
+    val address: String? = null,
+    val balance: Double = 0.0,
+    val createdAt: String
+)
+
+@Entity(
+    tableName = "purchase_orders",
+    indices = [Index("businessId"), Index("supplierId")]
+)
+data class PurchaseOrderEntity(
+    @PrimaryKey val id: String,
+    val businessId: String,
+    val supplierId: String,
+    val supplierName: String,
+    val totalAmount: Double,
+    val status: String = "PENDING", // PENDING, RECEIVED, CANCELLED
+    val notes: String? = null,
+    val createdAt: String
+)
+
+@Entity(
+    tableName = "cashier_shifts",
+    indices = [Index("businessId"), Index("openedAt")]
+)
+data class CashierShiftEntity(
+    @PrimaryKey val id: String,
+    val businessId: String,
+    val cashierName: String,
+    val startingFloat: Double,
+    val expectedCash: Double = 0.0,
+    val actualCash: Double = 0.0,
+    val status: String = "OPEN", // OPEN, CLOSED
+    val openedAt: String,
+    val closedAt: String? = null
+)
+
+@Entity(
+    tableName = "quotations",
+    indices = [Index("businessId"), Index("createdAt")]
+)
+data class QuotationEntity(
+    @PrimaryKey val id: String,
+    val businessId: String,
+    val customerName: String,
+    val totalAmount: Double,
+    val status: String = "DRAFT", // DRAFT, ACCEPTED, CONVERTED
     val createdAt: String
 )

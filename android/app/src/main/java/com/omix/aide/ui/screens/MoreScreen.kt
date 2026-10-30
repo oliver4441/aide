@@ -32,7 +32,10 @@ fun MoreScreen(
     onNavigateToExpenses: () -> Unit,
     onNavigateToReports: () -> Unit,
     onNavigateToSettings: () -> Unit,
-    onNavigateToCalculator: () -> Unit
+    onNavigateToCalculator: () -> Unit,
+    onNavigateToSuppliers: () -> Unit = {},
+    onNavigateToShifts: () -> Unit = {},
+    onNavigateToQuotations: () -> Unit = {}
 ) {
     val context = LocalContext.current
 
@@ -92,7 +95,6 @@ fun MoreScreen(
                 }
             }
 
-            // Notification Settings Widget
             item {
                 NotificationSettingsCard()
             }
@@ -109,13 +111,31 @@ fun MoreScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     MoreMenuItem(
                         icon = Icons.Default.People,
-                        title = "Customers Directory",
-                        subtitle = "Track customer accounts, contact details & balances",
+                        title = "Customers Directory & Credit",
+                        subtitle = "Track customer accounts, contact details & debtors",
                         onClick = onNavigateToCustomers
                     )
                     MoreMenuItem(
+                        icon = Icons.Default.LocalShipping,
+                        title = "Suppliers & Procurement",
+                        subtitle = "Manage vendors & purchase orders",
+                        onClick = onNavigateToSuppliers
+                    )
+                    MoreMenuItem(
+                        icon = Icons.Default.PointOfSale,
+                        title = "Cashier Shifts & Till Audit",
+                        subtitle = "Open/close till float & cash reconciliation",
+                        onClick = onNavigateToShifts
+                    )
+                    MoreMenuItem(
+                        icon = Icons.Default.Description,
+                        title = "Quotations & Estimates",
+                        subtitle = "Create and share proforma invoice quotes",
+                        onClick = onNavigateToQuotations
+                    )
+                    MoreMenuItem(
                         icon = Icons.Default.Receipt,
-                        title = "Expenses & Bills",
+                        title = "Expenses & Overheads",
                         subtitle = "Record shop overheads, utilities & COGS expenses",
                         onClick = onNavigateToExpenses
                     )

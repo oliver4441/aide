@@ -188,3 +188,45 @@ interface CustomerDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPayment(payment: CustomerPaymentEntity)
 }
+
+@Dao
+interface SupplierDao {
+    @Query("SELECT * FROM suppliers WHERE businessId = :businessId ORDER BY name ASC")
+    fun getSuppliers(businessId: String): Flow<List<SupplierEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertOrUpdate(supplier: SupplierEntity)
+
+    @Query("DELETE FROM suppliers WHERE id = :id")
+    suspend fun deleteById(id: String)
+
+    @Query("SELECT * FROM purchase_orders WHERE businessId = :businessId ORDER BY createdAt DESC")
+    fun getPurchaseOrders(businessId: String): Flow<List<PurchaseOrderEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertPO(po: PurchaseOrderEntity)
+}
+
+@Dao
+interface ShiftDao {
+    @Query("SELECT * FROM cashier_shifts WHERE businessId = :businessId ORDER BY openedAt DESC")
+    fun getShifts(businessId: String): Flow<List<CashierShiftEntity>>
+
+    @Query("SELECT * FROM cashier_shifts WHERE businessId = :businessId AND status = 'OPEN' ORDER BY openedAt DESC LIMIT 1")
+    suspend fun getActiveShift(businessId: String): CashierShiftEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertOrUpdate(shift: CashierShiftEntity)
+}
+
+@Dao
+interface QuotationDao {
+    @Query("SELECT * FROM quotations WHERE businessId = :businessId ORDER BY createdAt DESC")
+    fun getQuotations(businessId: String): Flow<List<QuotationEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertOrUpdate(quotation: QuotationEntity)
+
+    @Query("DELETE FROM quotations WHERE id = :id")
+    suspend fun deleteById(id: String)
+}

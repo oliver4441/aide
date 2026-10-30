@@ -22,10 +22,12 @@ data class SellUiState(
     val searchQuery: String = "",
     val paymentMethod: String = "CASH",
     val amountPaid: String = "",
+    val discountAmount: Double = 0.0,
     val lastCompletedSaleId: String? = null,
     val error: String? = null
 ) {
-    val subtotal: Double get() = cart.sumOf { it.product.sellingPrice * it.quantity }
+    val rawSubtotal: Double get() = cart.sumOf { it.product.sellingPrice * it.quantity }
+    val subtotal: Double get() = (rawSubtotal - discountAmount).coerceAtLeast(0.0)
     val totalCost: Double get() = cart.sumOf { it.product.buyingPrice * it.quantity }
     val profit: Double get() = subtotal - totalCost
 }
@@ -34,11 +36,6 @@ class SellViewModel(
     private val productRepository: ProductRepository,
     private val saleRepository: SaleRepository,
     private val businessId: String,
-    /**
-     * Read at the moment a sale is completed rather than held as a field, so
-     * changing the VAT rate in Settings takes effect on the next sale without
-     * the view model having to be rebuilt.
-     */
     private val settingsProvider: () -> BusinessSettings = { BusinessSettings() }
 ) : ViewModel() {
 
@@ -46,6 +43,7 @@ class SellViewModel(
     private val _cart = MutableStateFlow<List<CartItem>>(emptyList())
     private val _paymentMethod = MutableStateFlow("CASH")
     private val _amountPaid = MutableStateFlow("")
+    private val _discountAmount = MutableStateFlow(0.0)
     private val _lastSaleId = MutableStateFlow<String?>(null)
     private val _error = MutableStateFlow<String?>(null)
 
@@ -53,9 +51,10 @@ class SellViewModel(
         _searchQuery,
         _cart,
         _paymentMethod,
-        _amountPaid
-    ) { query, cart, method, paid ->
-        Tuple4(query, cart, method, paid)
+        _amountPaid,
+        _discountAmount
+    ) { query, cart, method, paid, discount ->
+        Tuple5(query, cart, method, paid, discount)
     }
 
     private val _statusFlow = combine(
@@ -74,6 +73,7 @@ class SellViewModel(
         val cart = inputs.val2
         val method = inputs.val3
         val paid = inputs.val4
+        val discount = inputs.val5
         val saleId = status.first
         val err = status.second
 
@@ -87,6 +87,7 @@ class SellViewModel(
             searchQuery = query,
             paymentMethod = method,
             amountPaid = paid,
+            discountAmount = discount,
             lastCompletedSaleId = saleId,
             error = err
         )
@@ -98,6 +99,10 @@ class SellViewModel(
 
     fun setSearchQuery(query: String) {
         _searchQuery.value = query
+    }
+
+    fun setDiscount(amount: Double) {
+        _discountAmount.value = amount
     }
 
     fun addToCart(product: ProductEntity) {
@@ -146,7 +151,8 @@ class SellViewModel(
         }
 
         viewModelScope.launch {
-            val total = currentCart.sumOf { it.product.sellingPrice * it.quantity }
+            val rawTotal = currentCart.sumOf { it.product.sellingPrice * it.quantity }
+            val total = (rawTotal - _discountAmount.value).coerceAtLeast(0.0)
             val cost = currentCart.sumOf { it.product.buyingPrice * it.quantity }
             val profit = total - cost
             val paidVal = _amountPaid.value.toDoubleOrNull() ?: total
@@ -165,10 +171,6 @@ class SellViewModel(
             }
 
             try {
-                // Prices are VAT-inclusive, so the VAT portion is extracted
-                // from the charged total rather than added on top. The customer
-                // pays exactly `total`; the sale records how much of it was tax
-                // so Reports can show a correct VAT line.
                 val taxRate = settingsProvider().taxRate
                 val vat = vatOn(total, taxRate)
 
@@ -187,6 +189,7 @@ class SellViewModel(
 
                 _cart.value = emptyList()
                 _amountPaid.value = ""
+                _discountAmount.value = 0.0
                 _lastSaleId.value = sale.id
                 onSuccess(sale.id)
             } catch (e: Exception) {
@@ -199,10 +202,11 @@ class SellViewModel(
         _error.value = null
     }
 
-    private data class Tuple4<A, B, C, D>(
+    private data class Tuple5<A, B, C, D, E>(
         val val1: A,
         val val2: B,
         val val3: C,
-        val val4: D
+        val val4: D,
+        val val5: E
     )
 }
