@@ -3,11 +3,15 @@
 /**
  * Light / dark switch for the Newsprint theme.
  *
- * The state lives on `<html class="dark">` (set before first paint by the
- * inline script in `src/app/layout.tsx`), so the button does not own any
- * state — it just flips the class and remembers the choice. That keeps server
- * and client markup identical: both icons are always rendered and the active
- * one is chosen with `dark:` variants, so there is no hydration mismatch.
+ * The state lives on `<html class="dark">`, so the button does not own any
+ * state — it just flips the class and remembers the choice. The dark edition
+ * is the default: `src/app/layout.tsx` renders `<html class="dark">` and its
+ * pre-paint script only removes the class for a visitor who previously chose
+ * Light with this button.
+ *
+ * Both icons are always rendered and the active one is chosen with `dark:`
+ * variants, so server and client markup stay identical — no hydration
+ * mismatch, and no dependence on the stored value during render.
  */
 export default function ThemeToggle({ className = "" }: { className?: string }) {
   const toggle = () => {
@@ -15,6 +19,8 @@ export default function ThemeToggle({ className = "" }: { className?: string }) 
     const next = !root.classList.contains("dark");
     root.classList.toggle("dark", next);
     root.style.colorScheme = next ? "dark" : "light";
+    const meta = document.getElementById("theme-color");
+    if (meta) meta.setAttribute("content", next ? "#14130f" : "#a3231d");
     try {
       localStorage.setItem("aide-theme", next ? "dark" : "light");
     } catch {
@@ -26,7 +32,7 @@ export default function ThemeToggle({ className = "" }: { className?: string }) 
     <button
       type="button"
       onClick={toggle}
-      aria-label="Toggle light and dark theme"
+      aria-label="Switch between the dark and light edition"
       title="Light / dark"
       className={`np-btn h-10 w-10 shrink-0 p-0 ${className}`.trim()}
     >

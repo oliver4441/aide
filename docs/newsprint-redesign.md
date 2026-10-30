@@ -142,10 +142,17 @@ as a real theme rather than a dead picker:
 - The hero photo gets its own dark tokens — `--dp-photo-opacity: 0.7`,
   `--dp-photo-wash-top: 0.7` — because a bright daylight image under a dark
   ground otherwise drowns the display type. Worst-case ink contrast: 9.3:1.
-- No provider: a blocking script in `src/app/layout.tsx` applies the stored or
-  system choice before paint (no cream flash), and `ThemeToggle` flips the
-  class + `localStorage`. Server and client markup stay identical — both icons
-  are always rendered and `dark:hidden` / `dark:block` pick the visible one.
+- **Dark is the default edition.** `<html className="dark">` is rendered on the
+  server, so the dark palette is what a first-time visitor gets — with or
+  without JavaScript. The blocking script in `src/app/layout.tsx` only *removes*
+  the class, and only when the visitor explicitly picked Light
+  (`localStorage["aide-theme"] === "light"`); `prefers-color-scheme` is
+  deliberately not consulted. The same script rewrites `theme-color` to
+  `#14130f` (dark) or `#a3231d` (light), and the web manifest uses the dark
+  ground for its splash and toolbar.
+- No provider: `ThemeToggle` flips the class, the meta tag and `localStorage`.
+  Server and client markup stay identical — both icons are always rendered and
+  `dark:hidden` / `dark:block` pick the visible one.
 - Toggle lives in the landing nav (desktop + mobile sheet), the dashboard
   top-right cluster beside the notification bell, and the docs and help
   headers.

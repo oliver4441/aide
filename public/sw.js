@@ -1,4 +1,4 @@
-const VERSION = "v4";
+const VERSION = "v5";
 const CACHE_NAME = `aide-${VERSION}`;
 const API_CACHE = `api-${VERSION}`;
 const OFFLINE_PAGE = "/offline.html";
