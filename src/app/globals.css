@@ -42,6 +42,19 @@
     --dp-spacing-column: 24px;
     --dp-spacing-story: 22px;
 
+    /* Hero photo treatment. The photo has to read as a printed wash — visible,
+       but calm enough that ink type sits on top without a fight.
+       opacity/grayscale/blur describe the photo itself; the wash values are the
+       cream scrim painted over it (0 = photo untouched, 1 = solid ground), so
+       the top stays open and the lower part fades out under the product
+       mock-up. */
+    --dp-photo-opacity: 0.92;
+    --dp-photo-grayscale: 0.6;
+    --dp-photo-blur: 3px;
+    --dp-photo-wash-top: 0.58;
+    --dp-photo-wash-mid: 0.76;
+    --dp-photo-wash-bottom: 1;
+
     --dp-radius-control: 0;
     --dp-border-hairline: 1px;
     --dp-border-section: 4px;
@@ -227,6 +240,27 @@
     letter-spacing: var(--dp-typography-label-tracking);
     text-transform: uppercase;
     color: var(--dp-color-secondary);
+  }
+
+  /* Background photography: desaturated, softened and slightly scaled so the
+     blur cannot show a transparent fringe at the edges of its container. */
+  .np-photo {
+    filter: grayscale(var(--dp-photo-grayscale)) blur(var(--dp-photo-blur));
+    opacity: var(--dp-photo-opacity);
+    transform: scale(1.04);
+  }
+
+  /* Cream scrim over `.np-photo`. Open at the top, solid by the bottom. */
+  .np-photo-wash {
+    /* Fallback for engines without CSS Color 4 alpha-in-var support: a flat
+       mid-strength scrim still keeps ink type readable over the photo. */
+    background: rgb(var(--dp-color-ground-rgb) / 0.75);
+    background: linear-gradient(
+      to bottom,
+      rgb(var(--dp-color-ground-rgb) / var(--dp-photo-wash-top)) 0%,
+      rgb(var(--dp-color-ground-rgb) / var(--dp-photo-wash-mid)) 45%,
+      rgb(var(--dp-color-ground-rgb) / var(--dp-photo-wash-bottom)) 100%
+    );
   }
 }
 

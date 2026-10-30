@@ -20,16 +20,14 @@ export default function Hero() {
         priority
         sizes="100vw"
         quality={82}
-        className="-z-20 select-none object-cover"
+        className="np-photo -z-20 select-none object-cover"
         style={{ objectPosition: PHOTO_FOCUS }}
       />
 
-      {/* A cream wash, not an opaque plate: the photo stays as a faint
-          newsprint texture behind the masthead without hurting contrast. */}
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 -z-10 bg-gradient-to-b from-ground/95 via-ground/90 to-ground"
-      />
+      {/* Cream scrim over the photo: open at the top so the image actually
+          reads, solid by the section's foot so the product mock-up sits on
+          clean ground. Tune the values in --dp-photo-* (globals.css). */}
+      <div aria-hidden="true" className="np-photo-wash absolute inset-0 -z-10" />
 
       <Container wide className="relative z-10 text-center">
         <div className="mx-auto mb-6 inline-flex items-center gap-2 border border-accent bg-accent/10 px-3.5 py-1.5 text-xs font-display font-black text-accent">
