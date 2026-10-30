@@ -11,6 +11,18 @@ design language, not a database.
 
 ---
 
+## First run
+
+A new install opens a **welcome screen** (`ui/screens/WelcomeScreen.kt`): the brand
+mark, one line on what the app is, and four points it can actually keep — sales,
+low-stock alerts, the closing-time summary, and "no account, no signal, export a
+copy from Settings". *Get started* moves on to the theme picker; *Skip to the app*
+sets the default theme and goes straight in.
+
+Seen-ness is remembered separately from setup completion (`welcome_seen` in
+`aide_business`), so closing the app on the theme picker returns to the picker
+rather than replaying the introduction.
+
 ## Navigation
 
 - **Collapsible left rail** (`ui/components/AideNavRail.kt`) is the primary

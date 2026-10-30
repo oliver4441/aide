@@ -70,6 +70,7 @@ import com.omix.aide.ui.screens.ReportsScreen
 import com.omix.aide.ui.screens.SettingsScreen
 import com.omix.aide.ui.screens.SellScreen
 import com.omix.aide.ui.screens.StockScreen
+import com.omix.aide.ui.screens.WelcomeScreen
 import com.omix.aide.ui.screens.showSplash
 import com.omix.aide.ui.LocalAideSettings
 import com.omix.aide.ui.releases.UpdateCheck
@@ -246,12 +247,14 @@ class MainActivity : ComponentActivity() {
             val navBackStackEntry by navController.currentBackStackEntryAsState()
             val currentRoute = navBackStackEntry?.destination?.route
 
-            // First-time Android users pick a theme before anything else.
+            // A new install reads the welcome, then picks a theme. Anyone who
+            // has finished setup goes straight in, and someone who left part-way
+            // through comes back to the step they were on.
             val startDestination = remember {
-                if (businessStore.hasCompletedSetup()) {
-                    Screen.Home.route
-                } else {
-                    Screen.ThemePicker.route
+                when {
+                    businessStore.hasCompletedSetup() -> Screen.Home.route
+                    !businessStore.hasSeenWelcome() -> Screen.Welcome.route
+                    else -> Screen.ThemePicker.route
                 }
             }
 
@@ -262,7 +265,13 @@ class MainActivity : ComponentActivity() {
                 if (granted) AideWorkScheduler.scheduleAll(applicationContext)
             }
 
-            LaunchedEffect(Unit) {
+            // Ask once the user is actually in the app — not over the welcome
+            // screen, where a system dialog would land on top of the first thing
+            // they see.
+            var askedForNotifications by rememberSaveable { mutableStateOf(false) }
+            LaunchedEffect(currentRoute) {
+                if (currentRoute != Screen.Home.route || askedForNotifications) return@LaunchedEffect
+                askedForNotifications = true
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     val granted = ContextCompat.checkSelfPermission(
                         applicationContext,
@@ -507,6 +516,28 @@ class MainActivity : ComponentActivity() {
 
                             composable(Screen.Calculator.route) {
                                 CalculatorScreen(onBack = { navController.popBackStack() })
+                            }
+
+                            // First run: what Aide is, before any setup. Popped as
+                            // soon as it has been read so Back cannot return to it.
+                            composable(Screen.Welcome.route) {
+                                Column(modifier = Modifier.fillMaxSize()) {
+                                    WelcomeScreen(
+                                        onGetStarted = {
+                                            businessStore.markWelcomeSeen()
+                                            navController.navigate(Screen.ThemePicker.route) {
+                                                popUpTo(Screen.Welcome.route) { inclusive = true }
+                                            }
+                                        },
+                                        onSkip = {
+                                            businessStore.markWelcomeSeen()
+                                            businessStore.markSetupComplete()
+                                            navController.navigate(Screen.Home.route) {
+                                                popUpTo(Screen.Welcome.route) { inclusive = true }
+                                            }
+                                        }
+                                    )
+                                }
                             }
 
                             // First-time Android users pick a theme here instead of
