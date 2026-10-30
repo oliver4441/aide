@@ -39,7 +39,9 @@ object NotificationEngine {
         title: String,
         message: String,
         route: AideRoute? = null,
-        eventId: String
+        eventId: String,
+        detailLines: List<String> = emptyList(),
+        summaryLine: String? = null
     ): Boolean {
         val prefs = NotificationPrefs(context)
         if (!prefs.shouldNotify(channel)) return false
@@ -72,7 +74,9 @@ object NotificationEngine {
                 title = title,
                 message = message,
                 route = route,
-                eventId = eventId
+                eventId = eventId,
+                detailLines = detailLines,
+                summaryLine = summaryLine
             )
         }
         return true
@@ -81,7 +85,9 @@ object NotificationEngine {
     /** Stable day key so a "low stock" alert fires once per day, not per check. */
     fun dayKey(now: Long = System.currentTimeMillis()): String {
         val cal = Calendar.getInstance().apply { timeInMillis = now }
-        return "%04d%02d%02d".format(
+        return String.format(
+            java.util.Locale.US,
+            "%04d%02d%02d",
             cal.get(Calendar.YEAR),
             cal.get(Calendar.MONTH) + 1,
             cal.get(Calendar.DAY_OF_MONTH)

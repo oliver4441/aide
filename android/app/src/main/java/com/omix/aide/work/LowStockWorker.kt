@@ -33,16 +33,25 @@ class LowStockWorker(
             return Result.success()
         }
 
-        val preview = low.take(3).joinToString(", ") { "${it.name} (${it.quantity})" }
-        val extra = if (low.size > 3) " +${low.size - 3} more" else ""
+        val ordered = low.sortedBy { it.quantity }
+
+        // One line per product so the shade can be expanded to show exactly
+        // what is running out and by how much, instead of a truncated sentence.
+        val lines = ordered.map { product ->
+            val unit = if (product.quantity == 1) "unit" else "units"
+            "${product.name} · ${product.quantity} $unit left"
+        }
+        val extra = if (ordered.size > 1) " and ${ordered.size - 1} more" else ""
 
         NotificationEngine.emit(
             context = context,
             channel = AideChannel.INVENTORY,
             title = if (low.size == 1) "Low stock" else "${low.size} items low in stock",
-            message = "$preview$extra",
+            message = "${ordered.first().name}${extra} — tap to restock",
             route = AideRoute.STOCK,
-            eventId = "low_stock_${NotificationEngine.dayKey()}"
+            eventId = "low_stock_${NotificationEngine.dayKey()}",
+            detailLines = lines,
+            summaryLine = "${low.size} item${if (low.size == 1) "" else "s"} at or below the low-stock level"
         )
 
         return Result.success()

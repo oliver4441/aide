@@ -5,6 +5,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 /** One bar of the home chart: a calendar day and what was taken on it. */
 data class DailyTotal(val dayStart: Long, val label: String, val total: Double)
@@ -22,9 +23,13 @@ data class TodayTotals(val total: Double, val profit: Double, val count: Int)
  * can be unit tested.
  *
  * Dates are stored by [com.omix.aide.data.repository.SaleRepository] as
- * `yyyy-MM-dd'T'HH:mm:ss.SSS'Z'` — local time with a literal `Z` suffix (the
- * suffix is part of the pattern, not a UTC marker), so parsing must use the
- * same pattern and the default time zone.
+ * `yyyy-MM-dd'T'HH:mm:ss.SSS'Z'` formatted in UTC — a real UTC instant, even
+ * though `Z` is written as a literal in the pattern. Parsing must therefore
+ * force UTC; parsing in the device zone (the previous behaviour) shifted early
+ * sales, so a 02:00 sale in Nairobi was counted as yesterday's.
+ *
+ * Grouping into days then happens in the device's zone, because "today" is the
+ * shop's today, not UTC's.
  */
 object SaleTimeline {
 
@@ -33,7 +38,9 @@ object SaleTimeline {
 
     /** Parses a stored `createdAt`, or null when the value is not a date. */
     fun parseSaleTime(iso: String): Long? = runCatching {
-        SimpleDateFormat(STORED_PATTERN, Locale.US).parse(iso)?.time
+        SimpleDateFormat(STORED_PATTERN, Locale.US).apply {
+            timeZone = TimeZone.getTimeZone("UTC")
+        }.parse(iso)?.time
     }.getOrNull()
 
     /** Midnight (local) of the day the given instant falls in. */

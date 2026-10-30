@@ -11,6 +11,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.omix.aide.notifications.AideChannel
+import com.omix.aide.notifications.AideNotifications
 import com.omix.aide.notifications.NotificationEngine
 import com.omix.aide.notifications.NotificationPrefs
 import com.omix.aide.work.AideWorkScheduler
@@ -74,6 +75,7 @@ fun NotificationSettingsCard() {
                 onCheckedChange = { value ->
                     enabled = value
                     prefs.setEnabled(value)
+                    AideNotifications.ensureChannels(context)
                     if (value) {
                         AideWorkScheduler.scheduleAll(context)
                     } else {
@@ -88,7 +90,7 @@ fun NotificationSettingsCard() {
                     color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
                 )
 
-                AideChannel.entries.forEach { channel ->
+                AideChannel.entries.filter { it.onDevice }.forEach { channel ->
                     SwitchRow(
                         title = channel.title,
                         subtitle = channel.description,
@@ -99,6 +101,14 @@ fun NotificationSettingsCard() {
                         }
                     )
                 }
+
+                Text(
+                    text = "Aide sends these two alerts on this device. Everything else in " +
+                        "Android's notification settings is unused by the offline app.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
             }
         }
     }

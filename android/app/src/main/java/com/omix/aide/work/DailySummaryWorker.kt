@@ -5,6 +5,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.omix.aide.data.local.AideDatabase
 import com.omix.aide.data.local.LocalBusinessStore
+import com.omix.aide.data.local.SettingsStore
 import com.omix.aide.notifications.AideChannel
 import com.omix.aide.notifications.AideRoute
 import com.omix.aide.notifications.NotificationEngine
@@ -33,6 +34,10 @@ class DailySummaryWorker(
         val businessId = LocalBusinessStore(context).getBusinessId()
         val db = AideDatabase.getDatabase(context)
 
+        // The owner can change the currency in Settings; the summary used to
+        // hard-code "KSh" and contradict the rest of the app.
+        val currency = SettingsStore.read(context).currency.ifBlank { "KSh" }
+
         val today = db.saleDao().getSalesSince(businessId, startOfTodayIso())
 
         if (today.isEmpty()) {
@@ -49,15 +54,32 @@ class DailySummaryWorker(
 
         val total = today.sumOf { it.total }
         val profit = today.sumOf { it.profit }
+        val byMethod = today.groupBy { it.paymentMethod }
+            .mapValues { (_, sales) -> sales.sumOf { it.total } }
+
+        val lines = buildList {
+            add("Revenue  $currency ${formatAmount(total)}")
+            add("Profit  $currency ${formatAmount(profit)}")
+            add("Average sale  $currency ${formatAmount(total / today.size)}")
+            byMethod.entries
+                .sortedByDescending { it.value }
+                .forEach { (method, amount) ->
+                    val label = method.replace('_', ' ').lowercase()
+                        .replaceFirstChar { it.uppercase() }
+                    add("$label  $currency ${formatAmount(amount)}")
+                }
+        }
 
         NotificationEngine.emit(
             context = context,
             channel = AideChannel.REPORTS,
             title = "Today's summary",
             message = "${today.size} sale${if (today.size == 1) "" else "s"} · " +
-                "KSh ${formatAmount(total)} revenue · KSh ${formatAmount(profit)} profit",
+                "$currency ${formatAmount(total)} revenue · $currency ${formatAmount(profit)} profit",
             route = AideRoute.DASHBOARD,
-            eventId = "daily_summary_${NotificationEngine.dayKey()}"
+            eventId = "daily_summary_${NotificationEngine.dayKey()}",
+            detailLines = lines,
+            summaryLine = "$currency ${formatAmount(total)} taken today"
         )
 
         return Result.success()

@@ -11,6 +11,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 /**
  * The home screen used to label the shop's entire history as "Sales Today" and
@@ -29,8 +30,11 @@ class SaleTimelineTest {
         set(Calendar.MILLISECOND, 0)
     }.timeInMillis
 
+    // Production writes UTC (SaleRepository), so the fixtures must too.
     private fun iso(millis: Long): String =
-        SimpleDateFormat(storedPattern, Locale.US).format(Date(millis))
+        SimpleDateFormat(storedPattern, Locale.US).apply {
+            timeZone = TimeZone.getTimeZone("UTC")
+        }.format(Date(millis))
 
     private fun sale(id: String, createdAt: String, total: Double, profit: Double) = SaleWithItems(
         sale = SaleEntity(
@@ -61,6 +65,26 @@ class SaleTimelineTest {
         assertEquals(750.0, today.total, 0.01)
         assertEquals(150.0, today.profit, 0.01)
         assertEquals(2, today.count)
+    }
+
+    @Test
+    fun earlyMorningSaleCountsAsTodayNotYesterday() {
+        // 00:30 local is the previous UTC day in any zone east of London, which
+        // is exactly where parsing in the wrong zone went wrong.
+        val earlyMorning = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 30)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
+        val now = at(0, 12)
+        val totals = SaleTimeline.todayTotals(
+            listOf(sale("late-night", iso(earlyMorning), total = 300.0, profit = 60.0)),
+            now
+        )
+
+        assertEquals(1, totals.count)
+        assertEquals(300.0, totals.total, 0.01)
     }
 
     @Test

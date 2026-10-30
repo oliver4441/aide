@@ -9,10 +9,12 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
@@ -27,6 +29,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.core.content.ContextCompat
@@ -47,10 +50,13 @@ import com.omix.aide.data.repository.ProductRepository
 import com.omix.aide.data.repository.ReportRepository
 import com.omix.aide.data.repository.SaleRepository
 import com.omix.aide.notifications.AideNotifications
+import com.omix.aide.notifications.AideSounds
 import com.omix.aide.notifications.AideRoute
 import com.omix.aide.theme.Palette
 import com.omix.aide.ui.components.AideNavRail
 import com.omix.aide.ui.components.NavItem
+import com.omix.aide.ui.components.NotificationBell
+import com.omix.aide.ui.components.NotificationCenterSheet
 import com.omix.aide.ui.navigation.Screen
 import com.omix.aide.ui.screens.CalculatorScreen
 import com.omix.aide.ui.screens.DatabaseProblemScreen
@@ -299,28 +305,72 @@ class MainActivity : ComponentActivity() {
                 // on a tablet where there is room for the labels.
                 val isWideScreen = LocalConfiguration.current.screenWidthDp >= 600
                 var railExpanded by rememberSaveable { mutableStateOf(isWideScreen) }
+                var showNotifications by rememberSaveable { mutableStateOf(false) }
+
+                // Activity history. Declared before the Scaffold because it is a
+                // sheet: it opens in its own window and needs no layout slot.
+                if (showNotifications) {
+                    NotificationCenterSheet(
+                        dao = database.notificationDao(),
+                        onDismiss = { showNotifications = false },
+                        onOpen = { event ->
+                            showNotifications = false
+                            val destination = destinationForRoute(event.route)
+                            if (destination != null) {
+                                navController.navigate(destination) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            }
+                        }
+                    )
+                }
 
                 Scaffold(
                     topBar = {
-                        val update = updateCheck.value
-                        if (update != null && update.newer) {
-                            UpdateBanner(
-                                version = update.version,
-                                onDownload = {
-                                    val url = update.downloadUrl
-                                    if (url != null) {
-                                        runCatching {
-                                            startActivity(
-                                                Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))
-                                            )
+                        // Update banner first, then the activity bell, so the
+                        // bell keeps the same corner on every screen.
+                        Column {
+                            val update = updateCheck.value
+                            if (update != null && update.newer) {
+                                UpdateBanner(
+                                    version = update.version,
+                                    onDownload = {
+                                        val url = update.downloadUrl
+                                        if (url != null) {
+                                            runCatching {
+                                                startActivity(
+                                                    Intent(
+                                                        Intent.ACTION_VIEW,
+                                                        android.net.Uri.parse(url)
+                                                    )
+                                                )
+                                            }
                                         }
+                                        LocalBusinessStore(applicationContext).markUpToDate()
+                                    },
+                                    onDismiss = {
+                                        LocalBusinessStore(applicationContext).markUpToDate()
                                     }
-                                    LocalBusinessStore(applicationContext).markUpToDate()
-                                },
-                                onDismiss = {
-                                    LocalBusinessStore(applicationContext).markUpToDate()
+                                )
+                            }
+                            if (showRail) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 4.dp),
+                                    horizontalArrangement = Arrangement.End,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    NotificationBell(
+                                        dao = database.notificationDao(),
+                                        onClick = { showNotifications = true }
+                                    )
                                 }
-                            )
+                            }
                         }
                     },
                 ) { innerPadding ->
@@ -370,6 +420,10 @@ class MainActivity : ComponentActivity() {
                                 SellScreen(
                                     sellViewModel = sellViewModel,
                                     onSaleCompleted = { saleId ->
+                                        // The till chime, when the shop has sounds on.
+                                        if (settings.value.soundsEnabled) {
+                                            AideSounds.play(applicationContext, AideSounds.tillChime())
+                                        }
                                         navController.navigate(Screen.Receipt.createRoute(saleId))
                                     }
                                 )

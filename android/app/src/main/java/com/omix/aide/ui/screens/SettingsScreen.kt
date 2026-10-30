@@ -2,6 +2,7 @@ package com.omix.aide.ui.screens
 
 import android.content.Context
 import android.content.Intent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -12,16 +13,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -29,9 +31,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,19 +45,23 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import kotlinx.coroutines.flow.first
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.core.content.ContextCompat
 import com.omix.aide.BuildConfig
 import com.omix.aide.data.local.BusinessSettings
-import com.omix.aide.data.local.ThemeMode
 import com.omix.aide.data.local.SettingsStore
+import com.omix.aide.data.local.ThemeMode
 import com.omix.aide.notifications.AideChannel
+import com.omix.aide.notifications.AideNotifications
+import com.omix.aide.notifications.AideSounds
 import com.omix.aide.notifications.NotificationPrefs
 import com.omix.aide.theme.Palette
 import com.omix.aide.ui.components.AideCard
 import com.omix.aide.ui.components.AideLocalOnlyBanner
+import com.omix.aide.work.AideWorkScheduler
+import kotlinx.coroutines.flow.first
 
 /**
  * Business profile, receipt settings, accent theme, notification preferences
@@ -79,6 +88,8 @@ fun SettingsScreen(
     var accent by remember { mutableStateOf(initial.accent) }
     var themeMode by remember { mutableStateOf(initial.themeMode) }
     var soundsOn by remember { mutableStateOf(initial.soundsEnabled) }
+    var summaryHour by remember { mutableStateOf(initial.summaryHour) }
+    var summaryMinute by remember { mutableStateOf(initial.summaryMinute) }
     var saved by remember { mutableStateOf(false) }
 
     val prefs = remember { NotificationPrefs(context) }
@@ -258,8 +269,7 @@ fun SettingsScreen(
                     Spacer(Modifier.height(8.dp))
                     listOf(
                         AideChannel.INVENTORY to "Low stock alerts",
-                        AideChannel.ORDERS to "Completed sales",
-                        AideChannel.SYSTEM to "System and backup alerts"
+                        AideChannel.REPORTS to "Daily summary"
                     ).forEach { (channel, label) ->
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
@@ -273,6 +283,28 @@ fun SettingsScreen(
                             )
                         }
                     }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                    // The summary used to be hard-wired to 18:00; owners close at
+                    // whatever time their shop closes.
+                    SummaryTimeRow(
+                        hour = summaryHour,
+                        minute = summaryMinute,
+                        onChange = { hour, minute ->
+                            summaryHour = hour
+                            summaryMinute = minute
+                            val updated = SettingsStore.read(context).copy(
+                                summaryHour = hour,
+                                summaryMinute = minute
+                            )
+                            SettingsStore.write(context, updated)
+                            onSettingsChanged(updated)
+                            if (prefs.isEnabled()) {
+                                AideWorkScheduler.scheduleDailySummary(context, hour, minute)
+                            }
+                        }
+                    )
                 }
             }
 
@@ -291,12 +323,27 @@ fun SettingsScreen(
                     Column(Modifier.weight(1f)) {
                         Text("App sounds", style = MaterialTheme.typography.bodyLarge)
                         Text(
-                            text = "Chime when a sale completes",
+                            text = "Till chime on a completed sale and on daily summaries, " +
+                                "warning chime on low stock",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     Switch(checked = soundsOn, onCheckedChange = { soundsOn = it; saved = false })
+                }
+
+                Spacer(Modifier.height(8.dp))
+
+                // Let the owner hear the two chimes instead of guessing.
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AssistChip(
+                        onClick = { AideSounds.play(context, AideSounds.tillChime()) },
+                        label = { Text("Till chime") }
+                    )
+                    AssistChip(
+                        onClick = { AideSounds.play(context, AideSounds.warningChime()) },
+                        label = { Text("Warning chime") }
+                    )
                 }
             }
 
@@ -311,11 +358,17 @@ fun SettingsScreen(
                         receiptFooter = receiptFooter.trim(),
                         accent = accent,
                         themeMode = themeMode,
-                        soundsEnabled = soundsOn
+                        soundsEnabled = soundsOn,
+                        summaryHour = summaryHour,
+                        summaryMinute = summaryMinute
                     )
                     SettingsStore.write(context, settings)
                     Palette.write(context, accent)
                     onSettingsChanged(settings)
+                    // Android fixes a channel's sound at creation, so switching
+                    // sounds means switching to the matching channel set.
+                    AideNotifications.ensureChannels(context)
+                    if (prefs.isEnabled()) AideWorkScheduler.scheduleAll(context)
                     saved = true
                 },
                 modifier = Modifier.fillMaxWidth().height(48.dp)
@@ -485,4 +538,69 @@ private fun openCompanySite(context: Context) {
 private fun checkForUpdate(context: Context) {
     val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("$COMPANY_URL/downloads"))
     runCatching { context.startActivity(intent) }
+}
+
+/** Clock time for the daily summary, with a real time picker. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SummaryTimeRow(hour: Int, minute: Int, onChange: (Int, Int) -> Unit) {
+    var picking by remember { mutableStateOf(false) }
+
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            Icons.Default.Schedule,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text("Daily summary time", style = MaterialTheme.typography.bodyLarge)
+            Text(
+                text = "Fires every day at %02d:%02d on this device".format(hour, minute),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        TextButton(onClick = { picking = true }) { Text("Change") }
+    }
+
+    if (picking) {
+        val state = rememberTimePickerState(
+            initialHour = hour,
+            initialMinute = minute,
+            is24Hour = true
+        )
+        // A plain Dialog rather than AlertDialog: the clock face needs the full
+        // width, and AlertDialog's text slot clips it on a phone.
+        Dialog(onDismissRequest = { picking = false }) {
+            Surface(
+                shape = MaterialTheme.shapes.extraLarge,
+                tonalElevation = 6.dp
+            ) {
+                Column(modifier = Modifier.padding(24.dp)) {
+                    Text(
+                        text = "Daily summary time",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    TimePicker(state = state)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        TextButton(onClick = { picking = false }) { Text("Cancel") }
+                        TextButton(
+                            onClick = {
+                                picking = false
+                                onChange(state.hour, state.minute)
+                            }
+                        ) { Text("Set time") }
+                    }
+                }
+            }
+        }
+    }
 }
