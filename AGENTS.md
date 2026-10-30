@@ -119,6 +119,12 @@ and admin status never bypasses the membership check.
 - Neon project: `aide (shiny-rain-18812100)`
 - GitHub: `https://github.com/oliver4441/aide`
 - Vercel: `https://aide.omixsystems.store`
+- **Releasing**: merging a PR publishes nothing. `Android CI` only builds and
+  tests; a release happens when a `v*` tag is pushed
+  (`git push origin refs/tags/v1.0.9`), which `android-release.yml` turns into a
+  signed APK, a GitHub release and a checksums commit on `master`. If
+  `/downloads` or the in-app update banner still shows an old build, check for a
+  missing tag before looking for a CI failure. See `HANDOFF.md` §4.5b.
 
 ## Notable Conventions
 - All components use `"use client"` directive (client-side rendering)

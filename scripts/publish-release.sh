@@ -6,14 +6,16 @@
 #   scripts/publish-release.sh desktop-v1.0.1
 #   scripts/publish-release.sh v1.0.3 --dry-run
 #
-# Why this exists: as of 2026-10-02, pushing a tag to this repository does not
-# start any workflow (see HANDOFF.md §4.5b). A tag push produces no run at all,
-# so `git push origin v1.0.3` silently does nothing. This script pushes the tag
-# anyway — the tag has to exist for a release to hang off — and then dispatches
-# the workflow *against that tag*. With `--ref <tag>` the run's `github.ref` is
-# `refs/tags/<tag>`, so the steps gated on
-# `startsWith(github.ref, 'refs/tags/')` behave exactly as they would on a real
-# tag push. That is how v1.0.2 was published.
+# Why this exists: it is the guarded path to a release — clean tree, unused tag,
+# signing secrets present, then wait for the run and verify the published asset.
+#
+# Tag pushes DO start the release workflows again (v1.0.8, 2026-10-30, HANDOFF
+# §4.5b), so this no longer dispatches by hand up front. It waits for the run the
+# tag itself started and only falls back to `gh workflow run --ref <tag>` if no
+# run appears — the two must never both fire, or two runs race to publish the
+# same release.
+#
+# Merging a pull request does not release anything; only a v* tag does.
 #
 # It refuses to run on a dirty tree, on an existing tag, and — for Android — on a
 # tag whose version disagrees with android/app/build.gradle.kts, because that
@@ -113,26 +115,37 @@ say "Pushing tag $TAG"
 git tag -a "$TAG" -m "Aide $TAG"
 git push origin "refs/tags/$TAG"
 
-# Tag pushes do not trigger workflows on this repo (§4.5b), so dispatch by hand.
-say "Dispatching $WORKFLOW against the tag"
-START=$(date -u +%s)
-if [ "$FAMILY" = "android" ]; then
-  gh workflow run "$WORKFLOW" --repo "$REPO" --ref "$TAG" -f version="$VERSION" >/dev/null
-else
-  gh workflow run "$WORKFLOW" --repo "$REPO" --ref "$TAG" >/dev/null
-fi
+# The newest run for this tag, if one exists yet.
+find_run() {
+  gh run list --repo "$REPO" --workflow "$WORKFLOW" --limit 20 \
+    --json databaseId,headBranch \
+    --jq "[.[] | select(.headBranch == \"$TAG\")][0].databaseId // empty" 2>/dev/null || true
+}
 
-say "Waiting for the run to start"
-RUN=""
-for _ in $(seq 1 30); do
-  sleep 5
-  RUN=$(gh run list --repo "$REPO" --workflow "$WORKFLOW" --limit 10 \
-        --json databaseId,headBranch,createdAt \
-        --jq "[.[] | select(.headBranch == \"$TAG\")][0].databaseId" 2>/dev/null || true)
-  [ -n "$RUN" ] && [ "$RUN" != "null" ] && break
-  RUN=""
-done
-[ -n "$RUN" ] || die "no run appeared for $TAG after 150s — check the Actions tab"
+wait_for_run() {   # $1 = attempts, $2 = seconds between them
+  local run=""
+  for _ in $(seq 1 "$1"); do
+    sleep "$2"
+    run=$(find_run)
+    [ -n "$run" ] && { printf '%s' "$run"; return 0; }
+  done
+  return 1
+}
+
+# §4.5b: the tag itself starts the workflow. Give GitHub a minute before
+# assuming the old "tag pushes do nothing" behaviour is back.
+say "Waiting for the tag-triggered run"
+if RUN=$(wait_for_run 12 5); then
+  say "Run $RUN started from the tag push"
+else
+  say "No run after 60s — dispatching $WORKFLOW against the tag"
+  if [ "$FAMILY" = "android" ]; then
+    gh workflow run "$WORKFLOW" --repo "$REPO" --ref "$TAG" -f version="$VERSION" >/dev/null
+  else
+    gh workflow run "$WORKFLOW" --repo "$REPO" --ref "$TAG" >/dev/null
+  fi
+  RUN=$(wait_for_run 30 5) || die "no run appeared for $TAG after 210s — check the Actions tab"
+fi
 
 say "Watching run $RUN"
 if ! gh run watch "$RUN" --repo "$REPO" --exit-status >/dev/null 2>&1; then

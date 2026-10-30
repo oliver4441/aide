@@ -9,13 +9,15 @@ there.
 | Surface | Source |
 | --- | --- |
 | This page | GitHub Releases bodies, in summary |
-| In the app | `GET /api/releases`, rendered in the updates screen |
-| On the website | `/downloads`, fed by the same endpoint |
+| In the app | `GET /api/latest-release`, shown as an update banner |
+| On the website (`/downloads`, `/api/releases`) | the full release list |
 | Latest build only | `GET /api/latest-release` |
 
-Because the app reads from GitHub rather than a bundled file, **publishing a
-release updates every surface at once**, within the five-minute cache window
-described in [Releases](/docs/api/releases).
+The Android app deliberately does not carry a copy of the history: it asks for
+the newest release, compares its `versionCode` with its own, and shows a banner
+with the download link when a newer one exists. So **publishing a release
+updates every surface at once**, within the five-minute cache window described
+in [Releases](/docs/api/releases), without shipping a new site build.
 
 ## Tag format
 
@@ -41,9 +43,12 @@ no versionCode.
 
 ## Reading the history
 
-- In the app: **Settings → Updates** lists every release with assets attached,
-  with its notes and file size.
-- On the web: [/downloads](/downloads) shows the same list.
+- In the app: the update banner shown when a newer release exists, and
+  **Settings → About → Check for updates**, which reports the installed version
+  and opens the newest release if there is one. There is no in-app list of past
+  releases.
+- On the web: [/downloads](/downloads) shows the full list, with notes and file
+  sizes.
 - On GitHub: the [releases page](https://github.com/oliver4441/aide/releases)
   has the full bodies, including ones with no build attached.
 
@@ -67,10 +72,14 @@ displayed literally.
 ## Release checklist
 
 1. Land the change on `master` and confirm CI is green.
-2. Bump `versionName` and `versionCode` in `android/app/build.gradle`.
-3. Tag and push — the Android workflow builds on tag push.
-4. Publish the GitHub release with `versionCode+APK` as assets and the notes
-   above as the body.
+2. Push a `v*` tag on that commit — `git push origin refs/tags/v1.0.9`. Merging a
+   pull request does not release anything; only the tag does.
+3. `android-release.yml` derives `versionName`/`versionCode` from the tag, builds
+   the signed APK, creates the release, attaches the APK, and asserts that the
+   asset really uploaded. The `checksums` job then writes
+   `public/apk-checksums.json` to `master`.
+4. `scripts/publish-release.sh v1.0.9` does the same with extra guards (clean
+   tree, unused tag, signing secrets present, wait and verify).
 5. Verify `GET /api/latest-release` reports the new version after the cache
    window.
 
@@ -78,6 +87,25 @@ Builds with no uploaded asset are filtered out of `/api/releases` entirely, so
 step 4 is what actually makes a release visible.
 
 ## Notable changes
+
+### 1.0.8 — 30 October 2026 (versionCode 108)
+
+First APK since v1.0.7. Published by pushing the tag `v1.0.8`; asset
+`aide-1.0.8.apk`.
+
+- **Collapsible left rail** replaces the bottom navigation bar: brand mark at the
+  top, 76dp icons-only collapsed and 208dp with labels, expanded by default from
+  600dp width.
+- **Notification chimes**: a till bell for a completed sale and the daily
+  summary, a warning pair for low stock, with previews and an on/off switch.
+- **Expandable alert cards**: one line per low product with units left, or the
+  day's revenue, profit, average sale and payment-method split.
+- **Configurable summary time** (default 18:00) instead of a hard-wired one.
+- **Activity history**: bell with an unread badge, last 100 alerts, mark as read.
+- **Correct home figures**: "Sales Today" counts only today, the chart covers the
+  last seven calendar days, and sales after local midnight stay on their own day.
+- Low-stock and summary alerts use the business's configured currency, not a
+  hard-coded "KSh".
 
 ### 2.x — the offline-first client
 
