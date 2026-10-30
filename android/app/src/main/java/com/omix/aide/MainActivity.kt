@@ -9,26 +9,30 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Inventory
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -47,8 +51,13 @@ import com.omix.aide.data.repository.ProductRepository
 import com.omix.aide.data.repository.ReportRepository
 import com.omix.aide.data.repository.SaleRepository
 import com.omix.aide.notifications.AideNotifications
+import com.omix.aide.notifications.AideSounds
 import com.omix.aide.notifications.AideRoute
 import com.omix.aide.theme.Palette
+import com.omix.aide.ui.components.AideNavRail
+import com.omix.aide.ui.components.NavItem
+import com.omix.aide.ui.components.NotificationBell
+import com.omix.aide.ui.components.NotificationCenterSheet
 import com.omix.aide.ui.navigation.Screen
 import com.omix.aide.ui.screens.CalculatorScreen
 import com.omix.aide.ui.screens.DatabaseProblemScreen
@@ -282,183 +291,238 @@ class MainActivity : ComponentActivity() {
 
             CompositionLocalProvider(LocalAideSettings provides settings.value) {
             AideTheme {
-                val bottomNavItems = listOf(
-                    NavItem("HOME", Screen.Home.route, Icons.Default.Home),
-                    NavItem("SELL", Screen.Sell.route, Icons.Default.ShoppingCart),
-                    NavItem("STOCK", Screen.Stock.route, Icons.Default.Inventory),
-                    NavItem("MORE", Screen.More.route, Icons.Default.Menu)
-                )
+                val navItems = remember {
+                    listOf(
+                        NavItem("Home", Screen.Home.route, Icons.Default.Home),
+                        NavItem("Sell", Screen.Sell.route, Icons.Default.ShoppingCart),
+                        NavItem("Stock", Screen.Stock.route, Icons.Default.Inventory),
+                        NavItem("More", Screen.More.route, Icons.Default.Menu)
+                    )
+                }
 
-                val showBottomBar = currentRoute in bottomNavItems.map { it.route }
+                val showRail = currentRoute in navItems.map { it.route }
+
+                // Icons-only on a phone (the rail must not eat the till), open
+                // on a tablet where there is room for the labels.
+                val isWideScreen = LocalConfiguration.current.screenWidthDp >= 600
+                var railExpanded by rememberSaveable { mutableStateOf(isWideScreen) }
+                var showNotifications by rememberSaveable { mutableStateOf(false) }
+
+                // Activity history. Declared before the Scaffold because it is a
+                // sheet: it opens in its own window and needs no layout slot.
+                if (showNotifications) {
+                    NotificationCenterSheet(
+                        dao = database.notificationDao(),
+                        onDismiss = { showNotifications = false },
+                        onOpen = { event ->
+                            showNotifications = false
+                            val destination = destinationForRoute(event.route)
+                            if (destination != null) {
+                                navController.navigate(destination) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            }
+                        }
+                    )
+                }
 
                 Scaffold(
                     topBar = {
-                        val update = updateCheck.value
-                        if (update != null && update.newer) {
-                            UpdateBanner(
-                                version = update.version,
-                                onDownload = {
-                                    val url = update.downloadUrl
-                                    if (url != null) {
-                                        runCatching {
-                                            startActivity(
-                                                Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))
-                                            )
-                                        }
-                                    }
-                                    LocalBusinessStore(applicationContext).markUpToDate()
-                                },
-                                onDismiss = {
-                                    LocalBusinessStore(applicationContext).markUpToDate()
-                                }
-                            )
-                        }
-                    },
-                    bottomBar = {
-                        if (showBottomBar) {
-                            NavigationBar {
-                                bottomNavItems.forEach { item ->
-                                    NavigationBarItem(
-                                        icon = {
-                                            Icon(item.icon, contentDescription = item.label)
-                                        },
-                                        label = { Text(item.label) },
-                                        selected = currentRoute == item.route,
-                                        onClick = {
-                                            navController.navigate(item.route) {
-                                                popUpTo(
-                                                    navController.graph.findStartDestination().id
-                                                ) {
-                                                    saveState = true
-                                                }
-                                                launchSingleTop = true
-                                                restoreState = true
+                        // Update banner first, then the activity bell, so the
+                        // bell keeps the same corner on every screen.
+                        Column {
+                            val update = updateCheck.value
+                            if (update != null && update.newer) {
+                                UpdateBanner(
+                                    version = update.version,
+                                    onDownload = {
+                                        val url = update.downloadUrl
+                                        if (url != null) {
+                                            runCatching {
+                                                startActivity(
+                                                    Intent(
+                                                        Intent.ACTION_VIEW,
+                                                        android.net.Uri.parse(url)
+                                                    )
+                                                )
                                             }
                                         }
+                                        LocalBusinessStore(applicationContext).markUpToDate()
+                                    },
+                                    onDismiss = {
+                                        LocalBusinessStore(applicationContext).markUpToDate()
+                                    }
+                                )
+                            }
+                            if (showRail) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 4.dp),
+                                    horizontalArrangement = Arrangement.End,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    NotificationBell(
+                                        dao = database.notificationDao(),
+                                        onClick = { showNotifications = true }
                                     )
                                 }
                             }
                         }
-                    }
+                    },
                 ) { innerPadding ->
-                    NavHost(
-                        navController = navController,
-                        startDestination = startDestination,
-                        modifier = Modifier.padding(innerPadding)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding)
                     ) {
-                        composable(Screen.Home.route) {
-                            HomeScreen(
-                                homeViewModel = homeViewModel,
-                                onNavigateToSell = {
-                                    navController.navigate(Screen.Sell.route)
-                                },
-                                onNavigateToStock = {
-                                    navController.navigate(Screen.Stock.route)
-                                }
-                            )
-                        }
-
-                        composable(Screen.Sell.route) {
-                            SellScreen(
-                                sellViewModel = sellViewModel,
-                                onSaleCompleted = { saleId ->
-                                    navController.navigate(Screen.Receipt.createRoute(saleId))
-                                }
-                            )
-                        }
-
-                        composable(Screen.Stock.route) {
-                            StockScreen(stockViewModel = stockViewModel)
-                        }
-
-                        composable(Screen.More.route) {
-                            MoreScreen(
-                                businessName = businessStore.getBusinessName(),
-                                onNavigateToCustomers = {
-                                    navController.navigate(Screen.Customers.route)
-                                },
-                                onNavigateToExpenses = {
-                                    navController.navigate(Screen.Expenses.route)
-                                },
-                                onNavigateToReports = {
-                                    navController.navigate(Screen.Reports.route)
-                                },
-                                onNavigateToSettings = {
-                                    navController.navigate(Screen.Settings.route)
-                                },
-                                onNavigateToCalculator = {
-                                    navController.navigate(Screen.Calculator.route)
-                                }
-                            )
-                        }
-
-                        composable(
-                            route = Screen.Receipt.route,
-                            arguments = listOf(
-                                navArgument("saleId") { type = NavType.StringType }
-                            )
-                        ) { backStackEntry ->
-                            val saleId = backStackEntry.arguments?.getString("saleId") ?: ""
-                            ReceiptScreen(
-                                saleId = saleId,
-                                saleRepository = saleRepository,
-                                onDone = {
-                                    navController.navigate(Screen.Home.route) {
-                                        popUpTo(Screen.Home.route) { inclusive = true }
+                        if (showRail) {
+                            AideNavRail(
+                                items = navItems,
+                                currentRoute = currentRoute,
+                                expanded = railExpanded,
+                                onToggleExpanded = { railExpanded = !railExpanded },
+                                onNavigate = { route ->
+                                    navController.navigate(route) {
+                                        popUpTo(navController.graph.findStartDestination().id) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
                                     }
                                 }
                             )
                         }
 
-                        // These four were menu rows with empty onClick lambdas,
-                        // so tapping them did nothing.
-                        composable(Screen.Customers.route) {
-                            CustomersScreen(
-                                customerViewModel = customerViewModel,
-                                onBack = { navController.popBackStack() }
-                            )
-                        }
+                        NavHost(
+                            navController = navController,
+                            startDestination = startDestination,
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                        ) {
+                            composable(Screen.Home.route) {
+                                HomeScreen(
+                                    homeViewModel = homeViewModel,
+                                    onNavigateToSell = {
+                                        navController.navigate(Screen.Sell.route)
+                                    },
+                                    onNavigateToStock = {
+                                        navController.navigate(Screen.Stock.route)
+                                    }
+                                )
+                            }
 
-                        composable(Screen.Expenses.route) {
-                            ExpensesScreen(
-                                expenseViewModel = expenseViewModel,
-                                onBack = { navController.popBackStack() }
-                            )
-                        }
+                            composable(Screen.Sell.route) {
+                                SellScreen(
+                                    sellViewModel = sellViewModel,
+                                    onSaleCompleted = { saleId ->
+                                        // The till chime, when the shop has sounds on.
+                                        if (settings.value.soundsEnabled) {
+                                            AideSounds.play(applicationContext, AideSounds.tillChime())
+                                        }
+                                        navController.navigate(Screen.Receipt.createRoute(saleId))
+                                    }
+                                )
+                            }
 
-                        composable(Screen.Reports.route) {
-                            ReportsScreen(
-                                reportViewModel = reportViewModel,
-                                onBack = { navController.popBackStack() }
-                            )
-                        }
+                            composable(Screen.Stock.route) {
+                                StockScreen(stockViewModel = stockViewModel)
+                            }
 
-                        composable(Screen.Settings.route) {
-                            SettingsScreen(
-                                database = database,
-                                businessId = businessId,
-                                onBack = { navController.popBackStack() },
-                                onSettingsChanged = { updated -> settings.value = updated }
-                            )
-                        }
+                            composable(Screen.More.route) {
+                                MoreScreen(
+                                    businessName = businessStore.getBusinessName(),
+                                    onNavigateToCustomers = {
+                                        navController.navigate(Screen.Customers.route)
+                                    },
+                                    onNavigateToExpenses = {
+                                        navController.navigate(Screen.Expenses.route)
+                                    },
+                                    onNavigateToReports = {
+                                        navController.navigate(Screen.Reports.route)
+                                    },
+                                    onNavigateToSettings = {
+                                        navController.navigate(Screen.Settings.route)
+                                    },
+                                    onNavigateToCalculator = {
+                                        navController.navigate(Screen.Calculator.route)
+                                    }
+                                )
+                            }
 
-                        composable(Screen.Calculator.route) {
-                            CalculatorScreen(onBack = { navController.popBackStack() })
-                        }
-
-                        // First-time Android users pick a theme here instead of
-                        // straight into the app.
-                        composable(Screen.ThemePicker.route) {
-                            Column(modifier = Modifier.fillMaxSize()) {
-                                ThemePickerScreen(
-                                    accent = settings.value.accent,
-                                    onDismiss = {
-                                        businessStore.markSetupComplete()
-                                        if (!navController.popBackStack()) {
-                                            navController.navigate(Screen.Home.route)
+                            composable(
+                                route = Screen.Receipt.route,
+                                arguments = listOf(
+                                    navArgument("saleId") { type = NavType.StringType }
+                                )
+                            ) { backStackEntry ->
+                                val saleId = backStackEntry.arguments?.getString("saleId") ?: ""
+                                ReceiptScreen(
+                                    saleId = saleId,
+                                    saleRepository = saleRepository,
+                                    onDone = {
+                                        navController.navigate(Screen.Home.route) {
+                                            popUpTo(Screen.Home.route) { inclusive = true }
                                         }
                                     }
                                 )
+                            }
+
+                            // These four were menu rows with empty onClick lambdas,
+                            // so tapping them did nothing.
+                            composable(Screen.Customers.route) {
+                                CustomersScreen(
+                                    customerViewModel = customerViewModel,
+                                    onBack = { navController.popBackStack() }
+                                )
+                            }
+
+                            composable(Screen.Expenses.route) {
+                                ExpensesScreen(
+                                    expenseViewModel = expenseViewModel,
+                                    onBack = { navController.popBackStack() }
+                                )
+                            }
+
+                            composable(Screen.Reports.route) {
+                                ReportsScreen(
+                                    reportViewModel = reportViewModel,
+                                    onBack = { navController.popBackStack() }
+                                )
+                            }
+
+                            composable(Screen.Settings.route) {
+                                SettingsScreen(
+                                    database = database,
+                                    businessId = businessId,
+                                    onBack = { navController.popBackStack() },
+                                    onSettingsChanged = { updated -> settings.value = updated }
+                                )
+                            }
+
+                            composable(Screen.Calculator.route) {
+                                CalculatorScreen(onBack = { navController.popBackStack() })
+                            }
+
+                            // First-time Android users pick a theme here instead of
+                            // straight into the app.
+                            composable(Screen.ThemePicker.route) {
+                                Column(modifier = Modifier.fillMaxSize()) {
+                                    ThemePickerScreen(
+                                        accent = settings.value.accent,
+                                        onDismiss = {
+                                            businessStore.markSetupComplete()
+                                            if (!navController.popBackStack()) {
+                                                navController.navigate(Screen.Home.route)
+                                            }
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
@@ -468,5 +532,3 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
-data class NavItem(val label: String, val route: String, val icon: ImageVector)

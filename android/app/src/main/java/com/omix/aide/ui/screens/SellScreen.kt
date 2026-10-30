@@ -3,6 +3,8 @@ package com.omix.aide.ui.screens
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -344,6 +346,39 @@ fun SellScreen(
                     singleLine = true
                 )
 
+                // The notes a customer actually hands over: the exact total
+                // plus the usual round-ups. Restored after the UI overhaul
+                // dropped them, so the cashier is not typing at the till.
+                val quickAmounts = remember(uiState.subtotal) {
+                    listOf(
+                        uiState.subtotal,
+                        roundUpTo(uiState.subtotal, 100.0),
+                        roundUpTo(uiState.subtotal, 500.0),
+                        roundUpTo(uiState.subtotal, 1000.0)
+                    ).filter { it > 0.0 }.distinct().take(4)
+                }
+                if (quickAmounts.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        quickAmounts.forEach { amount ->
+                            AssistChip(
+                                onClick = { sellViewModel.setAmountPaid("%.2f".format(amount)) },
+                                label = {
+                                    Text(
+                                        text = moneyBare(amount),
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            )
+                        }
+                    }
+                }
+
                 // Change calculation
                 val paid = uiState.amountPaid.toDoubleOrNull()
                 if (paid != null && paid > 0.0) {
@@ -519,3 +554,7 @@ fun SellProductGridCard(
         }
     }
 }
+
+/** Rounds [amount] up to the next multiple of [step], for the quick-cash chips. */
+private fun roundUpTo(amount: Double, step: Double): Double =
+    if (amount <= 0.0) 0.0 else kotlin.math.ceil(amount / step) * step

@@ -5,7 +5,7 @@ import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import java.util.Calendar
+import com.omix.aide.data.local.SettingsStore
 import java.util.concurrent.TimeUnit
 
 /**
@@ -35,36 +35,35 @@ object AideWorkScheduler {
     }
 
     /**
-     * Daily summary, first run at the next 18:00 local time.
+     * Daily summary, first run at the next [hour]:[minute] local time.
      *
      * Periodic work cannot be pinned to a wall-clock time, so we delay the first
-     * run until the evening and repeat every 24 hours from there.
+     * run until the shop's chosen closing time and repeat every 24 hours from
+     * there. Settings calls this again with the new time whenever the owner
+     * moves the summary, so the change takes effect without a reinstall.
      */
-    fun scheduleDailySummary(context: Context) {
-        val now = Calendar.getInstance()
-        val next = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 18)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-            if (before(now)) add(Calendar.DAY_OF_YEAR, 1)
-        }
-        val delayMs = next.timeInMillis - now.timeInMillis
+    fun scheduleDailySummary(context: Context, hour: Int, minute: Int) {
+        val delayMs = SummarySchedule.delayFrom(System.currentTimeMillis(), hour, minute)
 
         val request = PeriodicWorkRequestBuilder<DailySummaryWorker>(24, TimeUnit.HOURS)
             .setInitialDelay(delayMs, TimeUnit.MILLISECONDS)
             .build()
 
+        // CANCEL_AND_REENQUEUE rather than UPDATE: UPDATE keeps the existing
+        // schedule, so moving the summary from 18:00 to 21:00 would not take
+        // effect until the old request happened to fire. Replacing the request
+        // is what actually moves the time.
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(
             DailySummaryWorker.UNIQUE_NAME,
-            ExistingPeriodicWorkPolicy.UPDATE,
+            ExistingPeriodicWorkPolicy.CANCEL_AND_REENQUEUE,
             request
         )
     }
 
     fun scheduleAll(context: Context) {
+        val settings = SettingsStore.read(context)
         scheduleLowStock(context)
-        scheduleDailySummary(context)
+        scheduleDailySummary(context, settings.summaryHour, settings.summaryMinute)
     }
 
     fun cancelAll(context: Context) {

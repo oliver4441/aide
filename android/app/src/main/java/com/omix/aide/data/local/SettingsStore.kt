@@ -41,7 +41,11 @@ data class BusinessSettings(
     val receiptFooter: String = "Thank you for your business",
     val accent: String = "plum",
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
-    val soundsEnabled: Boolean = true
+    val soundsEnabled: Boolean = true,
+    /** Local hour the daily summary notification fires at (24h clock). */
+    val summaryHour: Int = 18,
+    /** Minutes past [summaryHour]; 0 means exactly on the hour. */
+    val summaryMinute: Int = 0
 )
 
 object SettingsStore {
@@ -64,7 +68,9 @@ object SettingsStore {
                 ?: "Thank you for your business",
             accent = getString(KEY_ACCENT, "plum") ?: "plum",
             themeMode = ThemeMode.from(getString(KEY_THEME_MODE, null)),
-            soundsEnabled = getBoolean(KEY_SOUNDS, true)
+            soundsEnabled = getBoolean(KEY_SOUNDS, true),
+            summaryHour = getInt(KEY_SUMMARY_HOUR, 18).coerceIn(0, 23),
+            summaryMinute = getInt(KEY_SUMMARY_MINUTE, 0).coerceIn(0, 59)
         )
     }
 
@@ -77,6 +83,8 @@ object SettingsStore {
             .putString(KEY_ACCENT, settings.accent)
             .putString(KEY_THEME_MODE, settings.themeMode.name)
             .putBoolean(KEY_SOUNDS, settings.soundsEnabled)
+            .putInt(KEY_SUMMARY_HOUR, settings.summaryHour)
+            .putInt(KEY_SUMMARY_MINUTE, settings.summaryMinute)
             .apply()
     }
 
@@ -117,4 +125,6 @@ object SettingsStore {
     private const val KEY_ACCENT = "accent"
     private const val KEY_THEME_MODE = "theme_mode"
     private const val KEY_SOUNDS = "sounds_enabled"
+    private const val KEY_SUMMARY_HOUR = "summary_hour"
+    private const val KEY_SUMMARY_MINUTE = "summary_minute"
 }

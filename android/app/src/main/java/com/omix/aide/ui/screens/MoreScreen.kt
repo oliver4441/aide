@@ -141,7 +141,7 @@ fun MoreScreen(
                     MoreMenuItem(
                         icon = Icons.Default.Settings,
                         title = "App Settings",
-                        subtitle = "Business profile, theme color, receipt options & data backup",
+                        subtitle = "Business profile, theme, notifications, chimes & data export",
                         onClick = onNavigateToSettings
                     )
                     MoreMenuItem(

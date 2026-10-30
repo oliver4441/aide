@@ -61,6 +61,9 @@ Sign-in is **email and password**, handled by NextAuth's credentials provider
 - **Web**: `POST /api/auth/register` creates the account, a default business,
   and the owner's membership in one transaction. The login page then signs in
   through NextAuth and receives a session cookie.
+The Android APK's complete feature list — including what it deliberately does
+not do — lives in [`docs/android-features.md`](docs/android-features.md).
+
 - **Native clients**: any client that cannot run the browser flow can use
   `POST /api/auth/mobile-login` with a JSON body. It returns a bearer token
   (HS256, 30-day expiry) to send as `Authorization: Bearer <token>`. The
