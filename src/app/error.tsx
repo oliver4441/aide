@@ -27,22 +27,20 @@ export default function Error({
   }, [error]);
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-surface p-6">
-      <div className="pointer-events-none absolute left-1/2 top-1/2 h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-error/10 blur-[130px]" />
-
+    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-ground p-6">
       <div className="relative z-10 w-full max-w-md text-center">
         <div className="mb-6 flex justify-center">
           <img
             src="/logo.jpg"
             alt="Aide logo"
-            className="h-20 w-20 rounded-2xl object-cover shadow-lg ring-4 ring-error/10"
+            className="h-20 w-20 object-cover ring-4 ring-error/10"
           />
         </div>
 
-        <h1 className="mt-2 font-headline text-3xl font-bold text-on-surface">
+        <h1 className="mt-2 font-display text-3xl font-bold text-ink">
           Something went wrong
         </h1>
-        <p className="mb-8 mt-3 text-lg text-on-surface-variant">
+        <p className="mb-8 mt-3 text-lg text-secondary">
           This page hit an unexpected error. Your data is safe — try again, or head
           back to a page that works.
         </p>
@@ -50,26 +48,26 @@ export default function Error({
         <div className="flex flex-col justify-center gap-3 sm:flex-row">
           <button
             onClick={reset}
-            className="w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-on-primary shadow-sm transition-colors hover:bg-primary-light sm:w-auto"
+            className="w-full bg-accent px-4 py-2.5 text-sm font-semibold text-ground transition-colors hover:bg-ink sm:w-auto"
           >
             Try again
           </button>
           <a
             href="/"
-            className="w-full rounded-xl border border-outline-variant px-4 py-2.5 text-sm font-semibold text-on-surface transition-colors hover:bg-surface-container sm:w-auto"
+            className="w-full border border-rule px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-rule/15 sm:w-auto"
           >
             Go home
           </a>
           <a
             href="/help"
-            className="w-full rounded-xl border border-outline-variant px-4 py-2.5 text-sm font-semibold text-on-surface transition-colors hover:bg-surface-container sm:w-auto"
+            className="w-full border border-rule px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-rule/15 sm:w-auto"
           >
             Help
           </a>
         </div>
 
         {error.digest ? (
-          <p className="mt-8 font-mono text-xs text-on-surface-variant">
+          <p className="mt-8 font-mono text-xs text-secondary">
             Reference: {error.digest}
           </p>
         ) : null}

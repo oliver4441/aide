@@ -26,11 +26,11 @@ export default function DashboardError({
 
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center p-6">
-      <div className="w-full max-w-md rounded-2xl border border-outline-variant bg-surface-container-low p-6 text-center">
-        <h1 className="font-headline text-xl font-bold text-on-surface">
+      <div className="w-full max-w-md border border-rule bg-ground p-6 text-center">
+        <h1 className="font-display text-xl font-bold text-ink">
           Something went wrong
         </h1>
-        <p className="mt-2 text-sm text-on-surface-variant">
+        <p className="mt-2 text-sm text-secondary">
           This screen hit an unexpected error. Anything you already saved is still
           on this device and will sync when the connection is back.
         </p>
@@ -38,20 +38,20 @@ export default function DashboardError({
         <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
           <button
             onClick={reset}
-            className="w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary-light sm:w-auto"
+            className="w-full bg-accent px-4 py-2.5 text-sm font-semibold text-ground transition-colors hover:bg-ink sm:w-auto"
           >
             Try again
           </button>
           <a
             href="/dashboard"
-            className="w-full rounded-xl border border-outline-variant px-4 py-2.5 text-sm font-semibold text-on-surface transition-colors hover:bg-surface-container sm:w-auto"
+            className="w-full border border-rule px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-rule/15 sm:w-auto"
           >
             Back to dashboard
           </a>
         </div>
 
         {error.digest ? (
-          <p className="mt-6 font-mono text-xs text-on-surface-variant">
+          <p className="mt-6 font-mono text-xs text-secondary">
             Reference: {error.digest}
           </p>
         ) : null}

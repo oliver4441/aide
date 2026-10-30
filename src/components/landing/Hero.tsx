@@ -24,12 +24,14 @@ export default function Hero() {
         style={{ objectPosition: PHOTO_FOCUS }}
       />
 
+      {/* A cream wash, not an opaque plate: the photo stays as a faint
+          newsprint texture behind the masthead without hurting contrast. */}
       <div
         aria-hidden="true"
-        className="absolute inset-0 -z-10 bg-ground"
+        className="absolute inset-0 -z-10 bg-gradient-to-b from-ground/95 via-ground/90 to-ground"
       />
 
-      <Container className="relative z-10 text-center">
+      <Container wide className="relative z-10 text-center">
         <div className="mx-auto mb-6 inline-flex items-center gap-2 border border-accent bg-accent/10 px-3.5 py-1.5 text-xs font-display font-black text-accent">
           <span className="h-1.5 w-1.5 border border-accent text-accent" />
           Offline-first business workspace
@@ -41,7 +43,7 @@ export default function Hero() {
           <span className="text-accent">Even offline.</span>
         </h1>
 
-        <p className="mx-auto mt-7 max-w-2xl text-base leading-7 text-secondary md:text-lg font-reading">
+        <p className="mx-auto mt-7 max-w-2xl text-lg leading-relaxed text-secondary md:text-xl font-reading">
           Aide brings sales, inventory, receipts, payments and reports into one simple PWA built for small businesses. Open it in your browser, install it on your device, and keep working when the connection drops.
         </p>
 

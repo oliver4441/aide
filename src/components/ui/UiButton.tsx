@@ -16,14 +16,14 @@ export interface UiButtonProps {
 }
 
 const sizes = {
-  default: "px-6 py-3.5 text-sm",
-  sm: "px-3.5 py-2 text-xs",
+  default: "px-5 py-2.5 text-control",
+  sm: "px-3.5 py-2 text-sm",
   lg: "px-8 py-4 text-base",
   icon: "p-2",
 } as const;
 
 /**
- * Square, clearly labeled action with thin black border.
+ * Square, clearly labeled action with a thin rule border.
  * Hover inverts foreground and background immediately.
  * Pass `href` to render a Next <Link>; otherwise renders a <button>.
  */
@@ -38,21 +38,22 @@ export default function UiButton({
   className = "",
   children,
 }: UiButtonProps) {
-  const base = "np-btn inline-flex flex-shrink-0";
+  const base = "np-btn flex-shrink-0";
+
+  // `primary` and `danger` are the accented action; `outline` is the ruled one.
   const variantCls =
-    variant === "danger"
+    variant === "primary" || variant === "danger"
       ? "np-btn--accent"
       : variant === "ghost"
-        ? ""
-        : variant === "outline"
-          ? ""
-          : "";
-  const cls = `${base} ${variantCls} ${sizes[size]} ${className}`;
+        ? "border-transparent hover:border-ink"
+        : "";
+
+  const cls = `${base} ${variantCls} ${sizes[size]} ${className}`.replace(/\s+/g, " ").trim();
   const isBusy = disabled || loading;
 
   const inner = loading ? (
     <>
-      <span className="inline-block w-4 h-4 mr-2 border-[1.5px] border-current border-t-transparent rounded-full animate-spin" />
+      <span className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-[1.5px] border-current border-t-transparent" />
       <span>{children}</span>
     </>
   ) : (

@@ -52,10 +52,10 @@ export default function DocsToc({ headings }: { headings: DocHeading[] }) {
 
   return (
     <nav aria-label="On this page" className="text-sm">
-      <h2 className="mb-3 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-on-surface-variant">
+      <h2 className="mb-3 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-secondary">
         On this page
       </h2>
-      <ul className="space-y-1 border-l border-outline-variant">
+      <ul className="space-y-1 border-l border-rule">
         {entries.map((heading) => {
           const active = heading.id === activeId;
           return (
@@ -67,8 +67,8 @@ export default function DocsToc({ headings }: { headings: DocHeading[] }) {
                   heading.level === 3 ? "pl-6" : "pl-3"
                 } ${
                   active
-                    ? "border-primary font-medium text-primary"
-                    : "border-transparent text-on-surface-variant hover:border-outline hover:text-on-surface"
+                    ? "border-accent font-medium text-accent"
+                    : "border-transparent text-secondary hover:border-rule hover:text-ink"
                 }`}
               >
                 {heading.text}

@@ -1,33 +1,28 @@
 "use client";
 
-import { motion } from "framer-motion";
-
 interface UiLoaderProps {
   size?: number;
   className?: string;
   label?: string;
 }
 
-/** Motion-driven gradient ring loader. Inherits currentColor. */
+/**
+ * Newsprint spinner: a square-ruled ring in the current text colour.
+ * No spring physics — motion is limited to a single linear spin, so it reads as
+ * a printed rule turning rather than something gliding in.
+ */
 export default function UiLoader({ size = 24, className = "", label = "Loading" }: UiLoaderProps) {
   return (
     <span
       role="status"
       aria-label={label}
       aria-live="polite"
-      className={`relative inline-block shrink-0 ${className}`}
+      className={`inline-block shrink-0 ${className}`}
       style={{ width: size, height: size }}
     >
-      <motion.span
-        className="absolute inset-0 rounded-full"
-        style={{
-          background: "conic-gradient(from 0deg, transparent 15%, currentColor 100%)",
-          WebkitMask:
-            "radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px))",
-          mask: "radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px))",
-        }}
-        animate={{ rotate: 360 }}
-        transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }}
+      <span
+        aria-hidden="true"
+        className="block h-full w-full animate-spin rounded-full border-2 border-current border-t-transparent"
       />
     </span>
   );

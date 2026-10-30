@@ -26,24 +26,24 @@ const UPDATED = "30 September 2026";
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="mt-8">
-      <h2 className="text-lg font-bold text-on-surface font-headline">{title}</h2>
-      <div className="mt-2 space-y-3 text-[15px] leading-relaxed text-on-surface-variant">{children}</div>
+      <h2 className="font-display text-xl font-black text-ink">{title}</h2>
+      <div className="mt-2 space-y-3 text-[17px] leading-[1.7] text-secondary">{children}</div>
     </section>
   );
 }
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-surface">
-      <header className="border-b border-outline-variant bg-surface/95 backdrop-blur-xl sticky top-0 z-30">
+    <div className="min-h-screen bg-ground">
+      <header className="border-b border-rule bg-ground sticky top-0 z-30">
         <div className="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <img src="/logo.jpg" alt="Aide logo" className="w-8 h-8 rounded-lg object-cover shadow-sm" />
-            <span className="text-lg font-bold text-primary font-headline">Aide</span>
+            <img src="/logo.jpg" alt="Aide logo" className="w-8 h-8 object-cover" />
+            <span className="text-lg font-bold text-accent font-display">Aide</span>
           </Link>
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-on-surface-variant hover:text-on-surface transition-colors"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-secondary hover:text-ink transition-colors"
           >
             <ArrowLeft className="w-4 h-4" /> Back to home
           </Link>
@@ -51,9 +51,9 @@ export default function TermsPage() {
       </header>
 
       <main className="max-w-3xl mx-auto px-6 py-12">
-        <h1 className="text-3xl md:text-4xl font-bold text-on-surface font-headline">Terms of Service</h1>
-        <p className="mt-2 text-sm text-on-surface-variant">Last updated: {UPDATED}</p>
-        <p className="mt-4 text-on-surface-variant">
+        <h1 className="font-display text-3xl md:text-4xl font-black text-ink">Terms of Service</h1>
+        <p className="mt-2 text-sm text-secondary">Last updated: {UPDATED}</p>
+        <p className="mt-4 text-secondary">
           These Terms govern your use of Aide, the offline-first point-of-sale,
           inventory and reporting software provided by Omix Digital Solutions (&quot;Aide&quot;, &quot;the
           Service&quot;). By creating an account or using Aide, you agree to these Terms. If
@@ -88,7 +88,7 @@ export default function TermsPage() {
           </p>
           <p>
             How we handle that data is set out in the{" "}
-            <Link href="/privacy" className="text-primary hover:underline">
+            <Link href="/privacy" className="text-accent hover:underline">
               Privacy Policy
             </Link>
             , which forms part of these Terms.
@@ -228,22 +228,22 @@ export default function TermsPage() {
             </p>
             <ul className="mt-3 space-y-1">
               <li>
-                <span className="font-semibold text-on-surface">Email:</span>{" "}
-                <a href="mailto:omixsystems@gmail.com" className="text-primary hover:underline">
+                <span className="font-semibold text-ink">Email:</span>{" "}
+                <a href="mailto:omixsystems@gmail.com" className="text-accent hover:underline">
                   omixsystems@gmail.com
                 </a>
               </li>
               <li>
-                <span className="font-semibold text-on-surface">Phone:</span>{" "}
-                <a href="tel:+254768213649" className="text-primary hover:underline">
+                <span className="font-semibold text-ink">Phone:</span>{" "}
+                <a href="tel:+254768213649" className="text-accent hover:underline">
                   +254 768 213 649
                 </a>
               </li>
               <li>
-                <span className="font-semibold text-on-surface">Website:</span>{" "}
+                <span className="font-semibold text-ink">Website:</span>{" "}
                 <a
                   href="https://omixsystems.store"
-                  className="text-primary hover:underline"
+                  className="text-accent hover:underline"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -254,16 +254,16 @@ export default function TermsPage() {
           </p>
         </Section>
 
-        <div className="mt-12 pt-6 border-t border-outline-variant flex flex-col sm:flex-row gap-3">
+        <div className="mt-12 pt-6 border-t border-rule flex flex-col sm:flex-row gap-3">
           <Link
             href="/privacy"
-            className="inline-flex items-center justify-center rounded-xl border border-outline-variant px-5 py-2.5 text-sm font-semibold text-on-surface hover:bg-surface-container transition-colors"
+            className="inline-flex items-center justify-center border border-rule px-5 py-2.5 text-sm font-semibold text-ink hover:bg-rule/15 transition-colors"
           >
             Read the Privacy Policy
           </Link>
           <Link
             href="/"
-            className="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-on-primary hover:bg-primary-light transition-colors"
+            className="inline-flex items-center justify-center bg-accent px-5 py-2.5 text-sm font-semibold text-ground hover:bg-ink transition-colors"
           >
             Back to home
           </Link>

@@ -29,7 +29,7 @@ export default function DocsMobileNav() {
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
         aria-controls="docs-mobile-nav"
-        className="flex w-full items-center justify-between border-b border-outline-variant bg-surface-container-low px-4 py-3 text-sm font-medium text-on-surface transition-colors hover:bg-surface-container"
+        className="flex w-full items-center justify-between border-b border-rule bg-ground px-4 py-3 text-sm font-medium text-ink transition-colors hover:bg-rule/15"
       >
         <span className="flex items-center gap-2">
           <svg
@@ -64,7 +64,7 @@ export default function DocsMobileNav() {
       {open ? (
         <div
           id="docs-mobile-nav"
-          className="max-h-[60vh] overflow-y-auto border-b border-outline-variant bg-surface px-4 py-4 shadow-lg"
+          className="max-h-[60vh] overflow-y-auto border-b border-rule bg-ground px-4 py-4"
         >
           <DocsNavList groups={DOC_NAV} onNavigate={() => setOpen(false)} />
         </div>

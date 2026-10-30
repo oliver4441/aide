@@ -6,7 +6,7 @@ import Container from "@/components/ui/Container";
 export default function CtaSection() {
   return (
     <section className="border-t border-rule border-b border-rule py-16">
-      <Container>
+      <Container wide>
         <div className="border border-rule p-8 md:p-16 text-center">
           <img
             src="/logo.jpg"

@@ -22,7 +22,7 @@ export default function DocsNavList({ groups, onNavigate }: DocsNavListProps) {
     <nav aria-label="Documentation" className="pb-10">
       {groups.map((group) => (
         <div key={group.id} className="mb-7">
-          <h2 className="mb-2 px-3 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-on-surface-variant">
+          <h2 className="mb-2 px-3 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-secondary">
             {group.title}
           </h2>
           <ul className="space-y-0.5">
@@ -38,10 +38,10 @@ export default function DocsNavList({ groups, onNavigate }: DocsNavListProps) {
                     href={item.href}
                     onClick={onNavigate}
                     aria-current={active ? "page" : undefined}
-                    className={`block rounded-lg px-3 py-1.5 text-sm transition-colors ${
+                    className={`block  px-3 py-1.5 text-sm transition-colors ${
                       active
-                        ? "bg-primary/10 font-semibold text-primary"
-                        : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
+                        ? "bg-accent/10 font-semibold text-accent"
+                        : "text-secondary hover:bg-rule/15 hover:text-ink"
                     }`}
                   >
                     {item.title}

@@ -4,7 +4,7 @@
 - **Next.js 14** (App Router, TypeScript)
 - **Prisma** ORM → **Neon PostgreSQL** (host: `ep-billowing-silence-aulkcd3c`, db: `neondb`)
 - **NextAuth** (Credentials provider: User + Admin tables)
-- **Tailwind CSS** with semantic token system (`bg-surface`, `text-on-surface`, `bg-primary`, etc.)
+- **Tailwind CSS** with the Newsprint design system (`bg-ground`, `text-ink`, `text-secondary`, `border-rule`, `text-accent`)
 - **Dexie** (IndexedDB) for offline-first local storage
 - **PWA** via `manifest.webmanifest` + `sw.js` + logo favicon
 - **Android** — native Jetpack Compose + Room, local-only (no cloud sync)
@@ -20,7 +20,8 @@
 - **PWA (web)** — offline-first *and* cloud-synced. Dexie outbox pushes to `/api/sync`; it is the only client that talks to the server.
 - **Android APK** — local-only. Room is the sole store; there is no account, no server, and no sync. The `sync/` package, Retrofit/OkHttp, the auth layer, and the mutation outbox were all removed. `LocalBusinessStore` generates a stable local `businessId` on first launch. Uninstalling the app deletes all data, so the More screen warns users to export anything they need.
 - **DashboardInit** component seeds Dexie from Neon on first login.
-- **Semantic color tokens**: `:root` (light) + `.dark` (dark) CSS variables mapped to Tailwind. Default theme: dark.
+- **Newsprint tokens**: CSS variables in `src/app/globals.css` (`--dp-color-*`, `--dp-typography-*`, `--dp-spacing-*`) exposed through `tailwind.config.ts`. Single theme — no dark mode, no accent picker.
+- **`tailwind.config.ts` must stay additive** (`theme.extend`). Replacing `theme.fontSize` / `theme.screens` / `theme.colors` silently deletes utilities the whole app still uses (`text-sm`, `md:*`, `rounded-lg`, `font-mono`).
 - **No build step for styling** — CSS `@import` for Google Fonts, Tailwind via PostCSS.
 
 ## Pages & Routes
@@ -116,7 +117,8 @@ and admin status never bypasses the membership check.
 
 ## Notable Conventions
 - All components use `"use client"` directive (client-side rendering)
-- Semantic color tokens only — no hardcoded `text-white`, `bg-black`, `zinc-*` etc.
+- Newsprint tokens only — no hardcoded `text-black`, `bg-white`, `gray-*`, and no `surface`/`primary`/`outline` semantic tokens
+- Colors that need an opacity modifier (`bg-accent/10`) are declared as `rgb(var(--dp-color-x-rgb) / <alpha-value>)` in the Tailwind config — a bare `var()` cannot take `/10`
 - Client-generated UUIDs for offline-first (no server依赖 for ID generation)
 - Session carries `role` (admin/user) + `businessId` for multi-business scoping
 - Product images stored as base64 data URLs in Dexie (compressed <500KB via canvas)

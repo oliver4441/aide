@@ -12,12 +12,10 @@ import OfflineStatus from "@/components/OfflineStatus";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import NotificationPermissionPrompt from "@/components/notifications/NotificationPermissionPrompt";
 import Link from "next/link";
-import DashboardWallpaper from "@/components/dashboard/DashboardWallpaper";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-transparent">
-      <DashboardWallpaper />
+    <div className="min-h-screen bg-ground">
       <DashboardInit />
       <OnboardingFlow />
       <BusinessGate />
@@ -28,9 +26,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <Sidebar />
       <div className="md:ml-[260px] pt-2 pb-24 md:pb-6">
         <AdBanner />
-        <div className="p-4 md:px-10 md:pb-10 max-w-[1200px] mx-auto animate-fade-in">
-          <nav className="text-sm text-on-surface-variant mb-2 flex items-center gap-2 flex-wrap" aria-label="Breadcrumb">
-            <Link href="/" className="hover:text-on-surface transition-colors">Home</Link>
+        <div className="p-4 md:px-10 md:pb-10 max-w-[1200px] mx-auto">
+          <nav className="text-sm text-secondary mb-2 flex items-center gap-2 flex-wrap" aria-label="Breadcrumb">
+            <Link href="/" className="hover:text-ink transition-colors">Home</Link>
             <span aria-hidden="true">/</span>
             <span aria-current="page">Dashboard</span>
           </nav>
