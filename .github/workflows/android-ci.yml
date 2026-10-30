@@ -26,7 +26,21 @@ jobs:
       - name: Run Unit Tests
         run: |
           cd android
-          ./gradlew testDebugUnitTest
+          mkdir -p build
+          ./gradlew testDebugUnitTest --console=plain 2>&1 | tee build/unit-tests.log
+          exit ${PIPESTATUS[0]}
+
+      - name: Report test failures as annotations
+        # A red check with no readable output is not much use in a review. This
+        # surfaces the compiler errors and failing assertions on the run itself
+        # so nobody has to download the raw log to see what broke.
+        if: failure()
+        run: |
+          log=android/build/unit-tests.log
+          [ -f "$log" ] || exit 0
+          grep -nE "^e: |FAILED|expected:|Exception" "$log" | head -n 25 | while IFS= read -r line; do
+            echo "::error title=Unit tests::${line}"
+          done || true
 
       - name: Build Debug APK
         run: |
