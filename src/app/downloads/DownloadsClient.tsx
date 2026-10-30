@@ -232,7 +232,8 @@ export default function DownloadsClient() {
               That is Android refusing to replace the copy already on the phone, not a
               broken download. It happens when the installed Aide was signed with a
               different certificate — usually a debug build, or a release from before
-              the signing key changed — or when the download was truncated.
+              the signing key changed — when the download was truncated, or when the
+              phone is out of free storage for the APK and its unpacked copy.
             </p>
             <p className="mt-2 text-sm text-secondary">
               <span className="font-semibold text-ink">Fix:</span> open Aide → Settings →

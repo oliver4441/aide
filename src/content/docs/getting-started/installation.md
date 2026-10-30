@@ -42,6 +42,7 @@ download. It has three causes:
 | The installed Aide was signed with a different certificate (a debug build, or a release from before the signing key changed) | "App not installed" with no other detail | Export your data, uninstall the old app, install the new APK |
 | The download was truncated or altered | Install fails, or the app crashes immediately | Check the SHA-256 (below) and download again |
 | The new APK's `versionCode` is lower than the installed one | "App not installed", or an offer to downgrade | Install the newest release, never an older one |
+| The phone is out of storage for the APK and its unpacked copy | "App not installed", sometimes after a long pause | Free a few hundred megabytes and retry |
 
 **Export before you uninstall.** The Android app's data lives only on that phone
 — Settings → *Export data* writes a JSON copy of products, sales, expenses and
