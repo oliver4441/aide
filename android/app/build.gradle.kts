@@ -16,9 +16,11 @@ android {
         // CI derives both of these from the release tag and passes them in as
         // -PaideVersionName / -PaideVersionCode, so an APK can never report a
         // version that disagrees with the GitHub release it hangs off. The
-        // literals below are only the local-development fallback.
-        versionCode = providers.gradleProperty("aideVersionCode").getOrElse("2").toInt()
-        versionName = providers.gradleProperty("aideVersionName").getOrElse("1.0.2")
+        // literals below are the local-development fallback, kept level with the
+        // last release so a sideloaded debug build does not claim to be older
+        // than the published one.
+        versionCode = providers.gradleProperty("aideVersionCode").getOrElse("108").toInt()
+        versionName = providers.gradleProperty("aideVersionName").getOrElse("1.0.8")
 
         // Accent theme baked into the APK, read by theme/Palette.kt and the
         // release banner. Defaults to the first entry in Palette.

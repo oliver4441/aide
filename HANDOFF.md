@@ -464,25 +464,41 @@ Two things from this area are still open:
   Windows SmartScreen warns on first run. Acceptable while the certificate costs
   money, but revisit if it is costing installs.
 
-### 4.5b Tag pushes no longer trigger workflows (open, GitHub-side)
+### 4.5b Tag pushes trigger workflows again (resolved 2026-10-30)
 
-**`android-release.yml` is fixed** (§2.17) and publishes correctly — but the
-trigger is unreliable, so a release cannot be published by tagging alone.
+On 2026-10-02, tag pushes silently stopped starting runs and releases had to be
+dispatched by hand (the history is at the bottom of this section). **That is no
+longer the case.** Pushing `v1.0.8` on 2026-10-30 started
+[run 41034403415](https://github.com/oliver4441/aide/actions/runs/41034403415)
+on the `push` event, which built the signed APK, created the release, attached
+`aide-1.0.8.apk` (8,307,755 bytes) and committed the checksums to `master`.
 
-Observed on 2026-10-02: pushing `desktop-v1.0.0` at 09:03 **did** start a run.
-From 15:23 onward, pushing `v1.0.2+2` and then `v1.0.2` created **no runs at
-all** — no workflow, zero jobs. Branch pushes to `master` kept working the whole
-time, and GitHub's status page reported Actions as operational.
+So a release is one command:
 
-A deliberately minimal probe workflow (`tag-probe.yml`, plain filename, ten
-lines, byte-identical to local, `actionlint` clean, deleted afterwards) was also
-rejected on arrival: it registered under its **file path** instead of its name,
-its push run failed in **0s with no jobs**, and it could not be dispatched. The
-same symptom the broken `android-release.yml` had. Files that already exist are
-fine — editing `android-release.yml` and `release-desktop.yml` today registered
-and ran normally — so this affects **newly added** workflow files specifically.
+```bash
+git tag -a v1.0.9 -m "Aide v1.0.9 (109)" <commit-on-master>
+git push origin refs/tags/v1.0.9
+```
 
-**Workaround that is proven to work:** dispatch against the tag.
+`scripts/publish-release.sh <tag>` still works and is still the safer path — it
+checks the signing secrets and the version, then waits for the tag run and only
+dispatches by hand if none appears — but it no longer needs the manual dispatch
+that the old behaviour required.
+
+**The real reason releases stopped between v1.0.7 and v1.0.8 was not this bug:
+nobody pushed a tag.** Merging a pull request only runs `Android CI`, which
+builds and tests but publishes nothing. If `/downloads` and the in-app update
+banner still show an old build, look for a missing tag before hunting for a CI
+failure.
+
+<details>
+<summary>Historical notes from 2026-10-02 (kept for context)</summary>
+
+Observed then: pushing `desktop-v1.0.0` at 09:03 **did** start a run; from 15:23
+onward, `v1.0.2+2` and `v1.0.2` created no runs at all, while `master` pushes
+worked and GitHub reported Actions operational. A deliberately minimal probe
+workflow was also rejected on arrival (registered under its file path, run
+failed in 0s with no jobs). The workaround was to dispatch against the tag:
 
 ```bash
 gh workflow run android-release.yml --repo oliver4441/aide --ref v1.0.2 -f version=1.0.2
@@ -490,11 +506,9 @@ gh workflow run android-release.yml --repo oliver4441/aide --ref v1.0.2 -f versi
 
 With `--ref <tag>`, `github.ref` is `refs/tags/<tag>`, so the release and
 checksum steps pass their `startsWith(github.ref, 'refs/tags/')` gates exactly
-as they would on a real tag push. `v1.0.2` was published this way.
+as on a real tag push. `v1.0.2` was published this way.
 
-Worth checking in the GitHub UI (**not** visible to this token, which lacks
-Administration read): repository **Settings → Actions → General** — "Disable
-actions", the allowed-actions list, and any organisation-level workflow policy.
+</details>
 
 ### 2.17 Android release pipeline repaired (2026-10-02)
 
@@ -704,12 +718,18 @@ npx next lint          # lint
 npm run db:push        # ⚠️ read §4.3 first
 ```
 
-**Releases** — do not just `git push origin vX.Y.Z`: tag pushes do not trigger
-workflows in this repo (§4.5b), so that silently does nothing. Use:
+**Releases** — merging does **not** publish anything: a release only happens on
+a `v*` tag (§4.5b). Either:
 
 ```bash
-scripts/publish-release.sh v1.0.3 --dry-run   # check the plan, change nothing
-scripts/publish-release.sh v1.0.3              # tag, dispatch, watch, verify
+git tag -a v1.0.9 -m "Aide v1.0.9 (109)" && git push origin refs/tags/v1.0.9
+```
+
+or, to get the secret and version checks plus a wait-and-verify:
+
+```bash
+scripts/publish-release.sh v1.0.9 --dry-run   # check the plan, change nothing
+scripts/publish-release.sh v1.0.9              # tag, watch the run, verify the asset
 scripts/publish-release.sh desktop-v1.0.1
 ```
 
@@ -758,11 +778,9 @@ gh workflow run release-desktop.yml --repo oliver4441/aide -f checksums_tag=desk
    `apk-checksums.json`, ideally computed by the release workflow (§4.5).
 5. ~~**Fix `android-release.yml` and sign the APK**~~ — **done** (§2.17): the
    workflow registers, the keystore is used, `v1.0.2` is published signed, and
-   `/downloads` serves `aide-release.apk`. Two things remain: **tag pushes no
-   longer trigger workflows at all** (§4.5b) — publish with
-   `gh workflow run android-release.yml --ref <tag>` until that clears — and
-   decide whether `/api/latest-release` should stop reporting `versionCode: 0`
-   for tags without a `+N` suffix (§2.17).
+   `/downloads` serves `aide-release.apk`. Tag pushes trigger workflows again —
+   `v1.0.8` was published by one on 2026-10-30 (§4.5b) — and
+   `/api/latest-release` no longer fabricates a `versionCode` (§2.17).
 6. **Android v2 notifications** (extends the existing Compose app, per the agreed
    architecture):
    - Phase 2 — native local notifications + `NotificationManager` channels
