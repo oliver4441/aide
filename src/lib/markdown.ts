@@ -28,24 +28,24 @@ export type RenderedDoc = {
 };
 
 const C = {
-  p: "text-[15px] leading-7 text-on-surface-variant",
-  h2: "mt-12 mb-3 scroll-mt-28 border-b border-outline-variant pb-2 text-2xl font-headline font-bold text-on-surface first:mt-0",
-  h3: "mt-8 mb-2 scroll-mt-28 text-lg font-semibold text-on-surface",
-  h4: "mt-6 mb-1.5 scroll-mt-28 text-base font-semibold text-on-surface",
-  ul: "my-4 list-disc space-y-1.5 pl-5 marker:text-primary",
-  ol: "my-4 list-decimal space-y-1.5 pl-5 marker:text-primary",
-  li: "pl-1 text-[15px] leading-7 text-on-surface-variant",
+  p: "text-[17px] leading-[1.7] text-secondary",
+  h2: "mt-12 mb-4 scroll-mt-28 border-b border-rule pb-2 font-display text-3xl font-black text-ink first:mt-0",
+  h3: "mt-8 mb-2 scroll-mt-28 font-display text-xl font-bold text-ink",
+  h4: "mt-6 mb-1.5 scroll-mt-28 font-display text-base font-bold text-ink",
+  ul: "my-4 list-disc space-y-1.5 pl-5 marker:text-accent",
+  ol: "my-4 list-decimal space-y-1.5 pl-5 marker:text-accent",
+  li: "pl-1 text-[17px] leading-[1.7] text-secondary",
   inlineCode:
-    "rounded-md bg-surface-container px-1.5 py-0.5 font-mono text-[13px] text-on-surface",
+    "border border-rule bg-rule/10 px-1.5 py-0.5 font-mono text-[13px] text-ink",
   quote:
-    "my-5 rounded-r-lg border-l-4 border-primary bg-surface-container-low py-3 pl-4 pr-3 text-[15px] leading-7 text-on-surface-variant",
-  tableWrap: "my-6 overflow-x-auto rounded-xl border border-outline-variant",
+    "my-5 border-l-4 border-accent bg-rule/10 py-3 pl-4 pr-3 text-[17px] leading-[1.7] text-secondary",
+  tableWrap: "my-6 overflow-x-auto border border-rule",
   table: "w-full border-collapse text-left text-sm",
-  th: "bg-surface-container-low px-4 py-2.5 font-semibold whitespace-nowrap text-on-surface",
-  td: "border-t border-outline-variant px-4 py-2.5 align-top text-on-surface-variant",
-  a: "font-medium text-primary underline decoration-primary/40 underline-offset-2 transition-colors hover:text-primary-light",
-  strong: "font-semibold text-on-surface",
-  hr: "my-10 border-outline-variant",
+  th: "bg-ground px-4 py-2.5 font-semibold whitespace-nowrap text-ink",
+  td: "border-t border-rule px-4 py-2.5 align-top text-secondary",
+  a: "font-medium text-accent underline decoration-accent/40 underline-offset-2 transition-colors hover:text-ink",
+  strong: "font-semibold text-ink",
+  hr: "my-10 border-rule",
 };
 
 function escapeHtml(value: string): string {
@@ -149,12 +149,12 @@ function renderTable(header: string[], rows: string[][]): string {
 function renderCodeBlock(lang: string, body: string): string {
   const language = (lang || "text").toLowerCase();
   return [
-    `<div class="my-6 overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest">`,
-    `<div class="flex items-center justify-between border-b border-outline-variant bg-surface-container-low px-4 py-2">`,
-    `<span class="font-mono text-[11px] uppercase tracking-wider text-on-surface-variant">${escapeHtml(language)}</span>`,
-    `<button type="button" data-docs-copy class="rounded-md border border-outline-variant px-2 py-1 text-[11px] font-medium text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface">Copy</button>`,
+    `<div class="my-6 overflow-hidden border border-rule">`,
+    `<div class="flex items-center justify-between border-b border-rule bg-rule/10 px-4 py-2">`,
+    `<span class="font-mono text-[11px] uppercase tracking-wider text-secondary">${escapeHtml(language)}</span>`,
+    `<button type="button" data-docs-copy class="border border-rule px-2 py-1 text-[11px] font-medium text-secondary transition-colors hover:bg-rule/15 hover:text-ink">Copy</button>`,
     `</div>`,
-    `<pre class="overflow-x-auto px-4 py-3.5"><code class="font-mono text-[13px] leading-relaxed text-on-surface">${escapeHtml(body)}</code></pre>`,
+    `<pre class="overflow-x-auto px-4 py-3.5"><code class="font-mono text-[13px] leading-relaxed text-ink">${escapeHtml(body)}</code></pre>`,
     `</div>`,
   ].join("");
 }

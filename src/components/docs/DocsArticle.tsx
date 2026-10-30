@@ -11,22 +11,22 @@ import { SUPPORT_EMAIL, SITE_URL } from "@/lib/site";
 function Crumbs({ trail }: { trail: Breadcrumb[] }) {
   return (
     <nav aria-label="Breadcrumb" className="mb-6">
-      <ol className="flex flex-wrap items-center gap-1.5 text-sm text-on-surface-variant">
+      <ol className="flex flex-wrap items-center gap-1.5 text-sm text-secondary">
         {trail.map((crumb, index) => {
           const last = index === trail.length - 1;
           return (
             <li key={crumb.href} className="flex items-center gap-1.5">
               {last ? (
-                <span aria-current="page" className="text-on-surface">
+                <span aria-current="page" className="text-ink">
                   {crumb.name}
                 </span>
               ) : (
-                <Link href={crumb.href} className="transition-colors hover:text-on-surface">
+                <Link href={crumb.href} className="transition-colors hover:text-ink">
                   {crumb.name}
                 </Link>
               )}
               {last ? null : (
-                <span aria-hidden="true" className="text-outline">
+                <span aria-hidden="true" className="text-secondary">
                   /
                 </span>
               )}
@@ -44,16 +44,16 @@ function DetailsToc({ headings }: { headings: DocHeading[] }) {
   if (entries.length < 2) return null;
 
   return (
-    <details className="mb-8 rounded-xl border border-outline-variant bg-surface-container-low">
-      <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-on-surface">
+    <details className="mb-8 border border-rule bg-ground">
+      <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-ink">
         On this page
       </summary>
-      <ul className="space-y-1.5 border-t border-outline-variant px-4 py-3">
+      <ul className="space-y-1.5 border-t border-rule px-4 py-3">
         {entries.map((heading) => (
           <li key={heading.id} className="text-sm">
             <a
               href={`#${heading.id}`}
-              className="text-on-surface-variant transition-colors hover:text-primary"
+              className="text-secondary transition-colors hover:text-accent"
             >
               {heading.text}
             </a>
@@ -100,10 +100,10 @@ export default function DocsArticle({ page }: { page: DocPage }) {
           <Crumbs trail={trail} />
 
           <header className="mb-8">
-            <h1 className="font-headline text-3xl font-bold tracking-tight text-on-surface md:text-4xl">
+            <h1 className="font-display text-3xl font-bold tracking-tight text-ink md:text-4xl">
               {page.title}
             </h1>
-            <p className="mt-3 text-[15px] leading-7 text-on-surface-variant md:text-base">
+            <p className="mt-3 text-[15px] leading-7 text-secondary md:text-base">
               {page.description}
             </p>
           </header>
@@ -116,11 +116,11 @@ export default function DocsArticle({ page }: { page: DocPage }) {
 
           <DocsPager previous={pager.previous} next={pager.next} />
 
-          <p className="mt-10 text-sm text-on-surface-variant">
+          <p className="mt-10 text-sm text-secondary">
             Spotted something out of date?{" "}
             <a
               href={`mailto:${SUPPORT_EMAIL}`}
-              className="font-medium text-primary underline decoration-primary/40 underline-offset-2 hover:text-primary-light"
+              className="font-medium text-accent underline decoration-accent/40 underline-offset-2 hover:text-ink"
             >
               Tell us
             </a>{" "}

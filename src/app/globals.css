@@ -4,21 +4,38 @@
 
 @layer base {
   :root {
+    /* Palette. Each colour is declared twice: once as a hex value for plain CSS
+       and once as an "R G B" triplet so Tailwind opacity modifiers
+       (`bg-accent/10`, `bg-ink/50`, `border-rule/60`) actually generate CSS. */
     --dp-color-ground: #f3efe5;
+    --dp-color-ground-rgb: 243 239 229;
     --dp-color-ink: #191916;
+    --dp-color-ink-rgb: 25 25 22;
     --dp-color-secondary: #494843;
+    --dp-color-secondary-rgb: 73 72 67;
     --dp-color-rule: #9b978e;
+    --dp-color-rule-rgb: 155 151 142;
     --dp-color-accent: #a3231d;
+    --dp-color-accent-rgb: 163 35 29;
 
-    --dp-typography-display: "Newsprint Display", Georgia, serif;
-    --dp-typography-reading: "Newsprint Reading", Georgia, serif;
-    --dp-typography-body: 20px;
-    --dp-typography-reading-compact: 19px;
+    --dp-color-error-rgb: 186 26 26;
+    --dp-color-success-rgb: 16 185 129;
+    --dp-color-warning-rgb: 245 158 11;
+    --dp-color-danger-rgb: 225 29 72;
+
+    /* Typography. These must name families the app actually loads (see the
+       Google Fonts link in src/app/layout.tsx). "Newsprint Display" and
+       "Newsprint Reading" are the design names for Source Serif 4 and
+       EB Garamond. */
+    --dp-typography-display: "Source Serif 4", Georgia, "Times New Roman", serif;
+    --dp-typography-reading: "EB Garamond", Georgia, "Times New Roman", serif;
+    --dp-typography-body: 19px;
+    --dp-typography-reading-compact: 18px;
     --dp-typography-label: 12px;
     --dp-typography-control: 15px;
     --dp-typography-label-weight: 650;
-    --dp-typography-display-weight: 900;
-    --dp-typography-body-leading: 1.3;
+    --dp-typography-display-weight: 800;
+    --dp-typography-body-leading: 1.55;
     --dp-typography-control-leading: 1.2;
     --dp-typography-label-tracking: 0.09em;
 
@@ -38,14 +55,25 @@
     color: var(--dp-color-ink);
     line-height: var(--dp-typography-body-leading);
     font-size: var(--dp-typography-body);
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--dp-typography-display), Georgia, serif;
     font-weight: var(--dp-typography-display-weight);
     color: var(--dp-color-ink);
-    margin-top: 0;
-    margin-bottom: var(--dp-spacing-story);
+    /* No forced bottom margin: a blanket 22px fought every `space-y-*` and
+       `mb-*` in the app and made title/subtitle gaps inconsistent. Spacing is
+       set per component. */
+    margin: 0;
+    /* Keeps two-line headlines from leaving a single orphan word on the last
+       line — the main reason blocks of display type looked ragged. */
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
   }
 
   a {
@@ -55,6 +83,17 @@
 
   a:hover {
     text-decoration: underline;
+  }
+
+  /* Tabular figures keep money columns, stat cards and receipt totals aligned. */
+  .font-display,
+  .np-figures {
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+
+  ::selection {
+    background: var(--dp-color-ink);
+    color: var(--dp-color-ground);
   }
 
   /* Scrollbar styling — ruled, not rounded */
@@ -76,32 +115,56 @@
     background: var(--dp-color-secondary);
   }
 
+  /* Focus style for all interactive elements */
+  :focus-visible {
+    outline: var(--dp-border-focus) solid var(--dp-color-accent);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
   /* Square, clearly labeled actions with thin black border.
      Hover and selection invert foreground and background immediately. */
   .np-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    gap: 0.5rem;
     border: var(--dp-border-hairline) solid var(--dp-color-ink);
     border-radius: var(--dp-radius-control);
     padding: 10px 18px;
     font-family: var(--dp-typography-display), Georgia, serif;
     font-size: var(--dp-typography-control);
+    line-height: var(--dp-typography-control-leading);
     font-weight: var(--dp-typography-label-weight);
     color: var(--dp-color-ink);
     background: var(--dp-color-ground);
     cursor: pointer;
+    text-decoration: none;
     transition: none;
   }
 
   .np-btn:hover {
     background: var(--dp-color-ink);
     color: var(--dp-color-ground);
+    text-decoration: none;
   }
 
   .np-btn:focus-visible {
     outline: var(--dp-border-focus) solid var(--dp-color-accent);
     outline-offset: 2px;
+  }
+
+  .np-btn:disabled,
+  .np-btn[aria-disabled="true"] {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  .np-btn:disabled:hover,
+  .np-btn[aria-disabled="true"]:hover {
+    background: var(--dp-color-ground);
+    color: var(--dp-color-ink);
   }
 
   .np-btn--accent {
@@ -118,7 +181,7 @@
   .np-disclosure > summary {
     cursor: pointer;
     font-family: var(--dp-typography-display), Georgia, serif;
-    font-weight: 650;
+    font-weight: var(--dp-typography-label-weight);
     font-size: var(--dp-typography-control);
     letter-spacing: var(--dp-typography-label-tracking);
     padding: var(--dp-spacing-story) 0;
@@ -134,7 +197,7 @@
   .np-disclosure > summary::after {
     content: "+";
     float: right;
-    font-weight: 650;
+    font-weight: var(--dp-typography-label-weight);
   }
 
   .np-disclosure[open] > summary::after {
@@ -156,10 +219,14 @@
     border-left: var(--dp-border-hairline) solid var(--dp-color-rule);
   }
 
-  /* Focus style for all interactive elements */
-  :focus-visible {
-    outline: var(--dp-border-focus) solid var(--dp-color-accent);
-    outline-offset: 2px;
+  /* Small caps eyebrow / kicker used above headlines and section titles. */
+  .np-kicker {
+    font-family: var(--dp-typography-display), Georgia, serif;
+    font-size: var(--dp-typography-label);
+    font-weight: var(--dp-typography-label-weight);
+    letter-spacing: var(--dp-typography-label-tracking);
+    text-transform: uppercase;
+    color: var(--dp-color-secondary);
   }
 }
 

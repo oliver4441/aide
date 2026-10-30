@@ -29,7 +29,7 @@ export default function DownloadButton() {
       <a
         href={build.href}
         download={release?.apkName ?? true}
-        className="font-semibold px-6 py-4 rounded-xl transition-colors flex items-center justify-center gap-2 text-sm bg-success text-on-surface hover:bg-success/90"
+        className="font-semibold px-6 py-4 transition-colors flex items-center justify-center gap-2 text-sm bg-success text-ink hover:bg-success/90"
       >
         <Download className="w-5 h-5" />
         {build.label}
@@ -41,7 +41,7 @@ export default function DownloadButton() {
     return (
       <a
         href={build.href}
-        className="font-semibold px-6 py-4 rounded-xl transition-colors flex items-center justify-center gap-2 text-sm border border-outline-variant text-on-surface-variant hover:bg-surface-container-low"
+        className="font-semibold px-6 py-4 transition-colors flex items-center justify-center gap-2 text-sm border border-rule text-secondary hover:bg-rule/15"
       >
         <Download className="w-5 h-5" />
         {build.label} — coming soon
@@ -53,7 +53,7 @@ export default function DownloadButton() {
   return (
     <a
       href={build.href}
-      className="font-semibold px-6 py-4 rounded-xl transition-colors flex items-center justify-center gap-2 text-sm border border-outline-variant text-on-surface hover:bg-surface-container-low"
+      className="font-semibold px-6 py-4 transition-colors flex items-center justify-center gap-2 text-sm border border-rule text-ink hover:bg-rule/15"
     >
       <Smartphone className="w-5 h-5" />
       {build.label} ({getDeviceLabel()})

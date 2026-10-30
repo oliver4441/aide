@@ -79,7 +79,7 @@ export default function Features() {
                 {f.icon}
               </div>
               <h3 className="font-display text-lg font-black text-ink mb-2">{f.title}</h3>
-              <p className="font-reading text-secondary text-sm leading-relaxed">{f.description}</p>
+              <p className="font-reading text-base leading-relaxed text-secondary">{f.description}</p>
             </div>
           ))}
         </div>

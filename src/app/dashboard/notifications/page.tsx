@@ -12,7 +12,7 @@ import UiButton from "@/components/ui/UiButton";
 const dotColor: Record<NotificationType, string> = {
   sales: "bg-success",
   inventory: "bg-warning",
-  customers: "bg-primary",
+  customers: "bg-accent",
   system: "bg-[#3b82f6]",
   business: "bg-danger",
 };
@@ -43,37 +43,37 @@ export default function NotificationCenterPage() {
       <div>
         <Link
           href="/dashboard"
-          className="inline-flex items-center gap-1 text-sm font-medium text-on-surface-variant hover:text-on-surface transition-colors"
+          className="inline-flex items-center gap-1 text-sm font-medium text-secondary hover:text-ink transition-colors"
         >
           <ArrowLeft className="w-4 h-4" /> Back to dashboard
         </Link>
         <div className="mt-3 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-on-surface font-headline">Notifications</h1>
+          <h1 className="font-display text-2xl md:text-3xl font-black text-ink">Notifications</h1>
           {items.length > 0 && (
             <div className="flex gap-2">
               <button
                 onClick={markAllRead}
-                className="flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                className="flex items-center gap-1 text-xs font-medium text-accent hover:underline"
               >
                 <CheckCheck className="w-3.5 h-3.5" /> Mark all read
               </button>
               <button
                 onClick={() => clearNotifications()}
-                className="flex items-center gap-1 text-xs font-medium text-on-surface-variant hover:text-danger"
+                className="flex items-center gap-1 text-xs font-medium text-secondary hover:text-danger"
               >
                 <Trash2 className="w-3.5 h-3.5" /> Clear all
               </button>
             </div>
           )}
         </div>
-        <p className="text-sm text-on-surface-variant">{unread > 0 ? `${unread} unread` : "You're all caught up"}</p>
+        <p className="text-sm text-secondary">{unread > 0 ? `${unread} unread` : "You're all caught up"}</p>
       </div>
 
       {items.length === 0 ? (
-        <div className="rounded-2xl border border-outline-variant bg-surface-container-low p-10 text-center">
-          <Bell className="w-10 h-10 mx-auto mb-3 text-on-surface-variant/40" />
-          <p className="text-sm font-medium text-on-surface">No notifications yet</p>
-          <p className="text-xs text-on-surface-variant mt-1">Alerts about sales, inventory and sync will appear here.</p>
+        <div className="border border-rule bg-ground p-10 text-center">
+          <Bell className="w-10 h-10 mx-auto mb-3 text-secondary/40" />
+          <p className="text-sm font-medium text-ink">No notifications yet</p>
+          <p className="text-xs text-secondary mt-1">Alerts about sales, inventory and sync will appear here.</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -82,20 +82,20 @@ export default function NotificationCenterPage() {
               key={n.id}
               onClick={() => open(n)}
               className={cn(
-                "group relative flex gap-3 rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 cursor-pointer transition-colors hover:bg-surface-container/60",
-                !n.read && "border-primary/30 bg-primary/[0.04]"
+                "group relative flex gap-3  border border-rule bg-ground p-4 cursor-pointer transition-colors hover:bg-ground/60",
+                !n.read && "border-accent/30 bg-accent/[0.04]"
               )}
             >
               <span className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", dotColor[n.type])} />
               <div className="min-w-0 flex-1">
-                <p className={cn("text-sm leading-snug", !n.read ? "font-semibold text-on-surface" : "font-medium text-on-surface-variant")}>
+                <p className={cn("text-sm leading-snug", !n.read ? "font-semibold text-ink" : "font-medium text-secondary")}>
                   {n.title}
                 </p>
-                <p className="mt-0.5 text-xs text-on-surface-variant">{n.message}</p>
+                <p className="mt-0.5 text-xs text-secondary">{n.message}</p>
                 <div className="mt-1 flex items-center gap-2">
-                  <span className="text-[10px] text-on-surface-variant/50">{timeAgo(n.createdAt)}</span>
+                  <span className="text-[10px] text-secondary/50">{timeAgo(n.createdAt)}</span>
                   {n.channel === "server" && (
-                    <span className="rounded bg-primary/10 px-1 py-0.5 text-[9px] font-medium text-primary">synced</span>
+                    <span className="bg-accent/10 px-1 py-0.5 text-[9px] font-medium text-accent">synced</span>
                   )}
                 </div>
               </div>
@@ -105,7 +105,7 @@ export default function NotificationCenterPage() {
                   remove(n.id);
                 }}
                 aria-label="Dismiss"
-                className="self-start rounded-md p-1 text-on-surface-variant/40 opacity-0 group-hover:opacity-100 hover:text-danger transition-opacity"
+                className="self-start p-1 text-secondary/40 opacity-0 group-hover:opacity-100 hover:text-danger transition-opacity"
               >
                 <Trash2 className="w-4 h-4" />
               </button>

@@ -109,27 +109,27 @@ export default function SharedReceiptPage({
   };
 
   return (
-    <div className="min-h-screen bg-surface flex flex-col items-center py-8 px-4">
+    <div className="min-h-screen bg-ground flex flex-col items-center py-8 px-4">
       <div className="w-full max-w-sm">
-        <h1 className="text-center text-lg font-bold text-on-surface font-headline mb-6">
+        <h1 className="text-center font-display text-lg font-black text-ink mb-6">
           Your Receipt
         </h1>
 
         {loading && (
           <div className="flex justify-center py-16">
-            <UiSpinner size={32} className="text-primary" />
+            <UiSpinner size={32} className="text-accent" />
           </div>
         )}
 
         {error && (
-          <div className="bg-error-container text-on-error-container rounded-xl px-4 py-3 text-sm text-center">
+          <div className="bg-error/10 text-error px-4 py-3 text-sm text-center">
             {error}
           </div>
         )}
 
         {sale && (
           <>
-            <div className="rounded-xl border border-outline-variant overflow-hidden shadow-md">
+            <div className="border border-rule overflow-hidden">
               <ReceiptDocument
                 sale={{
                   id: sale.id,
@@ -153,7 +153,7 @@ export default function SharedReceiptPage({
 
             <button
               onClick={() => window.print()}
-              className="w-full mt-5 bg-primary text-on-primary font-semibold py-3.5 rounded-xl shadow-md hover:bg-primary-light transition-colors flex items-center justify-center gap-2"
+              className="w-full mt-5 bg-accent text-ground font-semibold py-3.5 hover:bg-ink transition-colors flex items-center justify-center gap-2"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -163,7 +163,7 @@ export default function SharedReceiptPage({
 
             <button
               onClick={share}
-              className="w-full mt-2.5 bg-surface-container border border-outline-variant text-on-surface font-semibold py-3.5 rounded-xl hover:bg-surface-container-high transition-colors flex items-center justify-center gap-2"
+              className="w-full mt-2.5 bg-ground border border-rule text-ink font-semibold py-3.5 hover:bg-rule/15 transition-colors flex items-center justify-center gap-2"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
@@ -171,7 +171,7 @@ export default function SharedReceiptPage({
               {shared ? "Sent / Copied ✓" : "Share Receipt"}
             </button>
 
-            <p className="text-center text-xs text-on-surface-variant mt-3">
+            <p className="text-center text-xs text-secondary mt-3">
               Tap &quot;Download / Save PDF&quot; and choose &quot;Save as PDF&quot; to keep your receipt.
             </p>
           </>

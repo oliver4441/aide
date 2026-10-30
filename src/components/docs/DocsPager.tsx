@@ -40,16 +40,16 @@ export default function DocsPager({
   ) => (
     <Link
       href={href}
-      className={`group flex min-h-[76px] flex-col justify-center rounded-xl border border-outline-variant px-5 py-4 transition-colors hover:border-primary hover:bg-surface-container-low ${
+      className={`group flex min-h-[76px] flex-col justify-center  border border-rule px-5 py-4 transition-colors hover:border-accent hover:bg-rule/15 ${
         direction === "right" ? "items-end text-right" : "items-start"
       }`}
     >
-      <span className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-on-surface-variant">
+      <span className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-secondary">
         {direction === "left" ? <Arrow direction="left" /> : null}
         {direction === "left" ? "Previous" : "Next"}
         {direction === "right" ? <Arrow direction="right" /> : null}
       </span>
-      <span className="mt-1 text-sm font-semibold text-on-surface group-hover:text-primary">
+      <span className="mt-1 text-sm font-semibold text-ink group-hover:text-accent">
         {title}
       </span>
     </Link>
@@ -58,7 +58,7 @@ export default function DocsPager({
   return (
     <nav
       aria-label="Documentation pages"
-      className="mt-14 grid gap-4 border-t border-outline-variant pt-8 sm:grid-cols-2"
+      className="mt-14 grid gap-4 border-t border-rule pt-8 sm:grid-cols-2"
     >
       {previous ? card(previous.href, previous.title, "left") : <span />}
       {next ? card(next.href, next.title, "right") : null}

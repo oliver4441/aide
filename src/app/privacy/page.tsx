@@ -26,24 +26,24 @@ const UPDATED = "30 September 2026";
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="mt-8">
-      <h2 className="text-lg font-bold text-on-surface font-headline">{title}</h2>
-      <div className="mt-2 space-y-3 text-[15px] leading-relaxed text-on-surface-variant">{children}</div>
+      <h2 className="font-display text-xl font-black text-ink">{title}</h2>
+      <div className="mt-2 space-y-3 text-[17px] leading-[1.7] text-secondary">{children}</div>
     </section>
   );
 }
 
 export default function PrivacyPolicyPage() {
   return (
-    <div className="min-h-screen bg-surface">
-      <header className="border-b border-outline-variant bg-surface/95 backdrop-blur-xl sticky top-0 z-30">
+    <div className="min-h-screen bg-ground">
+      <header className="border-b border-rule bg-ground sticky top-0 z-30">
         <div className="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <img src="/logo.jpg" alt="Aide logo" className="w-8 h-8 rounded-lg object-cover shadow-sm" />
-            <span className="text-lg font-bold text-primary font-headline">Aide</span>
+            <img src="/logo.jpg" alt="Aide logo" className="w-8 h-8 object-cover" />
+            <span className="text-lg font-bold text-accent font-display">Aide</span>
           </Link>
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-on-surface-variant hover:text-on-surface transition-colors"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-secondary hover:text-ink transition-colors"
           >
             <ArrowLeft className="w-4 h-4" /> Back to home
           </Link>
@@ -51,9 +51,9 @@ export default function PrivacyPolicyPage() {
       </header>
 
       <main className="max-w-3xl mx-auto px-6 py-12">
-        <h1 className="text-3xl md:text-4xl font-bold text-on-surface font-headline">Privacy Policy</h1>
-        <p className="mt-2 text-sm text-on-surface-variant">Last updated: {UPDATED}</p>
-        <p className="mt-4 text-on-surface-variant">
+        <h1 className="font-display text-3xl md:text-4xl font-black text-ink">Privacy Policy</h1>
+        <p className="mt-2 text-sm text-secondary">Last updated: {UPDATED}</p>
+        <p className="mt-4 text-secondary">
           Omix Digital Solutions (&quot;we&quot;, &quot;us&quot;) operates Aide, an offline-first
           point-of-sale, inventory and reporting application. This policy explains what
           data Aide handles, why, and the choices you have. It applies to the Aide web
@@ -75,22 +75,22 @@ export default function PrivacyPolicyPage() {
           </p>
           <ul className="mt-3 space-y-1">
             <li>
-              <span className="font-semibold text-on-surface">Email:</span>{" "}
-              <a href="mailto:omixsystems@gmail.com" className="text-primary hover:underline">
+              <span className="font-semibold text-ink">Email:</span>{" "}
+              <a href="mailto:omixsystems@gmail.com" className="text-accent hover:underline">
                 omixsystems@gmail.com
               </a>
             </li>
             <li>
-              <span className="font-semibold text-on-surface">Phone:</span>{" "}
-              <a href="tel:+254768213649" className="text-primary hover:underline">
+              <span className="font-semibold text-ink">Phone:</span>{" "}
+              <a href="tel:+254768213649" className="text-accent hover:underline">
                 +254 768 213 649
               </a>
             </li>
             <li>
-              <span className="font-semibold text-on-surface">Website:</span>{" "}
+              <span className="font-semibold text-ink">Website:</span>{" "}
               <a
                 href="https://omixsystems.store"
-                className="text-primary hover:underline"
+                className="text-accent hover:underline"
                 rel="noopener noreferrer"
                 target="_blank"
               >
@@ -105,14 +105,14 @@ export default function PrivacyPolicyPage() {
         </Section>
 
         <Section title="3. Data we collect">
-          <h3 className="font-semibold text-on-surface">Account information</h3>
+          <h3 className="font-semibold text-ink">Account information</h3>
           <p>
             When you create an account we collect your name, email address and a
             securely hashed password. We never store your password in plain text. We
             also record which business or businesses you belong to.
           </p>
 
-          <h3 className="font-semibold text-on-surface">Business data you enter</h3>
+          <h3 className="font-semibold text-ink">Business data you enter</h3>
           <p>
             Everything you create in Aide — products, categories, stock levels, sales,
             receipts, prices, profit figures, business name, tax rate and receipt
@@ -120,7 +120,7 @@ export default function PrivacyPolicyPage() {
             your devices, and show it back to you.
           </p>
 
-          <h3 className="font-semibold text-on-surface">Technical data</h3>
+          <h3 className="font-semibold text-ink">Technical data</h3>
           <p>
             Our servers process basic request information (IP address, browser type,
             device type, timestamps) to deliver the app, keep it secure, and diagnose
@@ -129,7 +129,7 @@ export default function PrivacyPolicyPage() {
         </Section>
 
         <Section title="4. Where your data lives">
-          <h3 className="font-semibold text-on-surface">On your device</h3>
+          <h3 className="font-semibold text-ink">On your device</h3>
           <p>
             Aide is offline-first. In the PWA, your data is stored locally in your
             browser (IndexedDB). In the Android app it is stored in an on-device
@@ -142,7 +142,7 @@ export default function PrivacyPolicyPage() {
             devices.
           </p>
 
-          <h3 className="font-semibold text-on-surface">On our servers</h3>
+          <h3 className="font-semibold text-ink">On our servers</h3>
           <p>
             If you sign in, your account and business data are stored in a PostgreSQL
             database hosted with Neon. The app authenticates every data request and
@@ -184,7 +184,7 @@ export default function PrivacyPolicyPage() {
           </ul>
           <p>
             To have your account and synced data erased from our servers, email{" "}
-            <a href="mailto:omixsystems@gmail.com" className="text-primary hover:underline">
+            <a href="mailto:omixsystems@gmail.com" className="text-accent hover:underline">
               omixsystems@gmail.com
             </a>
             . We will verify your request and confirm the deletion with you.
@@ -216,16 +216,16 @@ export default function PrivacyPolicyPage() {
           </p>
         </Section>
 
-        <div className="mt-12 pt-6 border-t border-outline-variant flex flex-col sm:flex-row gap-3">
+        <div className="mt-12 pt-6 border-t border-rule flex flex-col sm:flex-row gap-3">
           <Link
             href="/terms"
-            className="inline-flex items-center justify-center rounded-xl border border-outline-variant px-5 py-2.5 text-sm font-semibold text-on-surface hover:bg-surface-container transition-colors"
+            className="inline-flex items-center justify-center border border-rule px-5 py-2.5 text-sm font-semibold text-ink hover:bg-rule/15 transition-colors"
           >
             Read the Terms of Service
           </Link>
           <Link
             href="/"
-            className="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-on-primary hover:bg-primary-light transition-colors"
+            className="inline-flex items-center justify-center bg-accent px-5 py-2.5 text-sm font-semibold text-ground hover:bg-ink transition-colors"
           >
             Back to home
           </Link>

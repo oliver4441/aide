@@ -87,9 +87,9 @@ export default function Pricing() {
                 </div>
               </div>
 
-              <p className="font-reading text-sm text-secondary mb-5 leading-relaxed">{v.desc}</p>
+              <p className="font-reading text-base leading-relaxed text-secondary mb-5">{v.desc}</p>
 
-              <ul className="space-y-2.5 text-sm text-ink mb-6 flex-1">
+              <ul className="mb-6 flex-1 space-y-2.5 text-base text-ink">
                 {v.strengths.map((s, j) => (
                   <li key={j} className="flex items-start gap-2">
                     <Check className="w-4 h-4 text-success shrink-0 mt-0.5" />

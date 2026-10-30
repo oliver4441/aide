@@ -70,3 +70,62 @@ Apply the Newsprint design system to the existing Aide codebase as a full replac
 - No remaining CSS animations or framer-motion usage
 - Fonts load from Google Fonts (Source Serif 4, EB Garamond)
 - 1100px and 700px breakpoints active
+---
+
+## Post-merge fix log (2026-10-30)
+
+The first pass applied the redesign by *replacing* Tailwind's theme instead of
+extending it, and only migrated part of the app. Symptom: text looked "off"
+and misaligned everywhere — headlines rendered at body size, the desktop nav
+never appeared, grids stayed single-column, receipts fell back to serif.
+
+### Root causes fixed
+
+1. **Theme was destructive** (`tailwind.config.ts`) — `theme.fontSize`,
+   `theme.borderRadius`, `theme.screens`, `theme.colors`, `theme.fontFamily`,
+   `theme.boxShadow` and `theme.transitionProperty` replaced the defaults, which
+   deleted ~700 utility usages app-wide. On the landing page alone 45 of 227
+   classes produced no CSS. Everything Newsprint-specific now lives under
+   `theme.extend`, so `text-sm`, `md:*`, `rounded-lg`, `font-mono` and
+   `border-transparent` exist again.
+2. **Fonts pointed at families that are never loaded** — the tokens said
+   `"Newsprint Display"` / `"Newsprint Reading"` (design names) instead of the
+   loaded Source Serif 4 / EB Garamond, so the whole app rendered in Georgia
+   with synthesized weights. EB Garamond is also now requested weight-by-weight
+   (a `400..800` range can fail for a non-variable family and silently drop it).
+3. **Opacity modifiers produced no CSS** — colours declared as bare `var(--x)`
+   cannot take `/10` in Tailwind v3, so `bg-accent/10`, `bg-ink/50` and
+   `border-rule/60` were empty rules. Colours are now
+   `rgb(var(--dp-color-x-rgb) / <alpha-value>)`.
+4. **Half-migrated screens** — settings, help, docs, downloads, privacy, terms,
+   notifications, calculator, error/404 and the shared receipt still used
+   `bg-surface`, `text-on-surface`, `bg-primary`, `border-outline-variant`,
+   `font-headline`, `rounded-*` and `shadow-*`, none of which existed. All were
+   migrated to Newsprint tokens.
+5. **Photo wallpaper behind the dashboard** — `DashboardWallpaper` painted a
+   photo + cool scrim onto `<body>`, so ruled cream cards sat on a photograph.
+   Removed along with the never-mounted theme/accent/background pickers
+   (`ThemeProvider`, `ThemeToggle`, `BackgroundLayer` and the Settings →
+   Appearance card, which was a no-op UI).
+
+### Typography / alignment changes
+
+- Body reading size 19px with 1.55 leading (was 20px/1.3 — cramped for Garamond).
+- Headings no longer carry a blanket 22px bottom margin; spacing comes from
+  utilities so title/subtitle gaps match the rest of the layout.
+- One page-title scale (`font-display text-2xl md:text-3xl font-black`) across
+  dashboard routes; legal/docs body copy lifted to 17px.
+- `text-wrap: balance` on headings, `pretty` on paragraphs (no orphan words in
+  two-line headlines).
+- Tabular figures on `.font-display`, so money columns line up.
+- Landing sections share one container measure (`Container wide`), matching the
+  nav and footer; the hero photo is a cream scrim instead of an opaque plate.
+- Sticky headers are fully opaque (they had lost `backdrop-blur`), and the fixed
+  landing nav has a ground background so content cannot scroll through it.
+- `UiLoader` uses a plain CSS ring instead of framer-motion.
+
+### Verification
+
+`tailwindcss` output is checked against every class rendered by `/`, `/help`,
+`/docs`, `/downloads`, `/privacy`, `/terms`, `/login` and the 404 page: no class
+resolves to a missing utility (only icon-component class names remain).

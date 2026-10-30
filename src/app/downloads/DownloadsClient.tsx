@@ -64,7 +64,7 @@ function CopyableHash({ hash }: { hash?: string }) {
   const [copied, setCopied] = useState(false);
 
   if (!hash) {
-    return <span className="font-mono text-[11px] text-on-surface-variant/60">checksum unavailable</span>;
+    return <span className="font-mono text-[11px] text-secondary/60">checksum unavailable</span>;
   }
 
   const copy = async () => {
@@ -79,7 +79,7 @@ function CopyableHash({ hash }: { hash?: string }) {
     <button
       onClick={copy}
       title="Copy full SHA-256"
-      className="inline-flex items-center gap-1.5 rounded-md bg-surface-container px-2 py-1 font-mono text-[11px] text-on-surface-variant hover:text-on-surface transition-colors"
+      className="inline-flex items-center gap-1.5 bg-ground px-2 py-1 font-mono text-[11px] text-secondary hover:text-ink transition-colors"
     >
       {copied ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
       {copied ? "Copied" : shortHash(hash)}
@@ -126,19 +126,19 @@ export default function DownloadsClient() {
     .filter((item) => item.assets.length > 0);
 
   return (
-    <div className="min-h-screen bg-surface">
+    <div className="min-h-screen bg-ground">
       {/* Top bar */}
-      <div className="border-b border-outline-variant">
+      <div className="border-b border-rule">
         <div className="mx-auto max-w-4xl px-4 py-4 flex items-center justify-between">
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-on-surface-variant hover:text-on-surface transition-colors"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-secondary hover:text-ink transition-colors"
           >
             <ArrowLeft className="w-4 h-4" /> Back to home
           </Link>
           <div className="flex items-center gap-2">
-            <img src="/logo.jpg" alt="Aide logo" className="w-7 h-7 rounded-lg object-cover" />
-            <span className="font-headline font-bold text-primary">Aide</span>
+            <img src="/logo.jpg" alt="Aide logo" className="w-7 h-7 object-cover" />
+            <span className="font-display font-bold text-accent">Aide</span>
           </div>
         </div>
       </div>
@@ -146,47 +146,47 @@ export default function DownloadsClient() {
       <div className="mx-auto max-w-4xl px-4 py-10 space-y-10">
         {/* Header */}
         <header className="text-center">
-          <h1 className="text-3xl md:text-4xl font-bold text-on-surface font-headline">
+          <h1 className="font-display text-3xl md:text-4xl font-black text-ink">
             Get Aide
           </h1>
-          <p className="mt-3 text-on-surface-variant max-w-2xl mx-auto">
+          <p className="mt-3 text-secondary max-w-2xl mx-auto">
             Aide runs in your browser as an installable PWA. Android users can also
             install the native app for real system notifications.
           </p>
           {release?.version && (
-            <p className="mt-2 text-sm text-primary font-medium">
+            <p className="mt-2 text-sm text-accent font-medium">
               Latest Android build: v{release.version} · {formatBytes(release.sizeBytes)}
             </p>
           )}
         </header>
 
         {/* Android install card */}
-        <section className="rounded-2xl border border-primary/30 bg-surface-container-low p-6 md:p-8">
+        <section className="border border-accent/30 bg-ground p-6 md:p-8">
           <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center bg-accent/15 text-accent">
               <Smartphone className="w-6 h-6" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-xl font-bold text-on-surface font-headline">Aide for Android</h2>
-              <p className="text-sm text-on-surface-variant mt-1">
+              <h2 className="font-display text-xl font-black text-ink">Aide for Android</h2>
+              <p className="text-sm text-secondary mt-1">
                 A native app with real Android notifications, background reminders and
                 offline operation. No Play Store account needed.
               </p>
             </div>
           </div>
 
-          <ol className="mt-6 space-y-3 text-sm text-on-surface-variant">
+          <ol className="mt-6 space-y-3 text-sm text-secondary">
             {[
               { n: 1, t: "Download the APK", d: "Tap the button below — the file saves straight to your device." },
               { n: 2, t: "Allow installs from your browser", d: "Android will ask. Tap Settings → turn on “Allow from this source”." },
               { n: 3, t: "Open the APK and install", d: "Tap aide-release.apk in your downloads, then Install. Done." },
             ].map((s) => (
               <li key={s.n} className="flex gap-3">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary text-xs font-bold">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent text-xs font-bold">
                   {s.n}
                 </span>
                 <span>
-                  <span className="font-semibold text-on-surface">{s.t}</span>
+                  <span className="font-semibold text-ink">{s.t}</span>
  — {s.d}
                 </span>
               </li>
@@ -195,20 +195,20 @@ export default function DownloadsClient() {
 
           <div className="mt-6 flex flex-col sm:flex-row gap-3">
             {loading ? (
-              <div className="flex h-[50px] w-full sm:w-64 items-center justify-center rounded-xl border border-outline-variant">
-                <Loader2 className="w-4 h-4 animate-spin text-on-surface-variant" />
+              <div className="flex h-[50px] w-full sm:w-64 items-center justify-center border border-rule">
+                <Loader2 className="w-4 h-4 animate-spin text-secondary" />
               </div>
             ) : latestApk ? (
               <a
                 href={latestApk}
                 download={release?.apkName ?? true}
-                className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-sm font-semibold text-on-primary shadow-lg shadow-primary/20 transition hover:bg-primary-light active:scale-[0.99]"
+                className="inline-flex w-full sm:w-auto items-center justify-center gap-2 bg-accent px-6 py-3.5 text-sm font-semibold text-ground transition hover:bg-ink active:scale-[0.99]"
               >
                 <Download className="w-4 h-4" />
                 Download APK{release?.version ? ` (v${release.version})` : ""}
               </a>
             ) : (
-              <div className="w-full rounded-xl border border-outline-variant bg-surface-container px-4 py-3 text-sm text-on-surface-variant">
+              <div className="w-full border border-rule bg-ground px-4 py-3 text-sm text-secondary">
                 No Android build published yet. Use the PWA in the meantime.
               </div>
             )}
@@ -217,23 +217,23 @@ export default function DownloadsClient() {
             </UiButton>
           </div>
 
-          <p className="mt-4 flex items-start gap-2 text-xs text-on-surface-variant/70">
+          <p className="mt-4 flex items-start gap-2 text-xs text-secondary/70">
             <ShieldCheck className="w-4 h-4 shrink-0 text-success mt-0.5" />
             Verify the download against the SHA-256 checksum listed below before installing.
           </p>
         </section>
 
         {/* iOS / PWA */}
-        <section className="rounded-2xl border border-outline-variant bg-surface-container-low p-6">
+        <section className="border border-rule bg-ground p-6">
           <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center bg-accent/15 text-accent">
               <Apple className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-on-surface font-headline">iPhone & iPad</h2>
-              <p className="mt-1 text-sm text-on-surface-variant">
-                Aide installs from Safari: tap the <span className="font-semibold text-on-surface">Share</span>{" "}
-                button, then <span className="font-semibold text-on-surface">Add to Home Screen</span>.
+              <h2 className="font-display text-lg font-black text-ink">iPhone & iPad</h2>
+              <p className="mt-1 text-sm text-secondary">
+                Aide installs from Safari: tap the <span className="font-semibold text-ink">Share</span>{" "}
+                button, then <span className="font-semibold text-ink">Add to Home Screen</span>.
                 You get the full offline app with in-app notifications.
               </p>
             </div>
@@ -243,16 +243,16 @@ export default function DownloadsClient() {
         {/* Releases */}
         <section>
           <div className="flex items-center gap-2 mb-4">
-            <Package className="w-5 h-5 text-primary" />
-            <h2 className="text-xl font-bold text-on-surface font-headline">Versions & checksums</h2>
+            <Package className="w-5 h-5 text-accent" />
+            <h2 className="font-display text-xl font-black text-ink">Versions & checksums</h2>
           </div>
 
           {loading ? (
             <div className="flex justify-center py-12">
-              <Loader2 className="w-6 h-6 animate-spin text-on-surface-variant" />
+              <Loader2 className="w-6 h-6 animate-spin text-secondary" />
             </div>
           ) : androidReleases.length === 0 ? (
-            <p className="rounded-xl border border-outline-variant bg-surface-container-low p-6 text-sm text-on-surface-variant">
+            <p className="border border-rule bg-ground p-6 text-sm text-secondary">
               No releases published yet.
             </p>
           ) : (
@@ -260,11 +260,11 @@ export default function DownloadsClient() {
               {androidReleases.map((r) => (
                 <div
                   key={r.tag ?? r.name ?? "release"}
-                  className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5"
+                  className="border border-rule bg-ground p-5"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <span className="font-headline font-bold text-on-surface">
+                      <span className="font-display font-bold text-ink">
                         v{r.version ?? r.tag}
                       </span>
                       {r.prerelease && (
@@ -273,7 +273,7 @@ export default function DownloadsClient() {
                         </span>
                       )}
                     </div>
-                    <span className="text-xs text-on-surface-variant">
+                    <span className="text-xs text-secondary">
                       {formatDate(r.publishedAt)}
                     </span>
                   </div>
@@ -284,13 +284,13 @@ export default function DownloadsClient() {
                       return (
                         <div
                           key={a.name}
-                          className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-outline-variant bg-surface-container px-3 py-2.5"
+                          className="flex flex-wrap items-center justify-between gap-3 border border-rule bg-ground px-3 py-2.5"
                         >
                           <div className="min-w-0">
-                            <p className="truncate text-sm font-medium text-on-surface">
+                            <p className="truncate text-sm font-medium text-ink">
                               {a.name}
                             </p>
-                            <p className="text-[11px] text-on-surface-variant">
+                            <p className="text-[11px] text-secondary">
                               {formatBytes(a.sizeBytes)} · APK
                             </p>
                           </div>
@@ -299,7 +299,7 @@ export default function DownloadsClient() {
                             <a
                               href={a.downloadUrl}
                               download={a.name}
-                              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-on-primary transition hover:bg-primary-light"
+                              className="inline-flex items-center gap-1.5 bg-accent px-3 py-1.5 text-xs font-semibold text-ground transition hover:bg-ink"
                             >
                               <Download className="w-3.5 h-3.5" />
                               Download
@@ -314,14 +314,14 @@ export default function DownloadsClient() {
             </div>
           )}
 
-          <p className="mt-4 text-xs text-on-surface-variant/70">
+          <p className="mt-4 text-xs text-secondary/70">
             Checksums are SHA-256 of the exact APK bytes that were published. Verify
             the file with <span className="font-mono">sha256sum aide-release.apk</span> on Linux/macOS or
             <span className="font-mono"> certutil -hashfile aide-release.apk SHA256</span> on Windows, then compare with the value above.
           </p>
         </section>
 
-        <p className="text-center text-xs text-on-surface-variant/50">
+        <p className="text-center text-xs text-secondary/50">
           Aide · Offline-First Business Management · Detected: {getDeviceLabel()}
         </p>
       </div>

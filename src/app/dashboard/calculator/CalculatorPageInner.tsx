@@ -172,32 +172,32 @@ export default function CalculatorPageInner() {
   }, [inputDigit, inputDot, chooseOp, equals, backspace, clearAll, percent]);
 
   const numBtn =
-    "h-14 sm:h-16 rounded-2xl bg-surface-container text-on-surface text-xl font-semibold hover:bg-surface-container-high active:scale-95 transition-all select-none";
+    "h-14 sm:h-16  bg-ground text-ink text-xl font-semibold hover:bg-rule/15  transition-all select-none";
   const utilBtn =
-    "h-14 sm:h-16 rounded-2xl bg-surface-container-low text-on-surface-variant text-lg font-semibold hover:bg-surface-container active:scale-95 transition-all select-none";
+    "h-14 sm:h-16  bg-ground text-secondary text-lg font-semibold hover:bg-rule/15  transition-all select-none";
   const opBtn =
-    "h-14 sm:h-16 rounded-2xl bg-primary/10 text-primary text-xl font-semibold hover:bg-primary/20 active:scale-95 transition-all select-none";
+    "h-14 sm:h-16  bg-accent/10 text-accent text-xl font-semibold hover:bg-accent/20  transition-all select-none";
   const eqBtn =
-    "h-14 sm:h-16 rounded-2xl bg-primary text-on-primary text-xl font-bold hover:bg-primary-light active:scale-95 transition-all shadow-lg shadow-primary/20 select-none";
+    "h-14 sm:h-16  bg-accent text-ground text-xl font-bold hover:bg-ink  transition-all   select-none";
 
   return (
     <div className="max-w-md mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-on-surface font-headline">Calculator</h1>
-        <p className="text-on-surface-variant text-sm mt-1">
+        <h1 className="font-display text-2xl md:text-3xl font-black text-ink">Calculator</h1>
+        <p className="text-secondary text-sm mt-1">
           Quick maths — works offline. Tap the copy button to paste a result into a sale.
         </p>
       </div>
 
       {/* Display */}
-      <div className="bg-surface-container-low border border-outline-variant rounded-2xl p-5 mb-4">
+      <div className="bg-ground border border-rule p-5 mb-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <div className="text-sm text-on-surface-variant h-5 truncate font-mono" aria-live="polite">
+            <div className="text-sm text-secondary h-5 truncate font-mono" aria-live="polite">
               {expression}
             </div>
             <div
-              className="text-4xl font-bold text-on-surface font-headline truncate text-right"
+              className="text-4xl font-bold text-ink font-display truncate text-right"
               aria-live="polite"
               aria-label={`Calculator display: ${display}`}
             >
@@ -207,10 +207,10 @@ export default function CalculatorPageInner() {
           <button
             onClick={copyResult}
             title="Copy result"
-            className="shrink-0 mt-1 w-9 h-9 rounded-lg bg-surface-container text-on-surface-variant hover:text-primary hover:bg-surface-container-high transition-colors flex items-center justify-center"
+            className="shrink-0 mt-1 w-9 h-9 bg-ground text-secondary hover:text-accent hover:bg-rule/15 transition-colors flex items-center justify-center"
           >
             {copied ? (
-              <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <svg className="w-4 h-4 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             ) : (
@@ -232,7 +232,7 @@ export default function CalculatorPageInner() {
           {history.map((entry, i) => (
             <div
               key={`${entry}-${i}`}
-              className="text-xs text-on-surface-variant font-mono text-right truncate px-1"
+              className="text-xs text-secondary font-mono text-right truncate px-1"
             >
               {entry}
             </div>

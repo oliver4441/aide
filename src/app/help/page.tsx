@@ -36,20 +36,20 @@ const breadcrumbJsonLd = {
 
 export default function HelpPage() {
   return (
-    <div className="min-h-screen bg-surface">
+    <div className="min-h-screen bg-ground">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
-      <header className="border-b border-outline-variant bg-surface/95 backdrop-blur-xl sticky top-0 z-30">
+      <header className="border-b border-rule bg-ground sticky top-0 z-30">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <img src="/logo.jpg" alt="Aide logo" className="w-8 h-8 rounded-lg object-cover shadow-sm" />
-            <span className="text-lg font-bold text-primary font-headline">Aide</span>
+            <img src="/logo.jpg" alt="Aide logo" className="w-8 h-8 object-cover" />
+            <span className="text-lg font-bold text-accent font-display">Aide</span>
           </Link>
           <Link
             href="/login"
-            className="bg-primary text-on-primary px-4 py-2 rounded-lg text-sm font-semibold hover:bg-primary-light transition-colors"
+            className="bg-accent text-ground px-4 py-2 text-sm font-semibold hover:bg-ink transition-colors"
           >
             Open App
           </Link>
@@ -57,30 +57,30 @@ export default function HelpPage() {
       </header>
 
       <div className="max-w-4xl mx-auto px-6 py-12">
-        <nav className="text-sm text-on-surface-variant mb-6 flex items-center gap-2 flex-wrap" aria-label="Breadcrumb">
-          <Link href="/" className="hover:text-on-surface transition-colors">Home</Link>
+        <nav className="text-sm text-secondary mb-6 flex items-center gap-2 flex-wrap" aria-label="Breadcrumb">
+          <Link href="/" className="hover:text-ink transition-colors">Home</Link>
           <span aria-hidden="true">/</span>
           <span aria-current="page">Help Center</span>
         </nav>
 
         <div className="text-center mb-10">
-          <h1 className="text-4xl md:text-5xl font-bold text-on-surface font-headline mb-4">
+          <h1 className="text-4xl md:text-5xl font-bold text-ink font-display mb-4">
             Help Center
           </h1>
-          <p className="text-on-surface-variant text-lg max-w-2xl mx-auto">
+          <p className="text-secondary text-lg max-w-2xl mx-auto">
             Everything you need to get started with Aide, manage your business, and make the most of our features.
           </p>
           <p className="mt-6 flex flex-wrap items-center justify-center gap-4">
             <Link
               href="/docs/getting-started/new-user-guide"
-              className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-on-primary shadow-sm transition-colors hover:bg-primary-light"
+              className="inline-flex items-center gap-2 bg-accent px-5 py-3 text-sm font-semibold text-ground transition-colors hover:bg-ink"
             >
               New here? Start with the new user guide
               <span aria-hidden="true">&rarr;</span>
             </Link>
             <Link
               href="/docs"
-              className="inline-flex items-center gap-2 rounded-xl border border-outline-variant px-5 py-3 text-sm font-semibold text-on-surface-variant transition-colors hover:bg-surface-container"
+              className="inline-flex items-center gap-2 border border-rule px-5 py-3 text-sm font-semibold text-secondary transition-colors hover:bg-rule/15"
             >
               Browse the full documentation
               <span aria-hidden="true">&rarr;</span>
@@ -88,7 +88,7 @@ export default function HelpPage() {
           </p>
         </div>
 
-        <nav className="sticky top-[65px] z-20 bg-surface/95 backdrop-blur-xl border border-outline-variant rounded-xl p-1.5 mb-12 flex gap-1 overflow-x-auto" aria-label="Page sections">
+        <nav className="sticky top-[65px] z-20 bg-ground border border-rule p-1.5 mb-12 flex gap-1 overflow-x-auto" aria-label="Page sections">
           {[
             { label: "Getting Started", href: "#getting-started" },
             { label: "Run Your Business", href: "#run-guide" },
@@ -98,7 +98,7 @@ export default function HelpPage() {
             <a
               key={tab.href}
               href={tab.href}
-              className="flex-1 text-center px-4 py-2.5 rounded-lg text-sm font-medium text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors whitespace-nowrap"
+              className="flex-1 text-center px-4 py-2.5 text-sm font-medium text-secondary hover:text-ink hover:bg-rule/15 transition-colors whitespace-nowrap"
             >
               {tab.label}
             </a>
@@ -106,7 +106,7 @@ export default function HelpPage() {
         </nav>
 
         <section id="run-guide" className="mb-16 scroll-mt-32">
-          <h2 className="text-2xl font-bold text-on-surface font-headline mb-6">
+          <h2 className="font-display text-2xl md:text-3xl font-black text-ink mb-6">
             How to Run Your Business on Aide
           </h2>
           <div className="space-y-3">
@@ -121,13 +121,13 @@ export default function HelpPage() {
               { n: 8, title: "Turn on notifications", d: "Tap the bell icon for your notification centre, or Settings → Notifications to choose what you get alerted about — new sales, low stock, and system updates." },
               { n: 9, title: "Install the app", d: "Use the Install banner (or browser menu → Add to Home Screen) so Aide opens full-screen like a native app and works offline. Android APK and Windows builds are on the Get the app page." },
             ].map((s) => (
-              <div key={s.n} className="flex gap-4 bg-surface-container-low border border-outline-variant rounded-xl p-4">
-                <div className="w-8 h-8 rounded-full bg-primary/15 text-primary font-bold flex items-center justify-center shrink-0 text-sm">
+              <div key={s.n} className="flex gap-4 bg-ground border border-rule p-4">
+                <div className="w-8 h-8 rounded-full bg-accent/15 text-accent font-bold flex items-center justify-center shrink-0 text-sm">
                   {s.n}
                 </div>
                 <div>
-                  <h3 className="text-on-surface font-semibold text-sm">{s.title}</h3>
-                  <p className="text-on-surface-variant text-xs leading-relaxed mt-0.5">{s.d}</p>
+                  <h3 className="text-ink font-semibold text-sm">{s.title}</h3>
+                  <p className="text-secondary text-xs leading-relaxed mt-0.5">{s.d}</p>
                 </div>
               </div>
             ))}
@@ -135,7 +135,7 @@ export default function HelpPage() {
         </section>
 
         <section id="getting-started" className="mb-16 scroll-mt-32">
-          <h2 className="text-2xl font-bold text-on-surface font-headline mb-6">
+          <h2 className="font-display text-2xl md:text-3xl font-black text-ink mb-6">
             Getting Started
           </h2>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -179,15 +179,15 @@ export default function HelpPage() {
             ].map((item, i) => (
               <div
                 key={i}
-                className="bg-surface-container border border-outline-variant rounded-xl p-5"
+                className="bg-ground border border-rule p-5"
               >
-                <div className="w-9 h-9 rounded-lg bg-primary/20 flex items-center justify-center text-primary mb-3">
+                <div className="w-9 h-9 bg-accent/20 flex items-center justify-center text-accent mb-3">
                   {item.icon}
                 </div>
-                <h3 className="text-on-surface font-semibold text-sm mb-1">
+                <h3 className="text-ink font-semibold text-sm mb-1">
                   {item.title}
                 </h3>
-                <p className="text-on-surface-variant text-xs leading-relaxed">
+                <p className="text-secondary text-xs leading-relaxed">
                   {item.desc}
                 </p>
               </div>
@@ -204,7 +204,7 @@ export default function HelpPage() {
         </div>
 
         <section className="mb-16">
-          <h2 className="text-2xl font-bold text-on-surface font-headline mb-6">
+          <h2 className="font-display text-2xl md:text-3xl font-black text-ink mb-6">
             Quick Links
           </h2>
           <div className="flex flex-wrap gap-3">
@@ -221,7 +221,7 @@ export default function HelpPage() {
                 href={link.href}
                 target={link.href.startsWith("http") ? "_blank" : undefined}
                 rel={link.href.startsWith("http") ? "noopener noreferrer" : undefined}
-                className="bg-surface-container border border-outline-variant rounded-lg px-4 py-2 text-sm text-on-surface hover:bg-surface-container-high transition-colors"
+                className="bg-ground border border-rule px-4 py-2 text-sm text-ink hover:bg-rule/15 transition-colors"
               >
                 {link.label} →
               </a>
@@ -230,7 +230,7 @@ export default function HelpPage() {
         </section>
       </div>
 
-      <footer className="border-t border-outline-variant py-8 text-center text-on-surface-variant text-sm">
+      <footer className="border-t border-rule py-8 text-center text-secondary text-sm">
         <p>© {new Date().getFullYear()} Omix Digital Solutions. All rights reserved.</p>
       </footer>
     </div>

@@ -39,42 +39,42 @@ export const metadata: Metadata = {
 
 export default function DocsLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-surface">
-      <header className="sticky top-0 z-40 border-b border-outline-variant bg-surface/95 backdrop-blur-xl">
+    <div className="min-h-screen bg-ground">
+      <header className="sticky top-0 z-40 border-b border-rule bg-ground">
         <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between gap-4 px-4 md:px-8">
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-2">
-              <img src="/logo.jpg" alt="Aide" className="h-8 w-8 rounded-lg object-cover" />
-              <span className="font-headline text-lg font-bold text-on-surface">Aide</span>
+              <img src="/logo.jpg" alt="Aide" className="h-8 w-8 object-cover" />
+              <span className="font-display text-lg font-bold text-ink">Aide</span>
             </Link>
-            <span aria-hidden="true" className="text-outline">
+            <span aria-hidden="true" className="text-secondary">
               /
             </span>
-            <span className="text-sm font-medium text-on-surface-variant">Docs</span>
+            <span className="text-sm font-medium text-secondary">Docs</span>
           </div>
 
           <nav className="hidden items-center gap-6 text-sm md:flex" aria-label="Site">
             <Link
               href="/help"
-              className="text-on-surface-variant transition-colors hover:text-on-surface"
+              className="text-secondary transition-colors hover:text-ink"
             >
               Help centre
             </Link>
             <Link
               href="/downloads"
-              className="text-on-surface-variant transition-colors hover:text-on-surface"
+              className="text-secondary transition-colors hover:text-ink"
             >
               Get the app
             </Link>
             <a
               href={`mailto:${SUPPORT_EMAIL}`}
-              className="text-on-surface-variant transition-colors hover:text-on-surface"
+              className="text-secondary transition-colors hover:text-ink"
             >
               Contact
             </a>
           </nav>
 
-    <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
             <Link
               href="/login"
               className="np-btn np-btn--accent"
@@ -93,11 +93,11 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
         </div>
       </div>
 
-      <footer className="border-t border-outline-variant">
-        <div className="mx-auto max-w-[1440px] px-4 py-8 text-sm text-on-surface-variant md:px-8">
+      <footer className="border-t border-rule">
+        <div className="mx-auto max-w-[1440px] px-4 py-8 text-sm text-secondary md:px-8">
           <p>
             Aide documentation · Built by Omix Digital Solutions ·{" "}
-            <Link href="/" className="hover:text-on-surface">
+            <Link href="/" className="hover:text-ink">
               Back to the Aide website
             </Link>
           </p>

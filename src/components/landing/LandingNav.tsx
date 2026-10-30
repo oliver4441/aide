@@ -17,8 +17,8 @@ export default function LandingNav() {
 
   return (
     <nav
-      className={`fixed inset-x-0 top-0 z-50 ${
-        scrolled ? "border-b border-rule" : ""
+      className={`fixed inset-x-0 top-0 z-50 bg-ground ${
+        scrolled ? "border-b border-rule" : "border-b border-transparent"
       }`}
     >
       <div className="mx-auto flex h-[68px] max-w-[1440px] items-center justify-between px-4 md:px-8">
