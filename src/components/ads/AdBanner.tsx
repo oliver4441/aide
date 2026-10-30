@@ -25,10 +25,10 @@ const ads: Ad[] = [
     ),
   },
   {
-    text: "Sell on OmixSystems Market — list your products FREE",
+    text: "Sell your products on OmixSystems Market",
     highlight: "market.omixsystems.store",
     url: "https://market.omixsystems.store",
-    cta: "List free",
+    cta: "Visit",
     icon: (
       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -37,7 +37,7 @@ const ads: Ad[] = [
     ),
   },
   {
-    text: "Free product deliveries countrywide on Market",
+    text: "Shop the OmixSystems Market catalogue",
     highlight: "market.omixsystems.store",
     url: "https://market.omixsystems.store",
     cta: "Shop now",
@@ -59,7 +59,7 @@ const ads: Ad[] = [
     ),
   },
   {
-    text: "Reach thousands of buyers — free listing on Market",
+    text: "List your products on Market",
     highlight: "market.omixsystems.store",
     url: "https://market.omixsystems.store",
     cta: "Start selling",

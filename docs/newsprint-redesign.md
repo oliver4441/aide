@@ -129,3 +129,30 @@ never appeared, grids stayed single-column, receipts fell back to serif.
 `tailwindcss` output is checked against every class rendered by `/`, `/help`,
 `/docs`, `/downloads`, `/privacy`, `/terms`, `/login` and the 404 page: no class
 resolves to a missing utility (only icon-component class names remain).
+
+### Dark mode (reinstated 2026-10-30)
+
+The original brief said "no dark mode", but the product needs one, so it is back
+as a real theme rather than a dead picker:
+
+- `.dark` on `<html>` re-points every Newsprint token: warm near-black ground
+  `#14130f`, cream ink `#f2ede2`, secondary `#b3ada0`, rule `#6b675d`, and an
+  accent lifted to `#e4655a` so red text still clears 4.5:1 (5.6:1 measured).
+  Functional colours (error/success/warning/danger) are lifted too.
+- The hero photo gets its own dark tokens — `--dp-photo-opacity: 0.7`,
+  `--dp-photo-wash-top: 0.7` — because a bright daylight image under a dark
+  ground otherwise drowns the display type. Worst-case ink contrast: 9.3:1.
+- **Dark is the default edition.** `<html className="dark">` is rendered on the
+  server, so the dark palette is what a first-time visitor gets — with or
+  without JavaScript. The blocking script in `src/app/layout.tsx` only *removes*
+  the class, and only when the visitor explicitly picked Light
+  (`localStorage["aide-theme"] === "light"`); `prefers-color-scheme` is
+  deliberately not consulted. The same script rewrites `theme-color` to
+  `#14130f` (dark) or `#a3231d` (light), and the web manifest uses the dark
+  ground for its splash and toolbar.
+- No provider: `ThemeToggle` flips the class, the meta tag and `localStorage`.
+  Server and client markup stay identical — both icons are always rendered and
+  `dark:hidden` / `dark:block` pick the visible one.
+- Toggle lives in the landing nav (desktop + mobile sheet), the dashboard
+  top-right cluster beside the notification bell, and the docs and help
+  headers.

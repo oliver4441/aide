@@ -7,6 +7,10 @@ in Nairobi and Mombasa are two separate businesses with no shared data.
 That isolation is enforced in the data layer on every read and write, not by
 convention.
 
+The signed-in app works with one business — the one created at signup. There is
+no business switcher in the interface: the API resolves several memberships,
+but the app always opens your first one.
+
 ## Membership is the unit of access
 
 A user gains access to a business through a **membership** row that records their

@@ -24,7 +24,7 @@ export default function DownloadSection() {
                 "The PWA is ready to use",
                 "Installable from the browser",
                 "Android APK available to download",
-                "Offline-first workflows across devices",
+                "Offline-first on both web and Android",
               ].map((item) => (
                 <div key={item} className="flex items-center gap-2 text-sm text-secondary font-reading">
                   <span className="flex h-5 w-5 items-center justify-center border border-rule text-xs text-ink">✓</span>

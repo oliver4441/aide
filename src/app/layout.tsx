@@ -57,7 +57,6 @@ export const metadata: Metadata = {
     "mobile-web-app-capable": "yes",
     "msapplication-TileColor": "#a3231d",
     "msapplication-tap-highlight": "no",
-    "theme-color": "#a3231d",
   },
 };
 
@@ -66,15 +65,28 @@ export const viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#a3231d",
 };
 
 // Sign-in is email + password handled by NextAuth (see src/lib/auth.ts).
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className="dark" suppressHydrationWarning>
       <head>
+        <meta name="theme-color" id="theme-color" content="#14130f" />
+        {/*
+          Runs before the body paints. The dark edition is the default: the
+          class is already on <html> in the server mark-up, and the only thing
+          that removes it is a visitor who explicitly chose Light with the
+          toggle (localStorage["aide-theme"] === "light"). System preference is
+          deliberately ignored — dark unless you say otherwise. The meta tag is
+          rewritten too so the phone's status bar matches.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){var e=document.documentElement,d=true;try{d=localStorage.getItem("aide-theme")!=="light";}catch(_){}e.classList.toggle("dark",d);e.style.colorScheme=d?"dark":"light";var m=document.getElementById("theme-color");if(m)m.setAttribute("content",d?"#14130f":"#a3231d");})();`,
+          }}
+        />
         <link rel="icon" type="image/jpeg" href="/logo.jpg" />
         <link rel="apple-touch-icon" href="/logo.jpg" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -97,7 +109,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Aide" />
-        <meta name="theme-color" content="#a3231d" />
         <meta name="msapplication-TileColor" content="#a3231d" />
         <meta name="msapplication-tap-highlight" content="no" />
         <link rel="manifest" href="/manifest.webmanifest" />

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { SITE_URL, SUPPORT_EMAIL } from "@/lib/site";
 import FAQSection from "@/components/help/FAQSection";
+import ThemeToggle from "@/components/ui/ThemeToggle";
 import ContactSection from "@/components/help/ContactSection";
 import type { Metadata } from "next";
 
@@ -47,12 +48,15 @@ export default function HelpPage() {
             <img src="/logo.jpg" alt="Aide logo" className="w-8 h-8 object-cover" />
             <span className="text-lg font-bold text-accent font-display">Aide</span>
           </Link>
-          <Link
-            href="/login"
-            className="bg-accent text-ground px-4 py-2 text-sm font-semibold hover:bg-ink transition-colors"
-          >
-            Open App
-          </Link>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Link
+              href="/login"
+              className="bg-accent text-ground px-4 py-2 text-sm font-semibold hover:bg-ink transition-colors"
+            >
+              Open App
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -117,9 +121,9 @@ export default function HelpPage() {
               { n: 4, title: "Share the receipt", d: "Print it, or let the customer scan the QR code to get the receipt on their phone and save it as PDF." },
               { n: 5, title: "Watch your numbers", d: "Dashboard shows today's revenue and profit live. Reports breaks down best sellers, payment methods, and weekly trends." },
               { n: 6, title: "Work anywhere", d: "No internet? Keep selling — everything is stored on your phone and syncs safely when you reconnect. Use 'Sync now' to push immediately." },
-              { n: 7, title: "Export your records", d: "Sales History exports everything as CSV or JSON — perfect for your accountant or bookkeeping." },
+              { n: 7, title: "Export your records", d: "Sales History exports your transactions as CSV or JSON — perfect for your accountant or bookkeeping." },
               { n: 8, title: "Turn on notifications", d: "Tap the bell icon for your notification centre, or Settings → Notifications to choose what you get alerted about — new sales, low stock, and system updates." },
-              { n: 9, title: "Install the app", d: "Use the Install banner (or browser menu → Add to Home Screen) so Aide opens full-screen like a native app and works offline. Android APK and Windows builds are on the Get the app page." },
+              { n: 9, title: "Install the app", d: "Use the Install banner (or browser menu → Add to Home Screen) so Aide opens full-screen like a native app and works offline. The Android APK is on the Get the app page; on desktop and iPhone you install it from the browser." },
             ].map((s) => (
               <div key={s.n} className="flex gap-4 bg-ground border border-rule p-4">
                 <div className="w-8 h-8 rounded-full bg-accent/15 text-accent font-bold flex items-center justify-center shrink-0 text-sm">
@@ -160,7 +164,7 @@ export default function HelpPage() {
               },
               {
                 title: "Print Receipts",
-                desc: "After a sale, tap Print to generate a receipt via Bluetooth or thermal printer.",
+                desc: "After a sale, tap Print to open your browser's print dialog — an 80 mm thermal slip or a full A4 page.",
                 icon: (
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />

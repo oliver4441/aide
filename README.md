@@ -34,6 +34,15 @@ cp .env.example .env.local
 npm run dev
 ```
 
+> **Type-checking needs the generated Prisma client.** `npm install` runs
+> `prisma generate` through `postinstall`, which writes `.prisma/client`. An
+> install that skips scripts (`npm ci --ignore-scripts`, some CI caches) leaves
+> it missing, and `npx tsc --noEmit` then fails with *"Module '@prisma/client'
+> has no exported member 'PrismaClient'"* plus a handful of implicit-`any`
+> errors in files that touch `prisma.$transaction`. Run `npx prisma generate`
+> once — it downloads the engine binaries from `binaries.prisma.sh`, so it needs
+> network access. `npm run build` already does this for you.
+
 ## Environment Variables
 
 ```env

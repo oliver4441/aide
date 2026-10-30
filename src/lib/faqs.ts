@@ -41,7 +41,7 @@ export const FAQS: Faq[] = [
     category: "Getting started",
     question: "What do I need to start using Aide?",
     answer:
-      "Just a browser and an internet connection for the first sign-in. Create your business profile, add a few products, and you can start selling the same day. There is nothing to install on a server and no card required for the free tier.",
+      "Just a browser and an internet connection for the first sign-in. Create your business profile, add a few products, and you can start selling the same day. There is nothing to install on a server, and no card is needed — Aide is free while it is in beta.",
   },
   {
     category: "Getting started",
@@ -73,7 +73,7 @@ export const FAQS: Faq[] = [
     category: "Selling & receipts",
     question: "Can I print or share receipts?",
     answer:
-      "Yes. After completing a sale you can print to a Bluetooth thermal printer or a standard A4 printer, or share the receipt as a PDF. Each receipt also carries a QR code the customer can scan to open and save it on their own phone.",
+      "Yes. After a sale, Print opens your browser's print dialog — pick an 80 mm thermal slip or a full A4 page, or save the page as a PDF from the same dialog. Each receipt also carries a QR code the customer can scan to open it on their own phone and save a copy.",
   },
   {
     category: "Selling & receipts",
@@ -99,7 +99,7 @@ export const FAQS: Faq[] = [
     category: "Offline & sync",
     question: "What happens to a sale I made offline?",
     answer:
-      "Nothing is lost. It is saved locally the moment you complete it, and it uploads the next time you have a connection. You can also tap 'Sync now' in Settings to push immediately.",
+      "Nothing is lost. It is saved locally the moment you complete it, and it uploads the next time you have a connection. You can also tap 'Sync now' in the dashboard header to push immediately.",
   },
   {
     category: "Offline & sync",
@@ -113,7 +113,7 @@ export const FAQS: Faq[] = [
     category: "Data & privacy",
     question: "Is my data safe?",
     answer:
-      `Your records belong to your business. They live in your device's local storage first and sync to your own account on our servers — we do not sell or share them. Uninstalling the app removes the local copy, and you can export everything at any time before you do. See ${SITE_URL}/privacy for the full detail.`,
+      `Your records belong to your business. They live in your device's local storage first and sync to your own account on our servers — we do not sell or share them. Clearing your browser data removes the local copy, so export your sales first if you want a copy off the device. See ${SITE_URL}/privacy for the full detail.`,
   },
   {
     category: "Data & privacy",
@@ -145,7 +145,7 @@ export const FAQS: Faq[] = [
     category: "Devices & apps",
     question: "How do I report a bug or ask for a feature?",
     answer:
-      `Open the Help Centre from the question-mark button inside the app, start a live chat, or email ${SUPPORT_EMAIL}. We aim to reply within 24 hours.`,
+      `Open the Help Centre from the question-mark button inside the app, start a live chat, or email ${SUPPORT_EMAIL}. We read every message and reply as soon as we can.`,
   },
 ];
 

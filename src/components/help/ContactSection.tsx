@@ -24,7 +24,7 @@ export default function ContactSection() {
           </div>
           <h3 className="font-display font-black text-ink mb-2">Chat with us live</h3>
           <p className="text-secondary text-sm mb-4">
-            Get instant help from our support team.
+            Reach our support team in the chat window — we reply as soon as we can.
           </p>
           <button
             onClick={openChat}
@@ -43,7 +43,7 @@ export default function ContactSection() {
           </div>
           <h3 className="font-display font-black text-ink mb-2">Email support</h3>
           <p className="text-secondary text-sm mb-4">
-            {SUPPORT_EMAIL} — we typically respond within 24 hours.
+            {SUPPORT_EMAIL} — we read every message and reply as soon as we can.
           </p>
           <a
             href={`mailto:${SUPPORT_EMAIL}`}

@@ -20,16 +20,16 @@ form, are on [Set up your business](/docs/getting-started/setup).
 
 ### 2. Make it yours
 
-Open **Settings** from the sidebar. Three things worth doing before trading:
+Open **Settings** from the sidebar. Two things are worth doing before trading:
 
 - **Business profile** — your business name, type, currency, tax rate and the
   footer text printed at the bottom of every receipt.
-- **Appearance** — pick **Light** or **Dark** mode and an accent colour (Plum,
-  Ocean, Forest, Sunrise or Graphite). Your choice is saved on the device and
-  applied across the app, including the notification bell, buttons and the
-  browser's own toolbar tint.
 - **Product categories** — add the groups you sell in, like *Drinks*, *Hair
   Products* or *Accessories*.
+
+The **light/dark switch** lives in the top bar, next to the notification bell,
+not in Settings. It is per device: Aide follows your operating system's setting
+until you choose a theme yourself, and remembers that choice from then on.
 
 ### 3. Add your products
 
@@ -44,13 +44,14 @@ tracking off so they never decrement inventory. See
 
 ### 4. Make your first sale
 
-**New Sale** opens the point of sale. Tap items to build the cart, apply a
-discount if the customer haggles, then choose how they paid — **Cash**, **M-Pesa**
-or **Card** — and complete the sale. Stock updates automatically, the sale
-appears on your dashboard, and the receipt is ready to print.
+**New Sale** opens the point of sale. Tap items to build the cart, adjust the
+quantity, then choose how they paid — **Cash**, **M-Pesa** or **Card** — and
+complete the sale. Aide records which method was used; it does not take the
+money itself. Stock updates automatically, the sale appears on your dashboard,
+and the receipt is ready to print.
 
-The payment methods are not fixed to three — split payments are supported. See
-[Point of sale](/docs/guides/pos) for search, discounts and reprints.
+The method is stored on each sale, so reports break your takings down by how
+customers paid. See [Point of sale](/docs/guides/pos) for search and reprints.
 
 ### 5. Share the receipt
 
@@ -60,8 +61,9 @@ it works without signing in, but it cannot be guessed, so only that customer
 sees their receipt. Margin, cost and notes are never included in the shared
 copy.
 
-Print it on a Bluetooth or thermal printer, or let the customer scan. Either
-way, the sale is already recorded.
+Print it from your browser's print dialog — an 80 mm thermal slip or a full A4
+page — or let the customer scan the QR code. Either way, the sale is already
+recorded.
 
 ### 6. Trust it offline
 
