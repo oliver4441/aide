@@ -11,6 +11,7 @@ import {
   Smartphone,
   Package,
   Apple,
+  AlertTriangle,
   Loader2,
 } from "lucide-react";
 import UiButton from "@/components/ui/UiButton";
@@ -179,7 +180,7 @@ export default function DownloadsClient() {
             {[
               { n: 1, t: "Download the APK", d: "Tap the button below — the file saves straight to your device." },
               { n: 2, t: "Allow installs from your browser", d: "Android will ask. Tap Settings → turn on “Allow from this source”." },
-              { n: 3, t: "Open the APK and install", d: "Tap aide-release.apk in your downloads, then Install. Done." },
+              { n: 3, t: "Open the APK and install", d: "Tap the downloaded file in your notifications or Downloads, then Install." },
             ].map((s) => (
               <li key={s.n} className="flex gap-3">
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent text-xs font-bold">
@@ -221,6 +222,25 @@ export default function DownloadsClient() {
             <ShieldCheck className="w-4 h-4 shrink-0 text-success mt-0.5" />
             Verify the download against the SHA-256 checksum listed below before installing.
           </p>
+
+          <div className="mt-4 border border-rule bg-ground p-4">
+            <p className="flex items-center gap-2 text-sm font-semibold text-ink">
+              <AlertTriangle className="w-4 h-4 shrink-0 text-warning" />
+              Android says “App not installed”?
+            </p>
+            <p className="mt-2 text-sm text-secondary">
+              That is Android refusing to replace the copy already on the phone, not a
+              broken download. It happens when the installed Aide was signed with a
+              different certificate — usually a debug build, or a release from before
+              the signing key changed — or when the download was truncated.
+            </p>
+            <p className="mt-2 text-sm text-secondary">
+              <span className="font-semibold text-ink">Fix:</span> open Aide → Settings →
+              Export data, then uninstall Aide and install this APK. Uninstalling deletes
+              the app&apos;s local database, so export first. The release notes for each
+              build list its signing-certificate fingerprint if you want to compare.
+            </p>
+          </div>
         </section>
 
         {/* iOS / PWA */}
