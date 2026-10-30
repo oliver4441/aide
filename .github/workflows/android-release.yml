@@ -104,21 +104,101 @@ jobs:
           echo "filename=aide-${{ steps.version.outputs.version }}.apk" >> $GITHUB_OUTPUT
           echo "size=$(stat -c%s "dist/aide-${{ steps.version.outputs.version }}.apk")" >> $GITHUB_OUTPUT
 
-      - name: Assert the APK is signed
+      # "App not installed" on a phone is nearly always one of three things, and
+      # none of them are visible from the build: an unsigned or v1-only APK, a
+      # certificate that differs from the copy already installed, or a manifest
+      # that disagrees with the tag. All three are checked here, before publish.
+      - name: Verify the APK's signature and identity
+        id: verify
         run: |
           set -euo pipefail
           APK="${{ steps.apk.outputs.path }}"
           BUILD_TOOLS=$(ls -1 "$ANDROID_HOME/build-tools" | sort -V | tail -1)
-          APKSIGNER="$ANDROID_HOME/build-tools/$BUILD_TOOLS/apksigner"
+          TOOLS="$ANDROID_HOME/build-tools/$BUILD_TOOLS"
+          APKSIGNER="$TOOLS/apksigner"
           if [ ! -x "$APKSIGNER" ]; then
             echo "::error::apksigner not found under $ANDROID_HOME/build-tools"
             exit 1
           fi
-          if ! "$APKSIGNER" verify --verbose "$APK"; then
-            echo "::error::$APK is not a valid signed APK — refusing to publish it."
+
+          "$APKSIGNER" verify --verbose --print-certs "$APK" | tee "$RUNNER_TEMP/apksigner.txt"
+
+          # Android 11+ refuses an APK that carries only a v1 (JAR) signature,
+          # and reports it as a bare "App not installed".
+          if ! grep -q "Verified using v2 scheme (APK Signature Scheme v2): true" "$RUNNER_TEMP/apksigner.txt"; then
+            echo "::error::$APK has no v2 signature; Android 11+ will refuse to install it."
             exit 1
           fi
-          echo "Signed APK verified with build-tools $BUILD_TOOLS."
+
+          CERT_SHA=$(grep -m1 'Signer #1 certificate SHA-256 digest:' "$RUNNER_TEMP/apksigner.txt" \
+            | sed 's/.*digest:[[:space:]]*//')
+          CERT_DN=$(grep -m1 'Signer #1 certificate DN:' "$RUNNER_TEMP/apksigner.txt" \
+            | sed 's/.*DN:[[:space:]]*//')
+          if [ -z "$CERT_SHA" ]; then
+            echo "::error::Could not read the signing certificate digest from apksigner."
+            exit 1
+          fi
+
+          # The manifest must agree with the tag; a mismatch installs as a
+          # downgrade ("App not installed") rather than an update.
+          if [ -x "$TOOLS/aapt2" ]; then
+            BADGING=$("$TOOLS/aapt2" dump badging "$APK")
+          else
+            BADGING=$("$TOOLS/aapt" dump badging "$APK")
+          fi
+          PKG=$(printf '%s\n' "$BADGING" | sed -n "s/^package: name='\([^']*\)'.*/\1/p" | head -1)
+          CODE=$(printf '%s\n' "$BADGING" | sed -n "s/^package:.*versionCode='\([0-9]*\)'.*/\1/p" | head -1)
+          NAME=$(printf '%s\n' "$BADGING" | sed -n "s/^package:.*versionName='\([^']*\)'.*/\1/p" | head -1)
+
+          echo "package:     $PKG"
+          echo "versionName: $NAME"
+          echo "versionCode: $CODE"
+          echo "certificate: $CERT_SHA"
+          echo "subject:     $CERT_DN"
+
+          [ "$PKG" = "com.omix.aide" ] || {
+            echo "::error::APK package is '$PKG', expected com.omix.aide"; exit 1; }
+          [ "$CODE" = "${{ steps.version.outputs.version_code }}" ] || {
+            echo "::error::APK versionCode is '$CODE' but the tag asks for ${{ steps.version.outputs.version_code }}"; exit 1; }
+          [ "$NAME" = "${{ steps.version.outputs.version }}" ] || {
+            echo "::error::APK versionName is '$NAME' but the tag asks for ${{ steps.version.outputs.version }}"; exit 1; }
+
+          {
+            echo "cert_sha256=$CERT_SHA"
+            echo "cert_dn=$CERT_DN"
+            echo "package=$PKG"
+            echo "version_code=$CODE"
+            echo "version_name=$NAME"
+          } >> "$GITHUB_OUTPUT"
+
+      # A keystore rotation is invisible until a user tries to update and gets
+      # "App not installed". Pin the fingerprint in the repository variable
+      # ANDROID_CERT_SHA256 and a rotation fails here instead.
+      - name: Check the signing certificate has not rotated
+        env:
+          EXPECTED: ${{ vars.ANDROID_CERT_SHA256 }}
+        run: |
+          set -euo pipefail
+          ACTUAL="${{ steps.verify.outputs.cert_sha256 }}"
+          if [ -z "${EXPECTED:-}" ]; then
+            echo "::warning title=Signing certificate not pinned::Signed with $ACTUAL. Set the repository variable ANDROID_CERT_SHA256 to this value so a future keystore change fails the release instead of users' installs."
+            exit 0
+          fi
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "::error::Signed with $ACTUAL, but ANDROID_CERT_SHA256 is $EXPECTED. Android will refuse to install this over an existing copy ('App not installed'). If the keystore really was rotated, publish uninstall-first instructions for users, then update the variable."
+            exit 1
+          fi
+          echo "Certificate matches the pinned fingerprint."
+
+      - name: Write the SHA-256 next to the APK
+        id: hash
+        run: |
+          set -euo pipefail
+          APK="${{ steps.apk.outputs.path }}"
+          SUM=$(sha256sum "$APK" | cut -d' ' -f1)
+          printf '%s  %s\n' "$SUM" "$(basename "$APK")" > "$APK.sha256"
+          echo "sha256=$SUM" >> "$GITHUB_OUTPUT"
+          cat "$APK.sha256"
 
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
@@ -151,7 +231,8 @@ jobs:
         run: |
           set -euo pipefail
           for attempt in 1 2 3 4 5; do
-            if gh release upload "${{ github.ref_name }}" "$APK_PATH" --clobber --repo "$GITHUB_REPOSITORY"; then
+            if gh release upload "${{ github.ref_name }}" "$APK_PATH" "$APK_PATH.sha256" \
+                 --clobber --repo "$GITHUB_REPOSITORY"; then
               echo "Uploaded on attempt $attempt."
               exit 0
             fi
@@ -190,7 +271,57 @@ jobs:
             echo "::error::Asset size $SIZE does not match the built APK ($EXPECTED_SIZE bytes)."
             exit 1
           fi
-          echo "Release asset verified."
+          # Phones that fail on a corrupt download need the hash to check against.
+          HAS_SUM=$(echo "$ASSETS" | jq -r --arg n "$EXPECTED_NAME.sha256" \
+            '[.[] | select(.name == $n)] | length')
+          if [ "$HAS_SUM" != "1" ]; then
+            echo "::error::The release is missing $EXPECTED_NAME.sha256."
+            exit 1
+          fi
+          echo "Release assets verified."
+
+
+      # People debugging "App not installed" need the certificate and the hash
+      # without a terminal: put both in the release body.
+      - name: Record the build in the release notes
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+          PKG: ${{ steps.verify.outputs.package }}
+          CODE: ${{ steps.verify.outputs.version_code }}
+          NAME: ${{ steps.verify.outputs.version_name }}
+          CERT_SHA: ${{ steps.verify.outputs.cert_sha256 }}
+          CERT_DN: ${{ steps.verify.outputs.cert_dn }}
+          APK_SHA: ${{ steps.hash.outputs.sha256 }}
+          APK_SIZE: ${{ steps.apk.outputs.size }}
+          APK_NAME: ${{ steps.apk.outputs.filename }}
+        run: |
+          set -euo pipefail
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body -q .body \
+            > "$RUNNER_TEMP/body.md" || : > "$RUNNER_TEMP/body.md"
+          {
+            cat "$RUNNER_TEMP/body.md"
+            echo
+            echo "---"
+            echo
+            echo "### Install & verify"
+            echo
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Package | \`$PKG\` |"
+            echo "| Version | \`$NAME\` (versionCode \`$CODE\`) |"
+            echo "| APK | \`$APK_NAME\`, $APK_SIZE bytes |"
+            echo "| APK SHA-256 | \`$APK_SHA\` |"
+            echo "| Signing certificate | \`$CERT_DN\` |"
+            echo "| Certificate fingerprint | \`$CERT_SHA\` |"
+            echo
+            echo "If Android says **\"App not installed\"**, the copy already on the"
+            echo "phone was signed with a different certificate (usually a debug"
+            echo "build, or a release from before the keystore changed). Export your"
+            echo "data in Settings, uninstall Aide, then install this APK."
+          } > "$RUNNER_TEMP/new-body.md"
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --notes-file "$RUNNER_TEMP/new-body.md"
 
   checksums:
     name: Publish SHA-256 checksums
