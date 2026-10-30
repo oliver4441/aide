@@ -94,7 +94,8 @@ jobs:
       - name: Collect APK
         id: apk
         run: |
-          APK=$(find android/app/build/outputs/apk/release -name '*.apk' | head -1)
+          set -euo pipefail
+          APK=$(find android/app/build/outputs/apk/release -name '*.apk' | sort | head -n 1 || true)
           if [ -z "$APK" ]; then echo "No APK produced"; exit 1; fi
           mkdir -p dist
           # Versioned filename so the CDN copy in Phase 4 can be cached
@@ -111,7 +112,15 @@ jobs:
       - name: Verify the APK's signature and identity
         id: verify
         run: |
-          set -euo pipefail
+          set -Eeuo pipefail
+          on_error() {
+            echo "::error title=APK verification::command failed on line $1"
+            if [ -f "$RUNNER_TEMP/apksigner.txt" ]; then
+              echo "apksigner output:"
+              cat "$RUNNER_TEMP/apksigner.txt"
+            fi
+          }
+          trap 'on_error $LINENO' ERR
           APK="${{ steps.apk.outputs.path }}"
           BUILD_TOOLS=$(ls -1 "$ANDROID_HOME/build-tools" | sort -V | tail -1)
           TOOLS="$ANDROID_HOME/build-tools/$BUILD_TOOLS"
@@ -146,9 +155,12 @@ jobs:
           else
             BADGING=$("$TOOLS/aapt" dump badging "$APK")
           fi
-          PKG=$(printf '%s\n' "$BADGING" | sed -n "s/^package: name='\([^']*\)'.*/\1/p" | head -1)
-          CODE=$(printf '%s\n' "$BADGING" | sed -n "s/^package:.*versionCode='\([0-9]*\)'.*/\1/p" | head -1)
-          NAME=$(printf '%s\n' "$BADGING" | sed -n "s/^package:.*versionName='\([^']*\)'.*/\1/p" | head -1)
+          # No `| head -1` on these: badging prints one `package:` line, and
+          # sed|head returns 141 (SIGPIPE) under `set -o pipefail`, which killed
+          # this step silently on the v1.0.9 run.
+          PKG=$(printf '%s\n' "$BADGING" | sed -n "s/^package: name='\([^']*\)'.*/\1/p")
+          CODE=$(printf '%s\n' "$BADGING" | sed -n "s/^package:.*versionCode='\([0-9]*\)'.*/\1/p")
+          NAME=$(printf '%s\n' "$BADGING" | sed -n "s/^package:.*versionName='\([^']*\)'.*/\1/p")
 
           echo "package:     $PKG"
           echo "versionName: $NAME"
