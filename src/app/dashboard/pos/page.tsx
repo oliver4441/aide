@@ -4,7 +4,7 @@ import POSPageInner from "./POSPageInner";
 export const metadata: Metadata = {
   title: "POS — Aide",
   description:
-    "Process sales on the point of sale — scan products, add to cart, take cash or M-Pesa, print receipts. Works offline.",
+    "Process sales on the point of sale — search products, add to cart, take cash or M-Pesa, print receipts. Works offline.",
   openGraph: {
     title: "Aide — Point of Sale",
     description: "Process sales offline and print receipts.",

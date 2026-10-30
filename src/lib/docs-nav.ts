@@ -133,7 +133,7 @@ export const DOC_PAGES: DocPage[] = [
     slug: "guides/pos",
     title: "Point of sale",
     description:
-      "Run the till: search or scan items, apply discounts, split payments, record cash, card and M-Pesa sales, and reprint receipts.",
+      "Run the till: search your products, record cash, card and M-Pesa sales, print or reprint receipts, and let stock come down automatically.",
     category: "guides",
     file: "guides/pos",
     lastModified: "2026-10-01",

@@ -37,7 +37,7 @@ export default function Hero() {
         </h1>
 
         <p className="mx-auto mt-7 max-w-2xl text-lg leading-relaxed text-secondary md:text-xl font-reading">
-          Aide brings sales, inventory, receipts, payments and reports into one simple PWA built for small businesses. Open it in your browser, install it on your device, and keep working when the connection drops.
+          Aide brings sales, inventory, receipts and reports into one simple PWA built for small businesses. Record a cash, M-Pesa or card sale, open it in your browser, install it on your device, and keep working when the connection drops.
         </p>
 
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -53,7 +53,7 @@ export default function Hero() {
         <div className="mt-7 flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-secondary font-display">
           <span>✓ Works offline</span>
           <span>✓ Installable PWA</span>
-          <span>✓ KSh &amp; M-Pesa ready</span>
+          <span>✓ Cash, M-Pesa &amp; card</span>
           <span>✓ Built for small businesses</span>
         </div>
 
