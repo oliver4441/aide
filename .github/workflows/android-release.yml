@@ -136,9 +136,9 @@ jobs:
           APKSIGNER="$TOOLS/apksigner"
           [ -x "$APKSIGNER" ] || { echo "::error::no apksigner under $ANDROID_HOME/build-tools"; exit 1; }
 
-          # Android 11+ refuses an APK carrying only a v1 (JAR) signature and
-          # reports it as a bare "App not installed", so the v2 scheme is
-          # required, not merely a signature of any kind.
+          # Require both schemes: v2 is required for modern Android, while v1
+          # remains a useful compatibility fallback for legacy/vendor installers.
+          # Android 10 (API 29) accepts v2, and CI separately smoke-tests an API 29 install.
           if ! "$APKSIGNER" verify --verbose --print-certs "$APK" > "$RUNNER_TEMP/apksigner.txt" 2>&1; then
             echo "::error::apksigner could not verify $APK"
             cat "$RUNNER_TEMP/apksigner.txt"
@@ -146,8 +146,12 @@ jobs:
           fi
           cat "$RUNNER_TEMP/apksigner.txt"
 
+          grep -q "Verified using v1 scheme (JAR signing): true" "$RUNNER_TEMP/apksigner.txt" || {
+            echo "::error::$APK has no v1 JAR signature; compatibility fallback is missing."
+            exit 1
+          }
           grep -q "Verified using v2 scheme (APK Signature Scheme v2): true" "$RUNNER_TEMP/apksigner.txt" || {
-            echo "::error::$APK has no v2 signature; Android 11+ will refuse to install it."
+            echo "::error::$APK has no v2 signature; Android 7+ requires a modern APK signature."
             exit 1
           }
 

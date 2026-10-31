@@ -51,6 +51,13 @@ android {
         // debug builds, so the hard failure lives in verifyReleaseSigning,
         // which only release builds depend on.
         create("release") {
+            // Keep both the original JAR signature and APK Signature Scheme v2.
+            // Android 10 supports v2, but retaining v1 as a fallback avoids
+            // installer incompatibilities on older/vendor-modified Android builds.
+            // Release CI verifies both schemes before publishing.
+            enableV1Signing = true
+            enableV2Signing = true
+
             val keystorePath = System.getenv("ANDROID_KEYSTORE_PATH")
             if (!keystorePath.isNullOrBlank()) {
                 storeFile = file(keystorePath)
