@@ -47,6 +47,16 @@ jobs:
           cd android
           ./gradlew assembleDebug
 
+      # Android 10 is API 29. A real package install catches manifest/minSdk
+      # regressions that a successful Gradle build cannot detect.
+      - name: Smoke-test APK installation on Android 10 (API 29)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 29
+          arch: x86_64
+          profile: pixel_2
+          script: adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+
       - name: Build Release APK (unsigned, to cover R8)
         # Keeps minification and resource shrinking honest on every PR. The
         # release build hard-errors without a keystore, so opt out explicitly.
