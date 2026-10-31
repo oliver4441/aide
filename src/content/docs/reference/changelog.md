@@ -1,8 +1,8 @@
-Releases are cut from `master` and published to
+Releases are published to
 [GitHub Releases](https://github.com/oliver4441/aide/releases) in the
-`oliver4441/aide` repository. There is no separate changelog file — the release
-body on GitHub *is* the changelog, and the app and the website read it from
-there.
+`oliver4441/aide` repository. The GitHub release body is the canonical
+changelog; Android release automation also uploads that same Markdown as a
+`CHANGELOG.md` asset. The app and website read the release body from GitHub.
 
 ## Where the changelog lives
 
@@ -71,20 +71,24 @@ displayed literally.
 
 ## Release checklist
 
-1. Land the change on `master` and confirm CI is green.
-2. Push a `v*` tag on that commit — `git push origin refs/tags/v1.0.9`. Merging a
-   pull request does not release anything; only the tag does.
-3. `android-release.yml` derives `versionName`/`versionCode` from the tag, builds
-   the signed APK, creates the release, attaches the APK, and asserts that the
-   asset really uploaded. The `checksums` job then writes
-   `public/apk-checksums.json` to `master`.
-4. `scripts/publish-release.sh v1.0.9` does the same with extra guards (clean
-   tree, unused tag, signing secrets present, wait and verify).
-5. Verify `GET /api/latest-release` reports the new version after the cache
-   window.
+Successful Android CI builds pushed to `master` are published automatically:
 
-Builds with no uploaded asset are filtered out of `/api/releases` entirely, so
-step 4 is what actually makes a release visible.
+1. Merge the change to `master` and wait for **Android CI** to pass. Pull-request
+   and feature-branch builds never publish a public release.
+2. **Android Auto Release** increments the patch version, dispatches the signed
+   release build for that exact commit, and marks the new GitHub release as
+   latest. The workflow verifies the APK signature and identity, uploads the
+   APK and SHA-256 file, and attaches the release notes as `CHANGELOG.md`.
+3. The checksum job updates `public/apk-checksums.json`; the website and app read
+   the published GitHub release automatically (within the cache window).
+
+For an explicitly versioned release, a maintainer can still push a `v*` tag or
+run `android-release.yml` manually. `scripts/publish-release.sh <tag>` provides
+extra local guards for that path (clean tree, unused tag, signing secrets,
+waiting for CI, and verifying the published assets).
+
+Builds without a successfully uploaded APK and changelog are treated as failed
+releases and are not considered complete.
 
 ## Notable changes
 

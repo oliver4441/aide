@@ -15,7 +15,9 @@
 # run appears — the two must never both fire, or two runs race to publish the
 # same release.
 #
-# Merging a pull request does not release anything; only a v* tag does.
+# Android releases are normally published automatically after a successful
+# Android CI run on master. This script remains the explicit, guarded path for
+# maintainers who want to publish a chosen version manually.
 #
 # It refuses to run on a dirty tree, on an existing tag, and — for Android — on a
 # tag whose version disagrees with android/app/build.gradle.kts, because that

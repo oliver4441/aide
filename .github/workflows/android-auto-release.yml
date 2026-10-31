@@ -1,0 +1,135 @@
+name: Android Auto Release
+run-name: "Auto publish after Android CI run #${{ github.event.workflow_run.run_number }}"
+
+# Publish only after the normal Android CI succeeds on master. PR builds and
+# feature-branch builds never create public releases.
+on:
+  workflow_run:
+    workflows: ["Android CI"]
+    types: [completed]
+    branches: [master]
+
+permissions:
+  contents: read
+  actions: write
+
+# Serialize version selection and release dispatch so two successful master
+# builds cannot choose the same next version at the same time.
+concurrency:
+  group: android-auto-release-master
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'master'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Choose the next Android release version
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          RELEASES=$(gh api "repos/$REPOSITORY/releases?per_page=100")
+          LATEST_TAG=$(jq -r '
+            [ .[]
+              | select(.draft == false and .prerelease == false)
+              | select(.tag_name | test("^v[0-9]+\\.[0-9]+\\.[0-9]+(\\+[0-9]+)?$"))
+              | select(any(.assets[]?; (.name | ascii_downcase | endswith(".apk"))))
+            ]
+            | sort_by(.published_at)
+            | last
+            | .tag_name // empty
+          ' <<< "$RELEASES")
+
+          if [ -z "$LATEST_TAG" ]; then
+            echo "::error::No published Android release found to base the next version on."
+            exit 1
+          fi
+
+          LATEST_VERSION="${LATEST_TAG#v}"
+          LATEST_VERSION="${LATEST_VERSION%%+*}"
+          if [[ ! "$LATEST_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Latest Android tag '$LATEST_TAG' is not a three-part numeric version."
+            exit 1
+          fi
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$LATEST_VERSION"
+          NEXT_VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
+          NEXT_TAG="v$NEXT_VERSION"
+          NEXT_CODE="${NEXT_VERSION//./}"
+
+          LATEST_NAME=$(jq -r --arg tag "$LATEST_TAG" '[.[] | select(.tag_name == $tag)][0].name // ""' <<< "$RELEASES")
+          if [[ "$LATEST_NAME" =~ \(([0-9]+)\) ]]; then
+            LATEST_CODE="${BASH_REMATCH[1]}"
+          elif [[ "$LATEST_TAG" =~ \+([0-9]+)$ ]]; then
+            LATEST_CODE="${BASH_REMATCH[1]}"
+          else
+            LATEST_CODE="${LATEST_VERSION//./}"
+          fi
+          if (( NEXT_CODE <= LATEST_CODE )); then
+            echo "::error::Next build code $NEXT_CODE would not exceed latest code $LATEST_CODE. Refusing to publish."
+            exit 1
+          fi
+
+          # Refuse to reuse an existing tag left behind by an incomplete release.
+          if gh api "repos/$REPOSITORY/git/ref/tags/$NEXT_TAG" >/dev/null 2>&1; then
+            echo "::error::Tag $NEXT_TAG already exists. Review the incomplete release before retrying."
+            exit 1
+          fi
+
+          echo "tag=$NEXT_TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$NEXT_VERSION" >> "$GITHUB_OUTPUT"
+          echo "Previous release: $LATEST_TAG (versionCode $LATEST_CODE)"
+          echo "Publishing: $NEXT_TAG (versionCode $NEXT_CODE)"
+
+      - name: Dispatch the signed release workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+          TARGET_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          STARTED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          gh workflow run android-release.yml \
+            --repo "$REPOSITORY" \
+            --ref master \
+            -f version="$RELEASE_TAG" \
+            -f target_sha="$TARGET_SHA"
+
+          RUN_ID=""
+          for attempt in $(seq 1 60); do
+            RUNS=$(gh run list \
+              --repo "$REPOSITORY" \
+              --workflow android-release.yml \
+              --event workflow_dispatch \
+              --branch master \
+              --limit 20 \
+              --json databaseId,createdAt,event,headBranch)
+            RUN_ID=$(jq -r --arg started "$STARTED_AT" '
+              [ .[]
+                | select(.event == "workflow_dispatch" and .headBranch == "master" and .createdAt >= $started)
+              ]
+              | sort_by(.createdAt)
+              | last
+              | .databaseId // empty
+            ' <<< "$RUNS")
+            [ -n "$RUN_ID" ] && break
+            sleep 5
+          done
+
+          if [ -z "$RUN_ID" ]; then
+            echo "::error::The Android Release workflow did not start after dispatch."
+            exit 1
+          fi
+
+          echo "Watching signed release workflow run $RUN_ID."
+          gh run watch "$RUN_ID" --repo "$REPOSITORY" --exit-status --interval 10
+          gh release view "$RELEASE_TAG" --repo "$REPOSITORY" --json url,assets \
+            --jq '.url, (.assets[].name)'
