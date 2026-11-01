@@ -51,10 +51,9 @@ android {
         // debug builds, so the hard failure lives in verifyReleaseSigning,
         // which only release builds depend on.
         create("release") {
-            // Keep both the original JAR signature and APK Signature Scheme v2.
-            // Android 10 supports v2, but retaining v1 as a fallback avoids
-            // installer incompatibilities on older/vendor-modified Android builds.
-            // Release CI verifies both schemes before publishing.
+            // Request both schemes. v2 is required for this app's minSdk 24+;
+            // v1 is only an optional fallback and may be omitted by the signer.
+            // CI verifies v2 and smoke-tests installability on an API 29 emulator.
             enableV1Signing = true
             enableV2Signing = true
 
