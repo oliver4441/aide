@@ -1,0 +1,61 @@
+name: Auto-merge PRs
+run-name: "Auto-merge PR #${{ github.event.pull_request.number }}"
+
+# This workflow only reads PR/check metadata and issues the merge command. It
+# deliberately does not check out or execute pull-request code.
+on:
+  pull_request_target:
+    branches: [master]
+    types: [opened, reopened, synchronize, ready_for_review, edited]
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: read
+  statuses: read
+
+concurrency:
+  group: auto-merge-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  merge:
+    if: github.event.pull_request.base.ref == 'master' && github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      REPOSITORY: ${{ github.repository }}
+
+    steps:
+      - name: Wait for all pull request checks
+        run: |
+          set -euo pipefail
+          gh pr checks "$PR_NUMBER" \
+            --repo "$REPOSITORY" \
+            --watch \
+            --interval 15
+
+      - name: Confirm the pull request is still eligible
+        run: |
+          set -euo pipefail
+          PR=$(gh pr view "$PR_NUMBER" --repo "$REPOSITORY" \
+            --json state,isDraft,mergeable)
+          STATE=$(jq -r '.state' <<< "$PR")
+          DRAFT=$(jq -r '.isDraft' <<< "$PR")
+          MERGEABLE=$(jq -r '.mergeable' <<< "$PR")
+
+          if [ "$STATE" != "OPEN" ] || [ "$DRAFT" != "false" ]; then
+            echo "PR #$PR_NUMBER is no longer open and ready; leaving it untouched."
+            exit 1
+          fi
+          if [ "$MERGEABLE" != "MERGEABLE" ]; then
+            echo "::error::PR #$PR_NUMBER is not mergeable (state: $MERGEABLE). Resolve conflicts or requirements first."
+            exit 1
+          fi
+
+      - name: Merge pull request
+        run: |
+          set -euo pipefail
+          gh pr merge "$PR_NUMBER" --merge --repo "$REPOSITORY"
