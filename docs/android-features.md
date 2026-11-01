@@ -65,8 +65,12 @@ plane. Every one of these is skipped when the phone has animations switched off
   completes.
 - Payment method: Cash, Mobile Money, Card — recorded on the sale, not processed
   by Aide.
-- Amount received with change/balance calculation, plus quick-cash chips for the
-  exact total and the 100 / 500 / 1,000 round-ups.
+- Cash tender with quick-cash chips for the exact total and the 100 / 500 / 1,000
+  round-ups. Leaving the amount blank means exact payment; a short tender blocks
+  completion and shows the minimum amount due. Card and Mobile Money are recorded
+  as paid in full, without an unnecessary cash-tender field.
+- Change due is shown only for a valid cash tender; the APK does not accept partial
+  payments or leave a balance owed on a sale.
 - VAT is extracted from the VAT-inclusive total (`vatOn`), so the receipt and the
   reports agree with the web client.
 - A completed sale plays the till chime when **App sounds** is on, and opens its

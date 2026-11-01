@@ -132,10 +132,20 @@ class SellViewModel(
 
     fun setPaymentMethod(method: String) {
         _paymentMethod.value = method
+        if (method != CashPaymentRules.CASH) _amountPaid.value = ""
+        _error.value = null
     }
 
     fun setAmountPaid(amount: String) {
-        _amountPaid.value = amount
+        // Keep the tender field numeric and prevent multiple decimal separators.
+        val numeric = amount.filter { it.isDigit() || it == '.' }
+        val decimalAt = numeric.indexOf('.')
+        _amountPaid.value = if (decimalAt < 0) {
+            numeric
+        } else {
+            numeric.take(decimalAt + 1) + numeric.drop(decimalAt + 1).replace(".", "")
+        }
+        _error.value = null
     }
 
     fun completeSale(onSuccess: (String) -> Unit) {
@@ -145,11 +155,18 @@ class SellViewModel(
             return
         }
 
+        val paymentMethod = _paymentMethod.value
+        val total = currentCart.sumOf { it.product.sellingPrice * it.quantity }
+        val paidVal = CashPaymentRules.amountToRecord(total, paymentMethod, _amountPaid.value)
+        if (paidVal == null) {
+            _error.value = "Cash received must be at least the sale total"
+            return
+        }
+        _error.value = null
+
         viewModelScope.launch {
-            val total = currentCart.sumOf { it.product.sellingPrice * it.quantity }
             val cost = currentCart.sumOf { it.product.buyingPrice * it.quantity }
             val profit = total - cost
-            val paidVal = _amountPaid.value.toDoubleOrNull() ?: total
             val change = (paidVal - total).coerceAtLeast(0.0)
 
             val saleItems = currentCart.map { item ->
@@ -182,7 +199,7 @@ class SellViewModel(
                     change = change,
                     tax = vat,
                     taxRate = taxRate,
-                    paymentMethod = _paymentMethod.value
+                    paymentMethod = paymentMethod
                 )
 
                 _cart.value = emptyList()
