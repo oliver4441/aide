@@ -43,14 +43,22 @@ jobs:
           distribution: 'temurin'
           cache: gradle
       - run: chmod +x android/gradlew
-      - name: Unit tests (debug and release), lint and APKs
+      - name: Unit tests (debug and release) and APKs
         working-directory: android
         run: |
           mkdir -p build
           set +e
-          ./gradlew testDebugUnitTest testReleaseUnitTest lintDebug assembleDebug assembleDebugAndroidTest assembleRelease -PaideAllowUnsignedRelease=true --console=plain 2>&1 | tee build/validation.log
+          ./gradlew testDebugUnitTest testReleaseUnitTest assembleDebug assembleDebugAndroidTest assembleRelease -PaideAllowUnsignedRelease=true --console=plain 2>&1 | tee build/validation.log
           STATUS=${PIPESTATUS[0]}
           if [ "$STATUS" != 0 ]; then python3 ../scripts/annotate-android-failures.py build/validation.log; fi
+          exit "$STATUS"
+      - name: Android lint (isolated from compilation and R8)
+        working-directory: android
+        run: |
+          set +e
+          ./gradlew lintDebug --max-workers=1 -PaideAllowUnsignedRelease=true --console=plain 2>&1 | tee build/lint.log
+          STATUS=${PIPESTATUS[0]}
+          if [ "$STATUS" != 0 ]; then python3 ../scripts/annotate-android-failures.py build/lint.log; fi
           exit "$STATUS"
       - name: Upload test reports
         if: always()

@@ -18,8 +18,14 @@ NAME=$(sed -n "s/^package:.*versionName='\([^']*\)'.*/\1/p" <<< "$BADGING")
 [ "$PACKAGE" = 'com.omix.aide' ] && [ "$CODE" = "$EXPECTED_CODE" ] && [ "$NAME" = "$EXPECTED_NAME" ] || {
   echo "::error::Unexpected APK identity: $PACKAGE $NAME ($CODE)"; exit 1;
 }
-SDK=$(sed -n "s/^sdkVersion:'\([0-9]*\)'.*/\1/p" <<< "$BADGING")
-[ "$SDK" = 24 ] || { echo "::error::APK minimum SDK $SDK disagrees with the updater manifest contract (24)"; exit 1; }
+# Newer aapt2 prints minSdkVersion; older build-tools print sdkVersion.
+# Accept exactly one numeric declaration, never a missing/ambiguous value.
+SDK=$(sed -nE "s/^(minSdkVersion|sdkVersion):'([0-9]+)'.*/\2/p" <<< "$BADGING" | tr -d '\r')
+[ "$SDK" = 24 ] || {
+  printf '%s\n' "$BADGING"
+  echo "::error::APK minimum SDK '${SDK:-missing}' disagrees with the updater manifest contract (24)"
+  exit 1
+}
 if grep -q '^application-debuggable' <<< "$BADGING"; then
   echo '::error::Refusing a debuggable production APK'; exit 1
 fi
