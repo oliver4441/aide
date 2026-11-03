@@ -1,9 +1,20 @@
+import java.security.KeyStore
+import java.security.MessageDigest
+import java.security.cert.X509Certificate
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
 }
+
+val localVersion = Properties().apply {
+    rootProject.file("version.properties").inputStream().use { load(it) }
+}
+val releaseCertificate = rootProject.file("release-certificate.sha256").readText().trim().lowercase()
+require(releaseCertificate.matches(Regex("[0-9a-f]{64}"))) { "Invalid pinned release certificate" }
 
 android {
     namespace = "com.omix.aide"
@@ -13,14 +24,11 @@ android {
         applicationId = "com.omix.aide"
         minSdk = 24
         targetSdk = 35
-        // CI derives both of these from the release tag and passes them in as
-        // -PaideVersionName / -PaideVersionCode, so an APK can never report a
-        // version that disagrees with the GitHub release it hangs off. The
-        // literals below are the local-development fallback, kept level with the
-        // last release so a sideloaded debug build does not claim to be older
-        // than the published one.
-        versionCode = providers.gradleProperty("aideVersionCode").getOrElse("109").toInt()
-        versionName = providers.gradleProperty("aideVersionName").getOrElse("1.0.9")
+        // Independent monotonic build numbers: never concatenate dotted versions.
+        versionCode = providers.gradleProperty("aideVersionCode").getOrElse(localVersion.getProperty("versionCode")).toInt()
+        versionName = providers.gradleProperty("aideVersionName").getOrElse(localVersion.getProperty("versionName"))
+        require(versionCode!! in 1..2_100_000_000) { "Invalid Android versionCode" }
+        buildConfigField("String", "UPDATE_CERT_SHA256", "\"$releaseCertificate\"")
 
         // Accent theme baked into the APK, read by theme/Palette.kt and the
         // release banner. Defaults to the first entry in Palette.
@@ -28,14 +36,6 @@ android {
             "String",
             "BRANDED",
             "\"${providers.gradleProperty("aideBranded").getOrElse("plum")}\""
-        )
-
-        // Version code of the latest published release, injected by CI. 0 means
-        // "no published release known", which keeps the update banner hidden.
-        buildConfigField(
-            "int",
-            "LATEST_VERSION_CODE",
-            providers.gradleProperty("aideLatestVersionCode").getOrElse("0")
         )
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -56,6 +56,7 @@ android {
             // CI verifies v2 and smoke-tests installability on an API 29 emulator.
             enableV1Signing = true
             enableV2Signing = true
+            enableV3Signing = true
 
             val keystorePath = System.getenv("ANDROID_KEYSTORE_PATH")
             if (!keystorePath.isNullOrBlank()) {
@@ -68,6 +69,11 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Debug keys can never replace a production install (or its data).
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -130,7 +136,14 @@ dependencies {
 
 
 
+    // Android's org.json implementation is used in production; a real JSON
+    // implementation (not android.jar stubs) exercises the parser in JVM tests.
+    testImplementation(libs.json)
     testImplementation(libs.junit)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.ui.test.junit4)
+    androidTestImplementation(libs.androidx.test.runner)
+    debugImplementation(libs.androidx.ui.test.manifest)
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.coroutines.test)
     debugImplementation(libs.androidx.ui.tooling)
@@ -151,24 +164,33 @@ val verifyReleaseSigning by tasks.registering {
             .getOrElse("false")
             .toBoolean()
 
-        when {
-            allowUnsigned ->
-                logger.warn(
-                    "aideAllowUnsignedRelease is set — this release APK will NOT be signed."
-                )
-
-            keystorePath.isNullOrBlank() ->
-                throw GradleException(
-                    "Refusing to build an unsigned release APK: ANDROID_KEYSTORE_PATH is not " +
-                        "set. CI decodes ANDROID_KEYSTORE_BASE64 into it before building. Pass " +
-                        "-PaideAllowUnsignedRelease=true if an unsigned build is really intended."
-                )
-
-            !file(keystorePath).exists() ->
-                throw GradleException(
-                    "Refusing to build a release APK: ANDROID_KEYSTORE_PATH points at " +
-                        "'$keystorePath', which does not exist."
-                )
+        if (allowUnsigned) {
+            check(keystorePath.isNullOrBlank()) { "Unsigned CI opt-out cannot be combined with a release key" }
+            logger.warn("Explicit unsigned CI build — not distributable.")
+            return@doLast
+        }
+        check(!keystorePath.isNullOrBlank() && file(keystorePath).isFile) {
+            "Refusing unsigned release: set ANDROID_KEYSTORE_PATH to the existing release keystore."
+        }
+        val storePassword = System.getenv("ANDROID_STORE_PASSWORD")
+        val alias = System.getenv("ANDROID_KEY_ALIAS")
+        val keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+        check(!storePassword.isNullOrBlank() && !alias.isNullOrBlank() && !keyPassword.isNullOrBlank()) {
+            "All four release signing settings are required. Never generate a replacement release key."
+        }
+        try {
+            val store = KeyStore.getInstance(file(keystorePath), storePassword.toCharArray())
+            check(store.isKeyEntry(alias)) { "Release alias is not a private key" }
+            check(store.getKey(alias, keyPassword.toCharArray()) != null) { "Release private key is unavailable" }
+            val certificate = store.getCertificate(alias) as X509Certificate
+            certificate.checkValidity()
+            val fingerprint = MessageDigest.getInstance("SHA-256").digest(certificate.encoded)
+                .joinToString("") { "%02x".format(it) }
+            check(fingerprint == releaseCertificate) {
+                "Release certificate does not match android/release-certificate.sha256. Android would reject upgrades."
+            }
+        } catch (error: Exception) {
+            throw GradleException("Release signing validation failed. Check the existing key, alias, passwords and pinned certificate.", error)
         }
     }
 }

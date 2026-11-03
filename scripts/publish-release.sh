@@ -19,10 +19,9 @@
 # Android CI run on master. This script remains the explicit, guarded path for
 # maintainers who want to publish a chosen version manually.
 #
-# It refuses to run on a dirty tree, on an existing tag, and — for Android — on a
-# tag whose version disagrees with android/app/build.gradle.kts, because that
-# mismatch is what made every APK report itself as 1.0.0 while GitHub said
-# v1.0.1.
+# It refuses dirty trees, reused tags, non-progressing Android versions/codes,
+# or inaccessible/missing signing settings. Never regenerate the production key.
+# workflow_dispatch requires publish=true; its safe default is validation only.
 #
 set -euo pipefail
 
@@ -69,27 +68,20 @@ VERSION="${TAG#desktop-}"
 VERSION="${VERSION#v}"
 
 if [ "$FAMILY" = "android" ] && [ "$SKIP_VERSION_CHECK" -eq 0 ]; then
-  # The tag is the source of truth. android-release.yml derives versionName and
-  # versionCode from it and passes them to Gradle as -P overrides, so a stale
-  # value in build.gradle.kts can no longer produce a mislabelled APK. What is
-  # left here is a heads-up, not a gate.
-  GRADLE_NAME=$(grep -oE 'aideVersionName"\)\.getOrElse\("[^"]+"' android/app/build.gradle.kts \
-    | grep -oE '[0-9][^"]*' || true)
-  GRADLE_CODE=$(grep -oE 'aideVersionCode"\)\.getOrElse\("[0-9]+"' android/app/build.gradle.kts \
-    | grep -oE '[0-9]+' || true)
-  if [ -n "$GRADLE_NAME" ] && [ "$GRADLE_NAME" != "$VERSION" ]; then
-    say "note: build.gradle.kts falls back to $GRADLE_NAME locally, but this release will be built as $VERSION from the tag"
-  else
-    say "Android version: $VERSION (versionCode ${GRADLE_CODE:-from tag})"
-  fi
+  RELEASES=$(mktemp)
+  trap 'rm -f "$RELEASES"' EXIT
+  gh api "repos/$REPO/releases?per_page=100" > "$RELEASES"
+  node scripts/android-release.mjs resolve "$TAG" "$RELEASES"
 
+  # Distinguish missing secrets from an account without permission to list them.
+  SECRET_NAMES=$(gh secret list --repo "$REPO") || die "Cannot inspect repository signing settings with this GitHub connection. No tag was pushed."
   MISSING=""
   for s in ANDROID_KEYSTORE_BASE64 ANDROID_STORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
-    gh secret list --repo "$REPO" 2>/dev/null | cut -f1 | grep -qx "$s" || MISSING="$MISSING $s"
+    cut -f1 <<< "$SECRET_NAMES" | grep -qx "$s" || MISSING="$MISSING $s"
   done
   [ -z "$MISSING" ] || die "signing secrets are missing from $REPO:$MISSING
-    An APK built without them is unsigned, which is how app-debug.apk ended up
-    on /downloads. See ~/.aide/README.md."
+    Restore access to the existing production key; do not generate a new one.
+    See docs/android-updates.md."
   say "Signing secrets present"
 else
   ELECTRON_VERSION=$(node -p "require('./electron/package.json').version" 2>/dev/null || echo "")
@@ -142,7 +134,7 @@ if RUN=$(wait_for_run 12 5); then
 else
   say "No run after 60s — dispatching $WORKFLOW against the tag"
   if [ "$FAMILY" = "android" ]; then
-    gh workflow run "$WORKFLOW" --repo "$REPO" --ref "$TAG" -f version="$VERSION" >/dev/null
+    gh workflow run "$WORKFLOW" --repo "$REPO" --ref "$TAG" -f version="$TAG" -f publish=true >/dev/null
   else
     gh workflow run "$WORKFLOW" --repo "$REPO" --ref "$TAG" >/dev/null
   fi

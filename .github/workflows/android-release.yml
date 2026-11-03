@@ -1,447 +1,281 @@
 name: Android Release
+run-name: "Signed Android ${{ inputs.version || github.ref_name }}${{ inputs.publish == false && ' (validation only)' || '' }}"
 
 on:
   push:
-    tags:
-      - 'v*'
+    tags: ['v*']
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version tag (e.g., v1.0.0)'
+        description: 'New version tag, optionally with an explicit build number (v1.0.13+1013)'
         required: true
         type: string
       target_sha:
-        description: 'Optional commit SHA to build (used by the successful-build publisher)'
+        description: 'Optional commit to build; publishing is restricted to master history'
         required: false
         type: string
+      publish:
+        description: 'Publish after all checks pass (false only validates signing and upgrades)'
+        required: true
+        default: false
+        type: boolean
 
-# Required for softprops/action-gh-release to create the release.
 permissions:
   contents: write
 
+concurrency:
+  group: android-signed-release
+  cancel-in-progress: false
+
 jobs:
   build:
+    name: Build and verify production signature
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     outputs:
-      release_tag: ${{ steps.version.outputs.tag }}
-      release_version: ${{ steps.version.outputs.version }}
-      publish: ${{ steps.version.outputs.publish }}
-
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
+      code: ${{ steps.version.outputs.version_code }}
+      previous_tag: ${{ steps.version.outputs.previous_tag }}
+      previous_code: ${{ steps.version.outputs.previous_code }}
+      previous_version: ${{ steps.version.outputs.previous_version }}
+      publish: ${{ steps.mode.outputs.publish }}
+      source_sha: ${{ steps.mode.outputs.source_sha }}
     env:
-      # Secrets are exposed to steps as env vars because the `secrets` context is
-      # not available in a step-level `if`. ANDROID_KEYSTORE_PATH is set later,
-      # by the decode step, only when there is actually a keystore to decode.
-      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
       ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
       ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.target_sha || github.ref }}
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
+          fetch-depth: 0
+      - uses: actions/setup-java@v4
         with:
           java-version: '17'
-          distribution: 'temurin'
+          distribution: temurin
           cache: gradle
-
-      - name: Grant execute permission for gradlew
-        run: chmod +x android/gradlew
-
-      - name: Decode release keystore
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Determine validation or publication mode
+        id: mode
+        env:
+          SHOULD_PUBLISH: ${{ github.event_name == 'push' || inputs.publish }}
+        run: |
+          set -euo pipefail
+          SHA=$(git rev-parse HEAD)
+          if [ "$SHOULD_PUBLISH" = true ]; then
+            git merge-base --is-ancestor "$SHA" origin/master || { echo '::error::Only reviewed master history may be published'; exit 1; }
+          fi
+          echo "publish=$SHOULD_PUBLISH" >> "$GITHUB_OUTPUT"
+          echo "source_sha=$SHA" >> "$GITHUB_OUTPUT"
+      - name: Select a strictly increasing Android build number
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.version || github.ref_name }}
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" > "$RUNNER_TEMP/releases.json"
+          node scripts/android-release.mjs resolve "$TAG" "$RUNNER_TEMP/releases.json" > "$RUNNER_TEMP/version.json"
+          cat "$RUNNER_TEMP/version.json"
+      - name: Decode the existing release key
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
           set -euo pipefail
-          if [ -z "$KEYSTORE_B64" ]; then
-            echo "::error::ANDROID_KEYSTORE_BASE64 is not set. Refusing to publish an unsigned APK."
-            echo "::error::Add the release keystore as a repository secret, then re-dispatch this tag."
-            exit 1
-          fi
-          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release-keystore.jks"
-          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release-keystore.jks" >> "$GITHUB_ENV"
-
-      - name: Derive version from the tag
-        id: version
+          [ -n "$KEYSTORE_B64" ] || { echo '::error::Existing Android release signing secret is missing. Do not generate a replacement key.'; exit 1; }
+          umask 077
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/aide-release.jks"
+          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/aide-release.jks" >> "$GITHUB_ENV"
+      - name: Test and build the signed, minified production APK
+        working-directory: android
         env:
-          # Tag pushes and the auto-publisher both use the same release path.
-          # For workflow_dispatch, `version` is the tag to publish from master.
-          TAG: ${{ inputs.version || github.ref_name }}
+          VERSION: ${{ steps.version.outputs.version }}
+          CODE: ${{ steps.version.outputs.version_code }}
+        run: |
+          chmod +x gradlew
+          ./gradlew testDebugUnitTest testReleaseUnitTest assembleRelease -PaideVersionName="$VERSION" -PaideVersionCode="$CODE" --console=plain
+      - name: Collect the exact APK
+        id: apk
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
           set -euo pipefail
-          # The tag is the single source of truth. Grepping versionName out of
-          # build.gradle.kts is what let an APK report itself as 1.0.0 while
-          # GitHub said v1.0.1.
-          NAME="${TAG#v}"
-          if ! printf '%s' "$NAME" | grep -qE '^[0-9]+(\.[0-9]+)*$'; then
-            echo "::error::'$TAG' does not carry a numeric version (got '$NAME')."
-            exit 1
-          fi
-          # 1.0.3 -> 103
-          CODE="${NAME//./}"
-
-          # The committed file is the local-dev fallback; it must not claim a
-          # version newer than the tag we are releasing.
-          FILE_CODE=$(grep -E 'versionCode\s*=' android/app/build.gradle.kts \
-            | grep -oE 'getOrElse\("[0-9]+"\)|[0-9]+' | tail -1 || true)
-          if [ -n "${FILE_CODE:-}" ] && [ "$FILE_CODE" -gt "$CODE" ] 2>/dev/null; then
-            echo "::error::build.gradle.kts declares versionCode $FILE_CODE, ahead of tag $CODE."
-            exit 1
-          fi
-
-          echo "version=$NAME" >> "$GITHUB_OUTPUT"
-          echo "version_code=$CODE" >> "$GITHUB_OUTPUT"
-          echo "tag=v$NAME" >> "$GITHUB_OUTPUT"
-          echo "publish=true" >> "$GITHUB_OUTPUT"
-
-      - name: Build Release APK
-        working-directory: android
-        run: |
-          ./gradlew assembleRelease \
-            -PaideVersionName="${{ steps.version.outputs.version }}" \
-            -PaideVersionCode="${{ steps.version.outputs.version_code }}" \
-            -PaideLatestVersionCode="${{ steps.version.outputs.version_code }}"
-
-      - name: Collect APK
-        id: apk
-        run: |
-          APK=$(find android/app/build/outputs/apk/release -name '*.apk' | head -1)
-          if [ -z "$APK" ]; then echo "No APK produced"; exit 1; fi
           mkdir -p dist
-          # Versioned filename so the CDN copy in Phase 4 can be cached
-          # immutably forever, while /download/apk stays a stable "latest".
-          cp "$APK" "dist/aide-${{ steps.version.outputs.version }}.apk"
-          echo "path=dist/aide-${{ steps.version.outputs.version }}.apk" >> $GITHUB_OUTPUT
-          echo "filename=aide-${{ steps.version.outputs.version }}.apk" >> $GITHUB_OUTPUT
-          echo "size=$(stat -c%s "dist/aide-${{ steps.version.outputs.version }}.apk")" >> $GITHUB_OUTPUT
-
-      # "App not installed" on a phone is nearly always one of three things, and
-      # none of them are visible from the build: an unsigned or v1-only APK, a
-      # certificate that differs from the copy already installed, or a manifest
-      # that disagrees with the tag. All three are checked here, before publish.
-      - name: Verify the APK's signature and identity
+          APK="dist/aide-$VERSION.apk"
+          cp android/app/build/outputs/apk/release/app-release.apk "$APK"
+          echo "path=$APK" >> "$GITHUB_OUTPUT"
+          echo "filename=$(basename "$APK")" >> "$GITHUB_OUTPUT"
+          echo "size=$(stat -c%s "$APK")" >> "$GITHUB_OUTPUT"
+          SUM=$(sha256sum "$APK" | cut -d' ' -f1)
+          echo "sha256=$SUM" >> "$GITHUB_OUTPUT"
+          printf '%s  %s\n' "$SUM" "$(basename "$APK")" > "$APK.sha256"
+      - name: Verify production certificate, signature schemes, alignment and identity
         id: verify
         env:
-          APK_PATH: ${{ steps.apk.outputs.path }}
-          EXPECTED_CODE: ${{ steps.version.outputs.version_code }}
-          EXPECTED_NAME: ${{ steps.version.outputs.version }}
-        run: |
-          set -uo pipefail
-
-          # The checks live in a child shell run under `bash -x`. If one fails,
-          # the tail of the trace is published as a check annotation, because a
-          # bare "Process completed with exit code 1" says nothing about which
-          # of the checks died -- and the raw job log is not reachable from every
-          # tool that needs to look.
-          cat > "$RUNNER_TEMP/verify.sh" <<'SCRIPT'
-          set -euo pipefail
-          APK="$1"
-          EXPECTED_CODE="$2"
-          EXPECTED_NAME="$3"
-
-          BUILD_TOOLS=$(ls -1 "$ANDROID_HOME/build-tools" | sort -V | tail -1)
-          TOOLS="$ANDROID_HOME/build-tools/$BUILD_TOOLS"
-          APKSIGNER="$TOOLS/apksigner"
-          [ -x "$APKSIGNER" ] || { echo "::error::no apksigner under $ANDROID_HOME/build-tools"; exit 1; }
-
-          # minSdk is 24, so v2 is the required scheme; Android 10 (API 29)
-          # accepts it. v1 is optional for this app's supported Android range and
-          # may be omitted by the APK signer when minSdk is 24 or higher.
-          if ! "$APKSIGNER" verify --verbose --print-certs "$APK" > "$RUNNER_TEMP/apksigner.txt" 2>&1; then
-            echo "::error::apksigner could not verify $APK"
-            cat "$RUNNER_TEMP/apksigner.txt"
-            exit 1
-          fi
-          cat "$RUNNER_TEMP/apksigner.txt"
-
-          grep -q "Verified using v2 scheme (APK Signature Scheme v2): true" "$RUNNER_TEMP/apksigner.txt" || {
-            echo "::error::$APK has no v2 signature; Android 7+ requires a modern APK signature."
-            exit 1
-          }
-
-          # No `| head -1` anywhere below: `sed | head` returns 141 (SIGPIPE)
-          # under `set -o pipefail`, which killed this step silently on the
-          # first v1.0.9 attempt. Badging prints exactly one `package:` line.
-          # Unanchored on purpose: the signer prefix is not stable across
-          # build-tools ("Signer #1 ...", indented, or
-          # "Signer (minSdkVersion=...) ..."). Match the field, take the first
-          # hit, and strip a stray CR so the value is safe for GITHUB_OUTPUT.
-          CERT_SHA=$(sed -n '/certificate SHA-256 digest:/{s/.*certificate SHA-256 digest:[[:space:]]*//p;q;}' \
-            "$RUNNER_TEMP/apksigner.txt" | tr -d '\r')
-          CERT_DN=$(sed -n '/certificate DN:/{s/.*certificate DN:[[:space:]]*//p;q;}' \
-            "$RUNNER_TEMP/apksigner.txt" | tr -d '\r')
-          if [ -z "$CERT_SHA" ]; then
-            # Say what apksigner actually printed, as an annotation: the raw log
-            # is not readable from outside, and guessing costs a six-minute run.
-            dump=$(tr '\n' '|' < "$RUNNER_TEMP/apksigner.txt" | tr -d '\r' | cut -c1-1200)
-            echo "::error::could not read the signing certificate digest; apksigner said: $dump"
-            exit 1
-          fi
-
-          if [ -x "$TOOLS/aapt2" ]; then
-            BADGING=$("$TOOLS/aapt2" dump badging "$APK")
-          else
-            BADGING=$("$TOOLS/aapt" dump badging "$APK")
-          fi
-
-          PKG=$(printf '%s\n' "$BADGING" | sed -n "s/^package: name='\([^']*\)'.*/\1/p")
-          CODE=$(printf '%s\n' "$BADGING" | sed -n "s/^package:.*versionCode='\([0-9]*\)'.*/\1/p")
-          NAME=$(printf '%s\n' "$BADGING" | sed -n "s/^package:.*versionName='\([^']*\)'.*/\1/p")
-
-          echo "package:     $PKG"
-          echo "versionName: $NAME"
-          echo "versionCode: $CODE"
-          echo "certificate: $CERT_SHA"
-          echo "subject:     $CERT_DN"
-
-          if [ "$PKG" != "com.omix.aide" ]; then
-            echo "::error::APK package is '$PKG', expected com.omix.aide"
-            exit 1
-          fi
-          if [ "$CODE" != "$EXPECTED_CODE" ]; then
-            echo "::error::APK versionCode is '$CODE' but the tag asks for $EXPECTED_CODE"
-            exit 1
-          fi
-          if [ "$NAME" != "$EXPECTED_NAME" ]; then
-            echo "::error::APK versionName is '$NAME' but the tag asks for $EXPECTED_NAME"
-            exit 1
-          fi
-
-          {
-            echo "cert_sha256=$CERT_SHA"
-            echo "cert_dn=$CERT_DN"
-            echo "package=$PKG"
-            echo "version_code=$CODE"
-            echo "version_name=$NAME"
-          } >> "$GITHUB_OUTPUT"
-          SCRIPT
-
-          if bash -x "$RUNNER_TEMP/verify.sh" "$APK_PATH" "$EXPECTED_CODE" "$EXPECTED_NAME" \
-               > "$RUNNER_TEMP/verify.out" 2> "$RUNNER_TEMP/verify.trace"; then
-            cat "$RUNNER_TEMP/verify.out"
-          else
-            status=$?
-            cat "$RUNNER_TEMP/verify.out"
-            tail_text=$(tail -n 8 "$RUNNER_TEMP/verify.trace" | tr '\n' '|' | cut -c1-3000)
-            echo "::error title=APK verification failed (exit $status)::last trace: $tail_text"
-            exit 1
-          fi
-
-      # A keystore rotation is invisible until a user tries to update and gets
-      # "App not installed". Pin the fingerprint in the repository variable
-      # ANDROID_CERT_SHA256 and a rotation fails here instead.
-      - name: Check the signing certificate has not rotated
+          APK: ${{ steps.apk.outputs.path }}
+          VERSION: ${{ steps.version.outputs.version }}
+          CODE: ${{ steps.version.outputs.version_code }}
+        run: scripts/verify-android-apk.sh "$APK" "$VERSION" "$CODE"
+      - name: Save verified release metadata
         env:
-          EXPECTED: ${{ vars.ANDROID_CERT_SHA256 }}
+          VERSION_JSON: ${{ runner.temp }}/version.json
+          FILENAME: ${{ steps.apk.outputs.filename }}
+          SIZE: ${{ steps.apk.outputs.size }}
+          SHA256: ${{ steps.apk.outputs.sha256 }}
+          CERT: ${{ steps.verify.outputs.cert_sha256 }}
         run: |
-          set -euo pipefail
-          ACTUAL="${{ steps.verify.outputs.cert_sha256 }}"
-          if [ -z "${EXPECTED:-}" ]; then
-            echo "::warning title=Signing certificate not pinned::Signed with $ACTUAL. Set the repository variable ANDROID_CERT_SHA256 to this value so a future keystore change fails the release instead of users' installs."
-            exit 0
-          fi
-          if [ "$ACTUAL" != "$EXPECTED" ]; then
-            echo "::error::Signed with $ACTUAL, but ANDROID_CERT_SHA256 is $EXPECTED. Android will refuse to install this over an existing copy ('App not installed'). If the keystore really was rotated, publish uninstall-first instructions for users, then update the variable."
-            exit 1
-          fi
-          echo "Certificate matches the pinned fingerprint."
-
-      - name: Write the SHA-256 next to the APK
-        id: hash
-        run: |
-          set -euo pipefail
-          APK="${{ steps.apk.outputs.path }}"
-          SUM=$(sha256sum "$APK" | cut -d' ' -f1)
-          printf '%s  %s\n' "$SUM" "$(basename "$APK")" > "$APK.sha256"
-          echo "sha256=$SUM" >> "$GITHUB_OUTPUT"
-          cat "$APK.sha256"
-
-      - name: Upload Release APK
+          node --input-type=module <<'JS'
+          import {readFileSync, writeFileSync} from 'node:fs';
+          const version = JSON.parse(readFileSync(process.env.VERSION_JSON, 'utf8'));
+          writeFileSync('dist/release-metadata.json', JSON.stringify({...version, package:'com.omix.aide', filename:process.env.FILENAME, size:Number(process.env.SIZE), sha256:process.env.SHA256, cert_sha256:process.env.CERT}, null, 2));
+          JS
+      - name: Upload verified APK and metadata
         uses: actions/upload-artifact@v4
         with:
-          name: aide-release-apk
-          path: ${{ steps.apk.outputs.path }}
-          retention-days: 90
-
-      - name: Create GitHub Release
-        if: steps.version.outputs.publish == 'true'
-        uses: softprops/action-gh-release@v2
+          name: aide-signed-release
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Upload production unit test reports
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: ${{ steps.version.outputs.tag }}
-          target_commitish: ${{ inputs.target_sha || github.sha }}
-          name: "Aide v${{ steps.version.outputs.version }} (${{ steps.version.outputs.version_code }})"
-          draft: false
-          prerelease: false
-          make_latest: true
-          generate_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: signed-release-test-reports
+          path: android/app/build/test-results/
+      - name: Remove decoded key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/aide-release.jks"
 
-      # The asset upload used to be part of the release-creation step, which
-      # logged "Uploaded" and still produced a release with zero downloadable
-      # files (v1.0.4). It is now a separate, explicit, retried step followed by
-      # an assertion, so a release cannot look successful while being empty.
-      - name: Upload the APK to the release
-        if: steps.version.outputs.publish == 'true'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          APK_PATH: ${{ steps.apk.outputs.path }}
-        run: |
-          set -euo pipefail
-          for attempt in 1 2 3 4 5; do
-            if gh release upload "${{ steps.version.outputs.tag }}" "$APK_PATH" "$APK_PATH.sha256" \
-                 --clobber --repo "$GITHUB_REPOSITORY"; then
-              echo "Uploaded on attempt $attempt."
-              exit 0
-            fi
-            echo "Upload attempt $attempt failed; retrying."
-            sleep 10
-          done
-          echo "::error::Could not attach $APK_PATH to the release after 5 attempts."
-          exit 1
-
-      - name: Assert the release actually has the APK
-        if: steps.version.outputs.publish == 'true'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          EXPECTED_NAME: ${{ steps.apk.outputs.filename }}
-          EXPECTED_SIZE: ${{ steps.apk.outputs.size }}
-        run: |
-          set -euo pipefail
-          # There is no releases/tags/{tag}/assets endpoint; the asset list
-          # hangs off the release object itself.
-          ASSETS=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/${{ steps.version.outputs.tag }}" -q '.assets')
-          COUNT=$(echo "$ASSETS" | jq 'length')
-          echo "Release has $COUNT asset(s)."
-          if [ "$COUNT" -lt 1 ]; then
-            echo "::error::The release published with no downloadable file."
-            exit 1
-          fi
-          echo "$ASSETS" | jq -r '.[] | "  \(.name)  \(.size) bytes  state=\(.state)"'
-          MATCH=$(echo "$ASSETS" | jq -r --arg n "$EXPECTED_NAME" \
-            '[.[] | select(.name == $n and .state == "uploaded")] | length')
-          if [ "$MATCH" -ne 1 ]; then
-            echo "::error::Expected exactly one uploaded asset named $EXPECTED_NAME; found $MATCH."
-            exit 1
-          fi
-          SIZE=$(echo "$ASSETS" | jq -r --arg n "$EXPECTED_NAME" '.[] | select(.name == $n) | .size')
-          if [ "$SIZE" != "$EXPECTED_SIZE" ]; then
-            echo "::error::Asset size $SIZE does not match the built APK ($EXPECTED_SIZE bytes)."
-            exit 1
-          fi
-          # Phones that fail on a corrupt download need the hash to check against.
-          HAS_SUM=$(echo "$ASSETS" | jq -r --arg n "$EXPECTED_NAME.sha256" \
-            '[.[] | select(.name == $n)] | length')
-          if [ "$HAS_SUM" != "1" ]; then
-            echo "::error::The release is missing $EXPECTED_NAME.sha256."
-            exit 1
-          fi
-          echo "Release assets verified."
-
-
-      # People debugging "App not installed" need the certificate and the hash
-      # without a terminal: put both in the release body.
-      - name: Record the build in the release notes
-        if: steps.version.outputs.publish == 'true'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ steps.version.outputs.tag }}
-          PKG: ${{ steps.verify.outputs.package }}
-          CODE: ${{ steps.verify.outputs.version_code }}
-          NAME: ${{ steps.verify.outputs.version_name }}
-          CERT_SHA: ${{ steps.verify.outputs.cert_sha256 }}
-          CERT_DN: ${{ steps.verify.outputs.cert_dn }}
-          APK_SHA: ${{ steps.hash.outputs.sha256 }}
-          APK_SIZE: ${{ steps.apk.outputs.size }}
-          APK_NAME: ${{ steps.apk.outputs.filename }}
-        run: |
-          set -euo pipefail
-          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body -q .body \
-            > "$RUNNER_TEMP/body.md" || : > "$RUNNER_TEMP/body.md"
-          {
-            cat "$RUNNER_TEMP/body.md"
-            echo
-            echo "---"
-            echo
-            echo "### Install & verify"
-            echo
-            echo "| | |"
-            echo "|---|---|"
-            echo "| Package | \`$PKG\` |"
-            echo "| Version | \`$NAME\` (versionCode \`$CODE\`) |"
-            echo "| APK | \`$APK_NAME\`, $APK_SIZE bytes |"
-            echo "| APK SHA-256 | \`$APK_SHA\` |"
-            echo "| Signing certificate | \`$CERT_DN\` |"
-            echo "| Certificate fingerprint | \`$CERT_SHA\` |"
-            echo
-            echo "If Android says **\"App not installed\"**, the copy already on the"
-            echo "phone was signed with a different certificate (usually a debug"
-            echo "build, or a release from before the keystore changed). Export your"
-            echo "data in Settings, uninstall Aide, then install this APK."
-          } > "$RUNNER_TEMP/new-body.md"
-          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --notes-file "$RUNNER_TEMP/new-body.md"
-
-      - name: Upload the release notes as CHANGELOG.md
-        if: steps.version.outputs.publish == 'true'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ steps.version.outputs.tag }}
-        run: |
-          set -euo pipefail
-          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body -q .body > dist/CHANGELOG.md
-          test -s dist/CHANGELOG.md
-          gh release upload "$TAG" dist/CHANGELOG.md --clobber --repo "$GITHUB_REPOSITORY"
-
-      - name: Verify the uploaded changelog
-        if: steps.version.outputs.publish == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ steps.version.outputs.tag }}
-        run: |
-          set -euo pipefail
-          HAS_CHANGELOG=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" -q '[.assets[] | select(.name == "CHANGELOG.md" and .state == "uploaded")] | length')
-          if [ "$HAS_CHANGELOG" != "1" ]; then
-            echo "::error::The release is missing its uploaded CHANGELOG.md."
-            exit 1
-          fi
-          echo "Release changelog verified."
-
-  checksums:
-    name: Publish SHA-256 checksums
+  compatibility:
+    name: Signed in-place upgrade (API ${{ matrix.api }})
     needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [24, 35]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.build.outputs.source_sha }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: aide-signed-release
+          path: dist
+      - name: Download and verify the previous production APK
+        if: needs.build.outputs.previous_tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.build.outputs.previous_tag }}
+          VERSION: ${{ needs.build.outputs.previous_version }}
+          CODE: ${{ needs.build.outputs.previous_code }}
+        run: |
+          mkdir -p previous
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern '*.apk' --dir previous
+          mapfile -t APKS < <(find previous -name '*.apk')
+          [ "${#APKS[@]}" = 1 ] || { echo '::error::Previous release must have one universal production APK'; exit 1; }
+          scripts/verify-android-apk.sh "${APKS[0]}" "$VERSION" "$CODE"
+          echo "PREVIOUS_APK=${APKS[0]}" >> "$GITHUB_ENV"
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Install old production APK, upgrade without uninstalling, launch
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api }}
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          script: scripts/smoke-test-android-upgrade.sh "${PREVIOUS_APK:-}" "dist/aide-${{ needs.build.outputs.version }}.apk" "${{ needs.build.outputs.code }}"
+      - name: Save installation diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-upgrade-api-${{ matrix.api }}
+          path: android-runtime.txt
+
+  publish:
+    name: Publish verified GitHub distribution
+    needs: [build, compatibility]
     if: needs.build.outputs.publish == 'true'
     runs-on: ubuntu-latest
     steps:
-      # The checksum file lives on master, not on the tag.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.build.outputs.source_sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@v4
+        with:
+          name: aide-signed-release
+          path: dist
+      - name: Generate release notes and updater manifest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.build.outputs.tag }}
+          SHA: ${{ needs.build.outputs.source_sha }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes" -f tag_name="$TAG" -f target_commitish="$SHA" --jq .body > dist/CHANGELOG.md
+          node scripts/android-release.mjs manifest dist/release-metadata.json "dist/aide-$VERSION.apk" dist/CHANGELOG.md dist/android-update.json
+          {
+            cat dist/CHANGELOG.md
+            echo
+            echo '### Verified Android distribution'
+            jq -r '"Package: `\(.package)` · Version: `\(.version)` (`\(.version_code)`)\n\nAPK SHA-256: `\(.sha256)`\n\nSigning certificate SHA-256: `\(.cert_sha256)`"' dist/release-metadata.json
+            echo
+            echo 'Install this over an existing production build to retain local data. Android always asks for installation confirmation. A debug/legacy copy signed with a different key cannot be upgraded in place; export your data before making any changes. Do not uninstall just to retry a failed download.'
+          } > dist/RELEASE.md
+      - name: Upload to a draft, verify every asset, then make it public
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.build.outputs.tag }}
+          SHA: ${{ needs.build.outputs.source_sha }}
+          VERSION: ${{ needs.build.outputs.version }}
+          CODE: ${{ needs.build.outputs.code }}
+        run: |
+          set -euo pipefail
+          # No --clobber: an already-published version is immutable.
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$SHA" --title "Aide v$VERSION ($CODE)" --draft --notes-file dist/RELEASE.md \
+            "dist/aide-$VERSION.apk" "dist/aide-$VERSION.apk.sha256" dist/android-update.json dist/CHANGELOG.md
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" > "$RUNNER_TEMP/published.json"
+          node --input-type=module <<'JS'
+          import {readFileSync, statSync} from 'node:fs';
+          const release = JSON.parse(readFileSync(process.env.RUNNER_TEMP + '/published.json', 'utf8'));
+          for (const name of ['aide-' + process.env.VERSION + '.apk', 'aide-' + process.env.VERSION + '.apk.sha256', 'android-update.json', 'CHANGELOG.md']) {
+            const matches = release.assets.filter(a => a.name === name && a.state === 'uploaded' && a.size === statSync('dist/' + name).size);
+            if (matches.length !== 1) throw new Error('Missing or incomplete release asset: ' + name);
+          }
+          JS
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --latest
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json url,assets --jq '.url, (.assets[].name)'
+
+  checksums:
+    name: Publish SHA-256 checksums
+    needs: [build, publish]
+    runs-on: ubuntu-latest
+    steps:
       - uses: actions/checkout@v4
         with:
           ref: master
-
-      # Hash the exact APK that was uploaded to the release.
-      - name: Download the published APK
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
-          name: aide-release-apk
+          name: aide-signed-release
           path: dist
-
-      - name: Merge hashes into public/apk-checksums.json
-        run: node scripts/update-checksums.mjs dist "${{ needs.build.outputs.release_tag }}"
-
-      - name: Commit the checksums
-        # Never let a checksum push break a release that already went out.
-        continue-on-error: true
+      - run: node scripts/update-checksums.mjs dist "${{ needs.build.outputs.tag }}"
+      - name: Commit website checksums
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add public/apk-checksums.json
-          if git diff --staged --quiet; then
-            echo "Checksums unchanged — nothing to commit."
-            exit 0
-          fi
-          # [skip ci] stops this commit from triggering another build;
-          # Vercel still deploys it, which is what makes the hashes go live.
-          git commit -m "chore(checksums): SHA-256 for ${{ needs.build.outputs.release_tag }} [skip ci]"
+          if git diff --staged --quiet; then exit 0; fi
+          git commit -m "chore(checksums): SHA-256 for ${{ needs.build.outputs.tag }} [skip ci]"
           git push origin HEAD:master

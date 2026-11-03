@@ -2,70 +2,103 @@ name: Android CI
 
 on:
   push:
-    branches: [ master, feat/*, fix/* ]
+    branches: [ master, feat/*, fix/*, arena/** ]
   pull_request:
     branches: [ master ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build:
+  release-tools:
+    name: Release metadata and workflow checks
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test scripts/tests/*.test.mjs
+      - name: Validate shell scripts
+        run: bash -n scripts/verify-android-apk.sh scripts/smoke-test-android-upgrade.sh scripts/publish-release.sh
+      - name: Validate all workflows
+        uses: docker://rhysd/actionlint:1.7.7
+        with:
+          args: -color -shellcheck=
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
+  build:
+    name: Android unit tests, lint and builds
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
           cache: gradle
-
-      - name: Grant execute permission for gradlew
-        run: chmod +x android/gradlew
-
-      - name: Run Unit Tests
-        run: |
-          cd android
-          mkdir -p build
-          ./gradlew testDebugUnitTest --console=plain 2>&1 | tee build/unit-tests.log
-          exit ${PIPESTATUS[0]}
-
-      - name: Report test failures as annotations
-        # A red check with no readable output is not much use in a review. This
-        # surfaces the compiler errors and failing assertions on the run itself
-        # so nobody has to download the raw log to see what broke.
-        if: failure()
-        run: |
-          log=android/build/unit-tests.log
-          [ -f "$log" ] || exit 0
-          grep -nE "^e: |FAILED|expected:|Exception" "$log" | head -n 25 | while IFS= read -r line; do
-            echo "::error title=Unit tests::${line}"
-          done || true
-
-      - name: Build Debug APK
-        run: |
-          cd android
-          ./gradlew assembleDebug
-
-      # Android 10 is API 29. A real package install catches manifest/minSdk
-      # regressions that a successful Gradle build cannot detect.
-      - name: Smoke-test APK installation on Android 10 (API 29)
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 29
-          arch: x86_64
-          profile: pixel_2
-          script: adb install -r android/app/build/outputs/apk/debug/app-debug.apk
-
-      - name: Build Release APK (unsigned, to cover R8)
-        # Keeps minification and resource shrinking honest on every PR. The
-        # release build hard-errors without a keystore, so opt out explicitly.
-        run: |
-          cd android
-          ./gradlew assembleRelease -PaideAllowUnsignedRelease=true
-
-      - name: Upload Debug APK
+      - run: chmod +x android/gradlew
+      - name: Unit tests (debug and release), lint and APKs
+        working-directory: android
+        run: ./gradlew testDebugUnitTest testReleaseUnitTest lintDebug assembleDebug assembleDebugAndroidTest assembleRelease -PaideAllowUnsignedRelease=true --console=plain
+      - name: Upload test reports
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: android-unit-and-lint-reports
+          path: |
+            android/app/build/reports/
+            android/app/build/test-results/
+      - name: Upload debug and UI-test APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-debug-tests
+          path: |
+            android/app/build/outputs/apk/debug/*.apk
+            android/app/build/outputs/apk/androidTest/debug/*.apk
+          if-no-files-found: error
+
+  device-tests:
+    name: Native update UI (API ${{ matrix.api }})
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [24, 35]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: android-debug-tests
+          path: apks
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Install, launch, and exercise the native update states
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api }}
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          script: |
+            adb install -r apks/debug/app-debug.apk
+            adb shell am start -W -n com.omix.aide.debug/com.omix.aide.MainActivity
+            adb install -r apks/androidTest/debug/app-debug-androidTest.apk
+            adb shell am instrument -w com.omix.aide.debug.test/androidx.test.runner.AndroidJUnitRunner | tee instrumentation.txt
+            grep -q '^OK (' instrumentation.txt
+      - name: Upload device test output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-update-ui-api-${{ matrix.api }}
+          path: instrumentation.txt

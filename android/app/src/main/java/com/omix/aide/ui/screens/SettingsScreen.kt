@@ -84,7 +84,8 @@ fun SettingsScreen(
     database: com.omix.aide.data.local.AideDatabase,
     businessId: String,
     onBack: () -> Unit,
-    onSettingsChanged: (BusinessSettings) -> Unit = {}
+    onSettingsChanged: (BusinessSettings) -> Unit = {},
+    onCheckForUpdates: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val initial = remember { SettingsStore.read(context) }
@@ -468,7 +469,7 @@ fun SettingsScreen(
                             fontWeight = FontWeight.SemiBold
                         )
                     }
-                    TextButton(onClick = { checkForUpdate(context) }) { Text("Check for updates") }
+                    TextButton(onClick = onCheckForUpdates) { Text("Check for updates") }
                 }
             }
         }
@@ -563,12 +564,6 @@ const val COMPANY_URL = "https://omixsystems.store"
 
 private fun openCompanySite(context: Context) {
     val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(COMPANY_URL))
-    runCatching { context.startActivity(intent) }
-}
-
-/** Opens the releases page so the user can pull a newer build manually. */
-private fun checkForUpdate(context: Context) {
-    val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("$COMPANY_URL/downloads"))
     runCatching { context.startActivity(intent) }
 }
 

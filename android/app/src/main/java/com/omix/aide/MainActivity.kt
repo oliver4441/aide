@@ -73,9 +73,10 @@ import com.omix.aide.ui.screens.StockScreen
 import com.omix.aide.ui.screens.WelcomeScreen
 import com.omix.aide.ui.screens.showSplash
 import com.omix.aide.ui.LocalAideSettings
-import com.omix.aide.ui.releases.UpdateCheck
-import com.omix.aide.ui.releases.UpdateChecker
-import com.omix.aide.ui.releases.UpdateBanner
+import com.omix.aide.ui.releases.UpdateHost
+import com.omix.aide.ui.releases.UpdateStatusBanner
+import com.omix.aide.updates.UpdateManager
+import androidx.compose.runtime.collectAsState
 import com.omix.aide.ui.theme.AideTheme
 import com.omix.aide.ui.theme.ThemePickerScreen
 import com.omix.aide.ui.viewmodel.CustomerViewModel
@@ -85,9 +86,6 @@ import com.omix.aide.ui.viewmodel.ReportViewModel
 import com.omix.aide.ui.viewmodel.SellViewModel
 import com.omix.aide.ui.viewmodel.StockViewModel
 import com.omix.aide.work.AideWorkScheduler
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
@@ -99,25 +97,13 @@ class MainActivity : ComponentActivity() {
      * currency re-themes and re-formats the running app instead of only taking
      * effect after a restart.
      */
-    private val settings = mutableStateOf(SettingsStore.read(applicationContext))
+    private val settings by lazy { mutableStateOf(SettingsStore.read(applicationContext)) }
 
-    /**
-     * The newest published release, fetched on launch. Null until the check
-     * finishes, which is deliberately invisible -- the app must never look
-     * broken because a network call is slow.
-     */
-    private val updateCheck = mutableStateOf<UpdateCheck?>(null)
+    private val updater by lazy { UpdateManager.get(applicationContext) }
 
-    init {
-        // Fire and forget: the UI never waits on this.
-        kotlinx.coroutines.CoroutineScope(Dispatchers.Main).launch {
-            val result = UpdateChecker.check()
-            if (result.newer) {
-                // Persist so the splash banner can pick it up next launch.
-                LocalBusinessStore(applicationContext).markOutOfDate()
-            }
-            updateCheck.value = result
-        }
+    override fun onResume() {
+        super.onResume()
+        updater.onResume()
     }
 
     private lateinit var database: AideDatabase
@@ -201,6 +187,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             CompositionLocalProvider(LocalAideSettings provides settings.value) {
                 AideTheme {
+                    UpdateHost(updater, onCloseApp = { finish() })
                     DatabaseProblemScreen(
                         errorMessage = DatabaseHealth.errorMessage(applicationContext),
                         onRetry = {
@@ -339,34 +326,13 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
+                UpdateHost(updater, onCloseApp = { finish() })
+
                 Scaffold(
                     topBar = {
-                        // Update banner first, then the activity bell, so the
-                        // bell keeps the same corner on every screen.
                         Column {
-                            val update = updateCheck.value
-                            if (update != null && update.newer) {
-                                UpdateBanner(
-                                    version = update.version,
-                                    onDownload = {
-                                        val url = update.downloadUrl
-                                        if (url != null) {
-                                            runCatching {
-                                                startActivity(
-                                                    Intent(
-                                                        Intent.ACTION_VIEW,
-                                                        android.net.Uri.parse(url)
-                                                    )
-                                                )
-                                            }
-                                        }
-                                        LocalBusinessStore(applicationContext).markUpToDate()
-                                    },
-                                    onDismiss = {
-                                        LocalBusinessStore(applicationContext).markUpToDate()
-                                    }
-                                )
-                            }
+                            val updateState by updater.state.collectAsState()
+                            UpdateStatusBanner(updateState, updater::show)
                             if (showRail) {
                                 Row(
                                     modifier = Modifier
@@ -510,7 +476,8 @@ class MainActivity : ComponentActivity() {
                                     database = database,
                                     businessId = businessId,
                                     onBack = { navController.popBackStack() },
-                                    onSettingsChanged = { updated -> settings.value = updated }
+                                    onSettingsChanged = { updated -> settings.value = updated },
+                                    onCheckForUpdates = { updater.check(manual = true) }
                                 )
                             }
 

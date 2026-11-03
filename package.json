@@ -14,7 +14,8 @@
     "electron:start": "cd electron && npm start",
     "electron:build:win": "cd electron && npm run build:win",
     "electron:build:mac": "cd electron && npm run build:mac",
-    "electron:build:linux": "cd electron && npm run build:linux"
+    "electron:build:linux": "cd electron && npm run build:linux",
+    "test:release": "node --test scripts/tests/*.test.mjs"
   },
   "dependencies": {
     "@prisma/client": "^5.14.0",

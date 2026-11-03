@@ -28,6 +28,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
       - name: Choose the next Android release version
         id: version
         env:
@@ -35,58 +39,14 @@ jobs:
           REPOSITORY: ${{ github.repository }}
         run: |
           set -euo pipefail
-
-          RELEASES=$(gh api "repos/$REPOSITORY/releases?per_page=100")
-          LATEST_TAG=$(jq -r '
-            [ .[]
-              | select(.draft == false and .prerelease == false)
-              | select(.tag_name | test("^v[0-9]+\\.[0-9]+\\.[0-9]+(\\+[0-9]+)?$"))
-              | select(any(.assets[]?; (.name | ascii_downcase | endswith(".apk"))))
-            ]
-            | sort_by(.published_at)
-            | last
-            | .tag_name // empty
-          ' <<< "$RELEASES")
-
-          if [ -z "$LATEST_TAG" ]; then
-            echo "::error::No published Android release found to base the next version on."
-            exit 1
-          fi
-
-          LATEST_VERSION="${LATEST_TAG#v}"
-          LATEST_VERSION="${LATEST_VERSION%%+*}"
-          if [[ ! "$LATEST_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::Latest Android tag '$LATEST_TAG' is not a three-part numeric version."
-            exit 1
-          fi
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$LATEST_VERSION"
-          NEXT_VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
-          NEXT_TAG="v$NEXT_VERSION"
-          NEXT_CODE="${NEXT_VERSION//./}"
-
-          LATEST_NAME=$(jq -r --arg tag "$LATEST_TAG" '[.[] | select(.tag_name == $tag)][0].name // ""' <<< "$RELEASES")
-          if [[ "$LATEST_NAME" =~ \(([0-9]+)\) ]]; then
-            LATEST_CODE="${BASH_REMATCH[1]}"
-          elif [[ "$LATEST_TAG" =~ \+([0-9]+)$ ]]; then
-            LATEST_CODE="${BASH_REMATCH[1]}"
-          else
-            LATEST_CODE="${LATEST_VERSION//./}"
-          fi
-          if (( NEXT_CODE <= LATEST_CODE )); then
-            echo "::error::Next build code $NEXT_CODE would not exceed latest code $LATEST_CODE. Refusing to publish."
-            exit 1
-          fi
-
-          # Refuse to reuse an existing tag left behind by an incomplete release.
+          gh api "repos/$REPOSITORY/releases?per_page=100" > "$RUNNER_TEMP/releases.json"
+          node scripts/android-release.mjs next "$RUNNER_TEMP/releases.json" > "$RUNNER_TEMP/next.json"
+          cat "$RUNNER_TEMP/next.json"
+          NEXT_TAG=$(jq -r .tag "$RUNNER_TEMP/next.json")
           if gh api "repos/$REPOSITORY/git/ref/tags/$NEXT_TAG" >/dev/null 2>&1; then
             echo "::error::Tag $NEXT_TAG already exists. Review the incomplete release before retrying."
             exit 1
           fi
-
-          echo "tag=$NEXT_TAG" >> "$GITHUB_OUTPUT"
-          echo "version=$NEXT_VERSION" >> "$GITHUB_OUTPUT"
-          echo "Previous release: $LATEST_TAG (versionCode $LATEST_CODE)"
-          echo "Publishing: $NEXT_TAG (versionCode $NEXT_CODE)"
 
       - name: Dispatch the signed release workflow
         env:
@@ -101,6 +61,7 @@ jobs:
             --repo "$REPOSITORY" \
             --ref master \
             -f version="$RELEASE_TAG" \
+            -f publish=true \
             -f target_sha="$TARGET_SHA"
 
           RUN_ID=""
