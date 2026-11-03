@@ -81,6 +81,27 @@ class UpdateRepositoryTest {
         val repository = UpdateRepository(ManifestSource { throw CancellationException() }, MemoryStorage(), testCertificate)
         try { repository.check(); fail("Expected cancellation") } catch (_: CancellationException) { }
     }
+    @Test fun interruptedDownloadMetadataCanBeRecoveredWhenTheSharedCacheIsMissingOrCorrupt() {
+        val saved = manifestJson().toString()
+        for (cached in listOf(null, "invalid JSON")) {
+            val restored = storedDownloadManifest(cached, saved, testCertificate)
+            assertNotNull(restored)
+            assertEquals(saved, restored!!.first)
+            assertEquals(1013L, restored.second.versionCode)
+        }
+    }
+    @Test fun currentValidMetadataTakesPriorityOverAnOlderInterruptedTarget() {
+        val saved = manifestJson().toString()
+        val newer = manifestJson().put("versionCode", 1014).toString()
+        val selected = storedDownloadManifest(newer, saved, testCertificate)
+        assertEquals(newer, selected!!.first)
+        assertEquals(1014L, selected.second.versionCode)
+    }
+    @Test fun aCorruptOrUntrustedSavedTargetNeverBecomesDownloadMetadata() {
+        val untrusted = manifestJson().put("certificateSha256", "b".repeat(64)).toString()
+        assertNull(storedDownloadManifest("invalid JSON", untrusted, testCertificate))
+        assertNull(storedDownloadManifest(null, null, testCertificate))
+    }
     @Test fun clockRollbackCannotSuppressChecksIndefinitely() {
         assertTrue(shouldCheck(1000, 2000))
         assertFalse(shouldCheck(2000, 1000))

@@ -129,8 +129,13 @@ class UpdateManager private constructor(private val context: Context) {
         val asset = current.asset ?: return
         if (current.busy || preparingInstall) return
         // Save the exact target separately; a later metadata check cannot change an active job.
-        val raw = storage.cachedManifest ?: return
-        val parsed = runCatching { ReleaseManifest.parse(raw, BuildConfig.UPDATE_CERT_SHA256) }.getOrNull() ?: return
+        val target = storedDownloadManifest(storage.cachedManifest, storage.downloadManifest, BuildConfig.UPDATE_CERT_SHA256)
+        if (target == null) {
+            mutable.value = current.copy(stage = UpdateStage.FAILED, visible = true, retry = UpdateRetry.CHECK,
+                message = "The saved update details could not be verified. Check for updates again before downloading.")
+            return
+        }
+        val (raw, parsed) = target
         if (parsed != manifest) {
             check(manual = true)
             return

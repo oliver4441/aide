@@ -9,6 +9,12 @@ interface UpdateStorage {
     var cachedManifest: String?
 }
 
+/** Prefer current metadata, but recover an interrupted target if that cache was lost. */
+internal fun storedDownloadManifest(cached: String?, pending: String?, certificate: String): Pair<String, ReleaseManifest>? =
+    listOfNotNull(cached, pending).firstNotNullOfOrNull { raw ->
+        runCatching { raw to ReleaseManifest.parse(raw, certificate) }.getOrNull()
+    }
+
 sealed interface CheckResult {
     data class Release(val manifest: ReleaseManifest, val fromCache: Boolean) : CheckResult
     data object NoRelease : CheckResult

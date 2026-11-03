@@ -6,8 +6,17 @@ PACKAGE=com.omix.aide
 # Preserve evidence even when installation, UI-idle detection or a process check fails.
 trap 'echo "::error::Android compatibility test failed at line $LINENO: $BASH_COMMAND"' ERR
 trap 'timeout 15s adb logcat -d -s AndroidRuntime:E > android-runtime.txt || true' EXIT
-timeout 30s adb root
-timeout 30s adb wait-for-device
+# adbd can close the root command's connection while restarting. Retry that
+# handshake only; require a real uid=0 before testing private-data retention.
+ROOTED=false
+for attempt in 1 2 3; do
+  timeout 30s adb root || echo '::notice::adbd restarted during the root handshake; checking the resulting UID.'
+  if timeout 30s adb wait-for-device && ROOT_UID=$(timeout 10s adb shell id -u | tr -d '\r') && [ "$ROOT_UID" = 0 ]; then
+    ROOTED=true
+    break
+  fi
+done
+[ "$ROOTED" = true ] || { echo '::error::A rooted test emulator is required to verify private-data retention'; exit 1; }
 adb logcat -c
 MARKER="/data/user/0/$PACKAGE/.aide-upgrade-marker"
 if [ -n "$PREVIOUS_APK" ]; then
