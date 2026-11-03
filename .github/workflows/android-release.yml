@@ -272,16 +272,13 @@ jobs:
           # No --clobber: an already-published version is immutable.
           gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$SHA" --title "Aide v$VERSION ($CODE)" --draft --notes-file dist/RELEASE.md \
             "dist/aide-$VERSION.apk" "dist/aide-$VERSION.apk.sha256" dist/android-update.json dist/CHANGELOG.md
-          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" > "$RUNNER_TEMP/published.json"
-          node --input-type=module <<'JS'
-          import {readFileSync, statSync} from 'node:fs';
-          const release = JSON.parse(readFileSync(process.env.RUNNER_TEMP + '/published.json', 'utf8'));
-          for (const name of ['aide-' + process.env.VERSION + '.apk', 'aide-' + process.env.VERSION + '.apk.sha256', 'android-update.json', 'CHANGELOG.md']) {
-            const matches = release.assets.filter(a => a.name === name && a.state === 'uploaded' && a.size === statSync('dist/' + name).size);
-            if (matches.length !== 1) throw new Error('Missing or incomplete release asset: ' + name);
-          }
-          JS
-          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --latest
+          # The tag endpoint only returns published releases: a newly created
+          # draft has an untagged URL and must be located through the list API.
+          gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" > "$RUNNER_TEMP/uploaded-releases.json"
+          RELEASE_ID=$(node scripts/android-release.mjs verify-draft "$RUNNER_TEMP/uploaded-releases.json" dist/release-metadata.json dist "$SHA")
+          # The verifier requires one draft for this exact source SHA, plus the
+          # exact size and GitHub SHA-256 digest of all four uploaded files.
+          gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" -F draft=false -f make_latest=true --jq .html_url
           gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json url,assets --jq '.url, (.assets[].name)'
 
   checksums:

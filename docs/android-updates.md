@@ -26,15 +26,21 @@
   retroactively**. The updater never uninstalls it or clears data. Export local
   data before any manual migration; do not uninstall merely to retry a download.
 
-## Repairing the v1.0.12 startup crash
+## Repairing the v1.0.12 and v1.0.13 startup crashes
 
 `MainActivity` previously read `applicationContext` in a property initializer,
 before Android attached the Activity. Its constructor also launched an unscoped
 update coroutine. Both paths could access an unattached Context. Settings and
 the application-scoped updater are now initialized lazily after attachment;
 checks start from `onResume`, not the constructor. Native device tests exercise
-cold start, recreation and resume. Production upgrade checks keep the old v12
-crash log separate and require two successful cold launches of the replacement.
+cold start, recreation and resume. Production upgrade checks keep legacy crash
+logs separate and require two successful cold launches of the replacement.
+
+The published v1.0.13 APK was built before PR #34 and contains the same early
+Context access as v1.0.12. It does **not** contain that repair. The fix first ships
+in [v1.0.14 (1014)](https://github.com/oliver4441/aide/releases/tag/v1.0.14%2B1014).
+Both v12 and v13 signed in-place upgrades passed on API 24 and 35 before that
+release was published.
 
 The local fallback for this repair is **1.0.14 (1014)**, following the already
 published v1.0.13. Automatic release selection always re-reads GitHub before
@@ -45,8 +51,9 @@ screen without destructive fallback. Device tests reconstruct schema versions 2
 and 3 and assert that products, sales and sale items survive migration to 4;
 unknown schemas must retain their original records even when opening fails.
 
-A crashing v12 installation cannot run the new updater. The first repair must
-be a **manual installation of the new production-signed APK over v12**. Keep
+A crashing v12 or v13 installation cannot run the new updater. The first repair
+must be a **manual installation of the new production-signed APK over the
+existing installation**. Keep
 `com.omix.aide` and the existing signing key. **Do not uninstall or clear app
 storage** merely to fix the crash: that would delete local business data. The
 new native updater handles subsequent releases once this repair is installed.
@@ -175,10 +182,19 @@ signer and checksum are independently checked before installation.
   release. It is combined with GitHub-generated source notes for the native
   dialog and `CHANGELOG.md`. Generation rejects a version/filename mismatch,
   invalid release date or JSON escaping that exceeds the client's byte limit.
-- Assets are first uploaded to a **draft**. Size/state of the APK, checksum,
-  manifest and changelog must all match before the draft is made public.
-  Never use `--clobber` to replace a published APK. If an upload fails, inspect
-  the incomplete draft/tag, then deliberately resolve it before retrying.
+- Assets are first uploaded to a **draft**. Its tag lookup can return 404 until
+  publication: GitHub assigns an `untagged-...` URL and the tag endpoint only
+  returns published releases. Locate the draft through the releases list API,
+  then use its **numeric release ID** for publication.
+- `verify-draft` requires exactly one non-prerelease draft for the exact tested
+  source SHA, and all four expected assets. The APK, checksum, manifest and
+  changelog must match the verified local files in **state, size and GitHub
+  SHA-256 digest** before publication. The APK must still match the production
+  build metadata. Published releases, wrong-source drafts and ambiguous uploads
+  are rejected. Never use `--clobber` to replace a published APK. If publication
+  stops after uploading, inspect the existing draft by ID and the successful
+  build/upgrade gates; do not assume a tag-lookup 404 means the upload failed.
+  Verify every asset before deliberately finishing or otherwise resolving it.
 - Website checksums are published after release; the Android updater does **not**
   depend on a Vercel deploy or the website's `/api/latest-release` endpoint.
 
@@ -216,6 +232,9 @@ scenarios, persisted six-hour throttling, concurrent checks, manual checks,
 clock rollback, cached mandatory policy, idempotent installer/lifecycle callbacks,
 permission returns, and version-code boundary progression. Shell-gate tests also
 reject lost private data, changed UIDs, wrong installed versions and startup crashes.
+Publication regressions cover untagged drafts, immutable published releases,
+wrong-source/ambiguous drafts, incomplete or unexpected assets, same-size
+tampering, missing digests and the CLI/workflow ID-based publication path.
 Native UI tests run on API 24 and 35 and cover offer/actions, mandatory state,
 progress, retry, permission explanations and explicit install handoff. Production
 signing and upgrade tests run separately with the real existing signing secrets.
