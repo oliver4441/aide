@@ -82,22 +82,42 @@ export default function SalesLog({ sales, loading, onPrint }: SalesLogProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [paymentFilter, setPaymentFilter] = useState<string>("all");
 
-  const filteredSales = useMemo(() => {
-    const cutoff = getDateRange(dateFilter);
-    return sales.filter((s) => {
-      if (new Date(s.createdAt) < cutoff) return false;
-      if (paymentFilter !== "all" && s.paymentMethod.toLowerCase() !== paymentFilter.toLowerCase()) return false;
-      return true;
-    });
+  // Performance optimization (Bolt ⚡):
+  // Collapse 3 separate array passes (.filter, .reduce, .map) and thousands of
+  // redundant Date object allocations into a single O(N) loop with timestamp comparisons.
+  const { filteredSales, totalRevenue, paymentMethods } = useMemo(() => {
+    const cutoffMs = getDateRange(dateFilter).getTime();
+    const filterMethod = paymentFilter === "all" ? null : paymentFilter.toLowerCase();
+    const result: SaleRecord[] = [];
+    let sumRevenue = 0;
+    const methodsSet = new Set<string>();
+
+    for (let i = 0; i < sales.length; i++) {
+      const s = sales[i];
+      if (s.paymentMethod) {
+        methodsSet.add(s.paymentMethod);
+      }
+
+      if (cutoffMs > 0 && Date.parse(s.createdAt) < cutoffMs) {
+        continue;
+      }
+
+      if (filterMethod && (s.paymentMethod ? s.paymentMethod.toLowerCase() : "") !== filterMethod) {
+        continue;
+      }
+
+      result.push(s);
+      sumRevenue += s.total || 0;
+    }
+
+    return {
+      filteredSales: result,
+      totalRevenue: sumRevenue,
+      paymentMethods: Array.from(methodsSet),
+    };
   }, [sales, dateFilter, paymentFilter]);
 
   const totalFiltered = filteredSales.length;
-  const totalRevenue = filteredSales.reduce((sum, s) => sum + s.total, 0);
-
-  const paymentMethods = useMemo(() => {
-    const methods = new Set(sales.map((s) => s.paymentMethod));
-    return Array.from(methods);
-  }, [sales]);
 
   if (loading) {
     return (

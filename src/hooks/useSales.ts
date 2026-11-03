@@ -20,10 +20,14 @@ export function useSales(businessId?: string) {
       ...sale,
       syncStatus: 'pending' as const,
     };
-    await db.sales.put(record);
-    for (const item of items) {
-      await db.saleItems.put(item);
-    }
+    // ⚡ Bolt Optimization: Wrap sale and sale items writes in a single transaction
+    // and use bulkPut for sale items instead of sequential individual writes.
+    await db.transaction('rw', [db.sales, db.saleItems], async () => {
+      await db.sales.put(record);
+      if (items.length > 0) {
+        await db.saleItems.bulkPut(items);
+      }
+    });
     await syncEngine.enqueue('sales', 'create', sale.id, { sale: record, items });
   }, []);
 

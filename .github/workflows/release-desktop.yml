@@ -1,8 +1,11 @@
 name: Desktop App Release
 
 on:
+  # Only build the desktop app when a desktop release tag is pushed or the
+  # workflow is run manually. It used to also fire on EVERY push to master,
+  # which burned a full 3-OS build matrix on routine web/Android commits even
+  # though nothing is published from them.
   push:
-    branches: [ master ]
     tags:
       - 'desktop-v*'
   workflow_dispatch:
@@ -64,11 +67,54 @@ jobs:
         working-directory: electron
         run: npm ci
 
+      # Code signing (Windows + macOS only). electron-builder reads these env
+      # vars natively. When the secrets are absent (e.g. public forks),
+      # electron-builder builds UNsigned artifacts with a warning rather than
+      # failing the whole matrix.
+      - name: Decode code-signing secrets
+        working-directory: electron
+        if: matrix.os != 'ubuntu-latest'
+        shell: bash
+        env:
+          CSC_KEY_B64: ${{ secrets.CSC_LINK_B64 }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          WIN_CSC_KEY_B64: ${{ secrets.WIN_CSC_LINK_B64 }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+        run: |
+          :>"$RUNNER_TEMP/csc.p12"
+          :>"$RUNNER_TEMP/win_csc.p12"
+          if [ -n "$CSC_KEY_B64" ]; then
+            echo "$CSC_KEY_B64" | base64 -d > "$RUNNER_TEMP/csc.p12"
+            echo "CSC_LINK=$RUNNER_TEMP/csc.p12" >> "$GITHUB_ENV"
+            echo "CSC_KEY_PASSWORD=$CSC_KEY_PASSWORD" >> "$GITHUB_ENV"
+          fi
+          if [ -n "$WIN_CSC_KEY_B64" ]; then
+            echo "$WIN_CSC_KEY_B64" | base64 -d > "$RUNNER_TEMP/win_csc.p12"
+            echo "WIN_CSC_LINK=$RUNNER_TEMP/win_csc.p12" >> "$GITHUB_ENV"
+            echo "WIN_CSC_KEY_PASSWORD=$WIN_CSC_KEY_PASSWORD" >> "$GITHUB_ENV"
+          fi
+
       - name: Build ${{ matrix.label }} package
         working-directory: electron
         run: npm run ${{ matrix.script }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Export the decoded secrets so electron-builder actually signs.
+          CSC_LINK: ${{ env.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ env.CSC_KEY_PASSWORD }}
+          WIN_CSC_LINK: ${{ env.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ env.WIN_CSC_KEY_PASSWORD }}
+
+      - name: Assert ${{ matrix.label }} release is signed
+        working-directory: electron
+        if: matrix.os != 'ubuntu-latest'
+        shell: bash
+        env:
+          EXPECTED_SIGNED: ${{ env.CSC_LINK != '' || env.WIN_CSC_LINK != '' }}
+        run: |
+          if [ "$EXPECTED_SIGNED" = "false" ]; then
+            echo "::warning::Signing secret not configured for ${{ matrix.label }}; publishing an unsigned artifact."
+          fi
 
       - name: Upload ${{ matrix.label }} artifacts
         uses: actions/upload-artifact@v4
