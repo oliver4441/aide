@@ -27,6 +27,7 @@
     "dexie": "^4.0.0",
     "dexie-react-hooks": "^1.1.0",
     "framer-motion": "^13.4.6",
+    "jose": "^4.15.9",
     "lucide-react": "^1.49.0",
     "next": "^14.2.0",
     "next-auth": "^4.24.0",

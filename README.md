@@ -45,17 +45,19 @@ npm run dev
 
 ### Dependency locks
 
-Local npm commands and GitHub's web build use `package-lock.json`; Vercel uses
-`pnpm-lock.yaml` with the pnpm version pinned in `package.json`. Keep both in
-sync when changing dependencies. After updating the npm lock, run:
+Local npm commands and the npm CI build use `package-lock.json`; Vercel and the
+deployment CI build use `pnpm-lock.yaml` with pnpm pinned in `package.json`. Keep
+both in sync when changing dependencies. After updating the npm lock, run:
 
 ```sh
 npx --yes pnpm@10.34.9 import
 npx --yes pnpm@10.34.9 install --lockfile-only --frozen-lockfile --ignore-scripts
 ```
 
-CI checks the frozen pnpm lock too, so a successful npm build cannot mask a
-Vercel installation failure. Do not disable frozen-lockfile validation to deploy.
+CI builds with both npm and a frozen pnpm install, so npm's dependency hoisting
+cannot hide undeclared imports that would fail on Vercel. Declare every imported
+package directly, even if another dependency currently brings it in. Do not
+disable frozen-lockfile validation to deploy.
 
 ## Environment Variables
 
