@@ -13,15 +13,14 @@ import com.omix.aide.data.local.AideDatabase
 import com.omix.aide.data.local.LocalBusinessStore
 import com.omix.aide.theme.Palette
 import com.omix.aide.ui.components.BrandedLogo
-import com.omix.aide.ui.releases.newReleaseBanner
 import com.omix.aide.work.AideWorkScheduler
 
 /**
  * The branded splash screen.
  *
  * It shows the Aide logo on the user's chosen theme colour while the local
- * database and background workers come up, and it also surfaces the
- * new-release notification banner when a newer published release exists.
+ * database and background workers come up. The native update experience is
+ * shown only after Compose takes over; it never delays this splash.
  *
  * Once the database is ready it hands control to the main app — or to the
  * themed theme selector for a first-time Android user.
@@ -48,22 +47,6 @@ fun ComponentActivity.showSplash(
         root = findViewById(android.R.id.content) as? ViewGroup
             ?: error("splash content view is missing"),
         accent = accent
-    )
-
-    // Show the new-release notification banner (hides itself once dismissed).
-    // It inflates its own layout, so detach it before re-parenting.
-    val banner = newReleaseBanner {
-        store.markUpToDate()
-    }
-    (banner.parent as? ViewGroup)?.removeView(banner)
-
-    // Insert the banner right after the splash content.
-    findViewById<ViewGroup>(R.id.splash_cards)?.addView(
-        banner,
-        ViewGroup.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        )
     )
 
     // Show the logo + loading state.

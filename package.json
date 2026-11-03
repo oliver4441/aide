@@ -14,7 +14,8 @@
     "electron:start": "cd electron && npm start",
     "electron:build:win": "cd electron && npm run build:win",
     "electron:build:mac": "cd electron && npm run build:mac",
-    "electron:build:linux": "cd electron && npm run build:linux"
+    "electron:build:linux": "cd electron && npm run build:linux",
+    "test:release": "node --test scripts/tests/*.test.mjs"
   },
   "dependencies": {
     "@prisma/client": "^5.14.0",
@@ -26,6 +27,7 @@
     "dexie": "^4.0.0",
     "dexie-react-hooks": "^1.1.0",
     "framer-motion": "^13.4.6",
+    "jose": "^4.15.9",
     "lucide-react": "^1.49.0",
     "next": "^14.2.0",
     "next-auth": "^4.24.0",
@@ -60,5 +62,6 @@
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"
-  }
+  },
+  "packageManager": "pnpm@10.34.9"
 }

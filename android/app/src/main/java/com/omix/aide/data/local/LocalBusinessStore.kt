@@ -50,25 +50,10 @@ class LocalBusinessStore(context: Context) {
         prefs.edit().putBoolean(KEY_SETUP_DONE, true).apply()
     }
 
-    /** Whether the app launched on a version behind the latest published release. */
-    fun isOutOfDate(): Boolean = prefs.getBoolean(KEY_OUT_OF_DATE, false)
-
-    /** Mark the app as up to date with the latest published release. */
-    fun markUpToDate() {
-        prefs.edit().putBoolean(KEY_OUT_OF_DATE, false).apply()
-    }
-
-    /** Mark the app as out of date (called by [ReleaseReceiver] when a newer
-     *  release is available). */
-    fun markOutOfDate() {
-        prefs.edit().putBoolean(KEY_OUT_OF_DATE, true).apply()
-    }
-
     private companion object {
         const val KEY_BUSINESS_ID = "business_id"
         const val KEY_BUSINESS_NAME = "business_name"
         const val KEY_SETUP_DONE = "setup_done"
         const val KEY_WELCOME_SEEN = "welcome_seen"
-        const val KEY_OUT_OF_DATE = "aide_out_of_date"
     }
 }

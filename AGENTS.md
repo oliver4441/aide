@@ -119,12 +119,16 @@ and admin status never bypasses the membership check.
 - Neon project: `aide (shiny-rain-18812100)`
 - GitHub: `https://github.com/oliver4441/aide`
 - Vercel: `https://aide.omixsystems.store`
-- **Releasing**: merging a PR publishes nothing. `Android CI` only builds and
-  tests; a release happens when a `v*` tag is pushed
-  (`git push origin refs/tags/v1.0.9`), which `android-release.yml` turns into a
-  signed APK, a GitHub release and a checksums commit on `master`. If
-  `/downloads` or the in-app update banner still shows an old build, check for a
-  missing tag before looking for a CI failure. See `HANDOFF.md` §4.5b.
+- **Releasing**: successful master Android CI triggers Android Auto Release (see
+  `docs/android-updates.md`). `Android CI` runs unit/lint/native UI checks; signed
+  release validation also runs on feature/Arena branch pushes without publishing.
+  Production publication requires the committed certificate pin and real in-place
+  upgrade tests on API 24/35. `android-release.yml` publishes a signed APK,
+  `.sha256`, `android-update.json`, and changelog via a verified draft release.
+  Build codes increase independently of semantic versions; auto tags use `+code`.
+  The native updater checks GitHub directly at most every six hours, never silently
+  installs, and does not depend on a website deploy. Debug builds use `.debug`.
+
 
 ## Notable Conventions
 - All components use `"use client"` directive (client-side rendering)

@@ -25,8 +25,12 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          # Match the configured Vercel runtime, not an end-of-life Node release.
+          node-version: '24'
           cache: 'npm'
+
+      - name: Validate Vercel's frozen dependency lock
+        run: npx --yes pnpm@10.34.9 install --lockfile-only --frozen-lockfile --ignore-scripts
 
       - name: Install dependencies
         run: npm ci
@@ -41,5 +45,24 @@ jobs:
       # route queries Prisma at build time.
       - name: Build
         run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+
+  deployment-build:
+    # npm's hoisting can hide undeclared imports that fail in Vercel's pnpm
+    # layout. Exercise the real frozen install and build, not just its lock.
+    name: Build web app (pnpm / Vercel)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install Vercel dependencies from the frozen lock
+        run: npx --yes pnpm@10.34.9 install --frozen-lockfile
+      - name: Type-check the deployment dependency layout
+        run: npx --yes pnpm@10.34.9 exec tsc --noEmit
+      - name: Build the deployment dependency layout
+        run: npx --yes pnpm@10.34.9 run build
         env:
           NEXT_TELEMETRY_DISABLED: "1"

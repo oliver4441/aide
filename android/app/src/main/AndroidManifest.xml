@@ -6,7 +6,10 @@
     <!-- Required from Android 13 (API 33) to show notifications. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- Lets ReleaseReceiver run the new-release check once on boot. -->
+    <!-- Only requests Android’s user-controlled installer; never silent installation. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
+    <!-- Restore local reminders after a reboot. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
@@ -42,11 +45,22 @@
 
         </activity>
 
-        <!-- New-release notification banner -->
+        <!-- Only verified APKs in this narrow private cache directory are shared. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.updates"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/update_paths" />
+        </provider>
+
+        <!-- Local reminder rescheduling, never background installation. -->
         <receiver
             android:name="com.omix.aide.ui.releases.ReleaseReceiver"
             android:enabled="true"
-            android:exported="true">
+            android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
