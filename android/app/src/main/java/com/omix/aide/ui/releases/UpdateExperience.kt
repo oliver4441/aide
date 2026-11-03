@@ -32,6 +32,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.omix.aide.updates.UpdateManager
+import com.omix.aide.updates.UpdateRetry
 import com.omix.aide.updates.UpdateStage
 import com.omix.aide.updates.UpdateUiState
 import java.util.Locale
@@ -164,7 +165,7 @@ fun UpdateDialog(
                 UpdateStage.READY -> TextButton(onClick = onInstall) { Text("Install update") }
                 UpdateStage.PERMISSION -> TextButton(onClick = onOpenPermission) { Text("Open settings") }
                 UpdateStage.INSTALLING -> TextButton(onClick = onCheckInstallation) { Text("Check installation") }
-                UpdateStage.FAILED -> if (state.asset != null) {
+                UpdateStage.FAILED -> if (state.asset != null && state.retry == UpdateRetry.DOWNLOAD) {
                     TextButton(onClick = onDownload) { Text("Retry download") }
                 } else {
                     TextButton(onClick = onRetryCheck) { Text("Retry check") }

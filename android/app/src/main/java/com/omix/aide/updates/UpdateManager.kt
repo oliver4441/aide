@@ -23,22 +23,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-enum class UpdateStage { IDLE, CHECKING, AVAILABLE, WAITING, DOWNLOADING, VERIFYING, READY, PERMISSION, INSTALLING, FAILED, CURRENT }
-
-data class UpdateUiState(
-    val installed: InstalledVersion = InstalledVersion(BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE.toLong()),
-    val manifest: ReleaseManifest? = null,
-    val asset: ApkAsset? = null,
-    val stage: UpdateStage = UpdateStage.IDLE,
-    val visible: Boolean = false,
-    val bytes: Long = 0,
-    val message: String? = null
-) {
-    val mandatory: Boolean get() = manifest?.isMandatory(installed.code) == true
-    val hasUpdate: Boolean get() = manifest?.let { isNewerVersion(it.versionCode, installed.code) } == true
-    val busy: Boolean get() = stage in setOf(UpdateStage.WAITING, UpdateStage.DOWNLOADING, UpdateStage.VERIFYING)
-}
-
 /** Application-scoped: rotation never restarts a check or loses download progress. */
 class UpdateManager private constructor(private val context: Context) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -59,6 +43,7 @@ class UpdateManager private constructor(private val context: Context) {
         }
         if (savedDownload != null && savedDownload.versionCode > mutable.value.installed.code && storage.workId != null) {
             applyManifest(savedDownload, false)
+            mutable.value = mutable.value.copy(stage = UpdateStage.WAITING)
             observe(storage.workId!!)
         }
     }
@@ -66,22 +51,17 @@ class UpdateManager private constructor(private val context: Context) {
     /** Called on EVERY resume, including returning from Android's permission and installer screens. */
     fun onResume() {
         val installed = ApkInstaller.installed(context)
-        mutable.value = mutable.value.copy(installed = installed)
         val pending = storage.pendingInstallVersion
+        val completedTarget = mutable.value.manifest?.versionCode?.let { it <= installed.code } == true
+        mutable.value = mutable.value.afterInstallationReturn(installed, pending)
+        if (pending > 0) storage.pendingInstallVersion = 0
         if (pending > 0 && installed.code >= pending) {
-            storage.pendingInstallVersion = 0
-            storage.workId = null
-            storage.downloadManifest = null
-            observation?.cancel()
-            mutable.value = UpdateUiState(installed = installed, stage = UpdateStage.CURRENT, visible = true, message = "Aide ${installed.name} is installed. Your local data is unchanged.")
-            scope.launch(Dispatchers.IO) { File(context.cacheDir, "updates").deleteRecursively() }
-        } else if (mutable.value.manifest?.versionCode?.let { it <= installed.code } == true) {
-            observation?.cancel()
+            clearCompletedDownload()
+        } else if (completedTarget) {
+            clearCompletedDownload()
             mutable.value = UpdateUiState(installed = installed)
         } else if (mutable.value.stage == UpdateStage.PERMISSION && ApkInstaller.canInstall(context)) {
             mutable.value = mutable.value.copy(stage = UpdateStage.READY, message = null)
-        } else if (pending > 0 && mutable.value.stage != UpdateStage.INSTALLING) {
-            mutable.value = mutable.value.copy(stage = UpdateStage.READY, visible = true, message = "Installation was not completed. You can try again; Android will ask you to confirm.")
         }
         check()
     }
@@ -100,14 +80,18 @@ class UpdateManager private constructor(private val context: Context) {
             return
         }
         checkJob = scope.launch {
-            if (manual) mutable.value = mutable.value.copy(stage = UpdateStage.CHECKING, visible = true, message = null)
+            if (manual) {
+                // Checking again must not discard a verified APK or a pending permission screen.
+                val preserve = mutable.value.stage in setOf(UpdateStage.READY, UpdateStage.PERMISSION)
+                mutable.value = mutable.value.copy(stage = if (preserve) mutable.value.stage else UpdateStage.CHECKING, visible = true, message = null)
+            }
             when (val result = withContext(Dispatchers.IO) { repository.check(manual) }) {
                 is CheckResult.Release -> applyManifest(result.manifest, manual)
                 is CheckResult.NoRelease -> if (manual) mutable.value = mutable.value.copy(stage = UpdateStage.CURRENT, visible = true, message = "You're up to date. No newer compatible release is available.")
                 is CheckResult.Failed -> {
                     result.cached?.let { applyManifest(it, manual) }
                     if (manual) mutable.value = mutable.value.copy(
-                        stage = UpdateStage.FAILED, visible = true,
+                        stage = UpdateStage.FAILED, visible = true, retry = UpdateRetry.CHECK,
                         message = if (result.invalid) "The release metadata could not be verified. No APK was installed. Please try again later."
                         else "Couldn't check GitHub for updates. Check your connection and try again."
                     )
@@ -117,22 +101,15 @@ class UpdateManager private constructor(private val context: Context) {
     }
 
     private fun applyManifest(manifest: ReleaseManifest, manual: Boolean) {
-        val current = mutable.value
-        if (!isNewerVersion(manifest.versionCode, current.installed.code)) {
-            if (manual) mutable.value = current.copy(manifest = null, asset = null, stage = UpdateStage.CURRENT, visible = true, message = "You're up to date.")
-            return
-        }
-        val asset = manifest.selectAsset(Build.SUPPORTED_ABIS.toList())
         val deferred = storage.deferredVersion == manifest.versionCode && System.currentTimeMillis() < storage.deferredUntil
-        val visible = current.visible || manual || manifest.isMandatory(current.installed.code) || !deferred
-        if (asset == null || Build.VERSION.SDK_INT < manifest.minSdk) {
-            mutable.value = current.copy(manifest = manifest, asset = null, stage = UpdateStage.FAILED, visible = visible,
-                message = "This release is not compatible with this device's Android version or processor. Your existing app and data are unchanged.")
-            return
-        }
-        // Do not turn a downloaded/permission-pending APK back into an offer.
-        val preserve = current.manifest == manifest && (current.stage in setOf(UpdateStage.READY, UpdateStage.PERMISSION, UpdateStage.INSTALLING) || (!manual && current.stage == UpdateStage.FAILED))
-        mutable.value = current.copy(manifest = manifest, asset = asset, stage = if (preserve) current.stage else UpdateStage.AVAILABLE, visible = visible, message = if (preserve) current.message else null)
+        mutable.value = mutable.value.withRelease(manifest, Build.SUPPORTED_ABIS.toList(), Build.VERSION.SDK_INT, manual, deferred)
+    }
+
+    private fun clearCompletedDownload() {
+        storage.workId = null
+        storage.downloadManifest = null
+        observation?.cancel()
+        scope.launch(Dispatchers.IO) { File(context.cacheDir, "updates").deleteRecursively() }
     }
 
     fun show() { mutable.value = mutable.value.copy(visible = true) }
@@ -158,7 +135,7 @@ class UpdateManager private constructor(private val context: Context) {
             check(manual = true)
             return
         }
-        mutable.value = current.copy(stage = UpdateStage.WAITING, bytes = 0, message = null, visible = true)
+        mutable.value = current.copy(stage = UpdateStage.WAITING, bytes = 0, message = null, visible = true, retry = UpdateRetry.DOWNLOAD)
         scope.launch {
             try {
                 // A process can restart between enqueueing and observing work.
@@ -167,9 +144,18 @@ class UpdateManager private constructor(private val context: Context) {
                     workManager.getWorkInfosForUniqueWork("aide-apk-download").get().firstOrNull { !it.state.isFinished }
                 }
                 if (active != null) {
-                    storage.downloadManifest?.let { saved ->
-                        runCatching { ReleaseManifest.parse(saved, BuildConfig.UPDATE_CERT_SHA256) }.getOrNull()?.let { applyManifest(it, false) }
+                    val saved = storage.downloadManifest?.let {
+                        runCatching { ReleaseManifest.parse(it, BuildConfig.UPDATE_CERT_SHA256) }.getOrNull()
                     }
+                    if (saved == null) {
+                        // An orphaned job cannot be associated with an arbitrary
+                        // cached release. Stop it before allowing a clean retry.
+                        withContext(Dispatchers.IO) { workManager.cancelUniqueWork("aide-apk-download").result.get() }
+                        throw InvalidManifest("The active download metadata was lost")
+                    }
+                    mutable.value = mutable.value.copy(stage = UpdateStage.IDLE)
+                    applyManifest(saved, false)
+                    mutable.value = mutable.value.copy(stage = UpdateStage.WAITING)
                     storage.workId = active.id.toString()
                     observe(active.id.toString())
                 } else {
@@ -198,29 +184,43 @@ class UpdateManager private constructor(private val context: Context) {
     private fun observe(id: String) {
         observation?.cancel()
         observation = scope.launch {
-            val uuid = runCatching { UUID.fromString(id) }.getOrNull() ?: return@launch
-            workManager.getWorkInfoByIdFlow(uuid).collect { info ->
-                if (info == null) return@collect
-                val current = mutable.value
-                if (!current.hasUpdate) return@collect
-                when (info.state) {
-                    WorkInfo.State.ENQUEUED, WorkInfo.State.BLOCKED -> mutable.value = current.copy(stage = UpdateStage.WAITING)
-                    WorkInfo.State.RUNNING -> mutable.value = current.copy(
-                        stage = if (info.progress.getBoolean("verifying", false)) UpdateStage.VERIFYING else UpdateStage.DOWNLOADING,
-                        bytes = info.progress.getLong("bytes", 0)
-                    )
-                    WorkInfo.State.SUCCEEDED -> if (current.stage !in setOf(UpdateStage.PERMISSION, UpdateStage.INSTALLING)) {
-                        mutable.value = current.copy(stage = UpdateStage.READY, bytes = current.asset?.sizeBytes ?: 0, message = null)
+            try {
+                val uuid = UUID.fromString(id)
+                // Capture the target, not mutable metadata from a subsequent check.
+                val target = mutable.value.manifest ?: return@launch
+                workManager.getWorkInfoByIdFlow(uuid).collect { info ->
+                    val current = mutable.value
+                    if (!current.hasUpdate || current.manifest != target) return@collect
+                    if (info == null) {
+                        mutable.value = current.copy(stage = UpdateStage.FAILED, retry = UpdateRetry.DOWNLOAD,
+                            message = "The previous download was interrupted or removed by Android. Retry to download a fresh, complete copy.")
+                        return@collect
                     }
-                    WorkInfo.State.FAILED, WorkInfo.State.CANCELLED -> mutable.value = current.copy(stage = UpdateStage.FAILED,
-                        message = when (info.outputData.getString("error")) {
-                            "checksum" -> "The download failed its SHA-256 checksum check. The file was not installed. Retry to download a fresh copy."
-                            "signature" -> "Android could not verify this APK's package, version or signing certificate. Your installed app and data are unchanged. Try downloading again."
-                            "metadata" -> "The update metadata is invalid. Check for updates again before downloading."
-                            "interrupted" -> "The download was interrupted. Retry to download a fresh, complete copy."
-                            else -> "The download failed or was interrupted. Check your connection and free storage, then retry."
-                        })
+                    when (info.state) {
+                        WorkInfo.State.ENQUEUED, WorkInfo.State.BLOCKED -> mutable.value = current.copy(stage = UpdateStage.WAITING)
+                        WorkInfo.State.RUNNING -> mutable.value = current.copy(
+                            stage = if (info.progress.getBoolean("verifying", false)) UpdateStage.VERIFYING else UpdateStage.DOWNLOADING,
+                            bytes = info.progress.getLong("bytes", 0)
+                        )
+                        WorkInfo.State.SUCCEEDED -> if (!preparingInstall && current.stage !in setOf(UpdateStage.PERMISSION, UpdateStage.INSTALLING)) {
+                            mutable.value = current.copy(stage = UpdateStage.READY, bytes = current.asset?.sizeBytes ?: 0, message = null)
+                        }
+                        WorkInfo.State.FAILED, WorkInfo.State.CANCELLED -> mutable.value = current.copy(stage = UpdateStage.FAILED,
+                            retry = if (info.outputData.getString("error") == "metadata") UpdateRetry.CHECK else UpdateRetry.DOWNLOAD,
+                            message = when (info.outputData.getString("error")) {
+                                "checksum" -> "The download failed its SHA-256 checksum check. The file was not installed. Retry to download a fresh copy."
+                                "signature" -> "Android could not verify this APK's package, version or signing certificate. Your installed app and data are unchanged. Try downloading again."
+                                "metadata" -> "The update metadata is invalid. Check for updates again before downloading."
+                                "interrupted" -> "The download was interrupted. Retry to download a fresh, complete copy."
+                                else -> "The download failed or was interrupted. Check your connection and free storage, then retry."
+                            })
+                    }
                 }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                mutable.value = mutable.value.copy(stage = UpdateStage.FAILED, retry = UpdateRetry.DOWNLOAD,
+                    message = "Android couldn't restore the download. Retry to download a fresh copy.")
             }
         }
     }
@@ -260,14 +260,9 @@ class UpdateManager private constructor(private val context: Context) {
     }
 
     fun installerReturned() {
-        val installed = ApkInstaller.installed(context)
-        if (installed.code >= storage.pendingInstallVersion && storage.pendingInstallVersion > 0) {
-            onResume()
-        } else {
-            storage.pendingInstallVersion = 0
-            mutable.value = mutable.value.copy(installed = installed, stage = UpdateStage.READY, visible = true,
-                message = "Installation was not completed. Android may have cancelled or rejected it. Your existing app and data are unchanged. Tap Install update to try again.")
-        }
+        // The lifecycle path and the activity-result path must be idempotent.
+        // PackageManager is the only source of truth for successful installation.
+        onResume()
     }
 
     companion object {

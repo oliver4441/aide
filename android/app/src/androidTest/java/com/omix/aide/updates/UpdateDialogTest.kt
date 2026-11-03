@@ -1,7 +1,6 @@
 package com.omix.aide.updates
 
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -51,6 +50,11 @@ class UpdateDialogTest {
         compose.onNodeWithText("Checksum verification failed. Nothing was installed.").assertIsDisplayed()
         compose.onNodeWithText("Retry download").performClick()
         assertTrue(retried)
+    }
+    @Test fun failedMetadataCheckRetriesTheCheckNotACachedApkDownload() {
+        show(base.copy(stage = UpdateStage.FAILED, retry = UpdateRetry.CHECK, message = "Couldn't check GitHub for updates."))
+        compose.onNodeWithText("Retry check").assertIsDisplayed()
+        compose.onNodeWithText("Retry download").assertDoesNotExist()
     }
     @Test fun permissionNeedsExplicitSettingsActionAndNeverInstallsItself() {
         var opened = false

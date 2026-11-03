@@ -13,8 +13,6 @@ import java.security.MessageDigest
 
 class IncompatibleApk(message: String) : SecurityException(message)
 
-data class InstalledVersion(val name: String, val code: Long)
-
 @Suppress("DEPRECATION")
 object ApkInstaller {
     fun installed(context: Context): InstalledVersion {
@@ -61,6 +59,7 @@ object ApkInstaller {
             setDataAndType(uri, "application/vnd.android.package-archive")
             clipData = ClipData.newRawUri("Aide update", uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            putExtra(Intent.EXTRA_RETURN_RESULT, true)
             // No device-owner API, shell install, root command or silent-install flag.
         }
     }

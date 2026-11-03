@@ -28,6 +28,7 @@ class ApkHandoffTest {
             assertTrue(intent.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION != 0)
             assertEquals(0, intent.flags and Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
             assertNotNull(intent.clipData)
+            assertTrue(intent.getBooleanExtra(Intent.EXTRA_RETURN_RESULT, false))
             val provider = context.packageManager.resolveContentProvider("${context.packageName}.updates", 0)
             assertNotNull(provider)
             assertFalse(provider!!.exported)

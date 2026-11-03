@@ -212,7 +212,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: signed-upgrade-api-${{ matrix.api }}
-          path: android-runtime.txt
+          path: |
+            android-runtime.txt
+            android-previous-runtime.txt
 
   publish:
     name: Publish verified GitHub distribution
