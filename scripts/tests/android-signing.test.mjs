@@ -47,6 +47,7 @@ for (const [description, options] of [
   ["preview SDK codename", { badging: identity + "minSdkVersion:'Baklava'\n" }],
   ["ambiguous SDK declarations", { badging: identity + "sdkVersion:'24'\nminSdkVersion:'24'\n" }],
   ["rotated signing certificate", { certificate: "b".repeat(64) }],
+  ["an additional untrusted signer", { certificate: pin + "\nSigner #2 certificate SHA-256 digest: " + "b".repeat(64) }],
   ["missing v2 signature", { v2: false }],
   ["signature verification failure", { signerStatus: 1 }],
   ["misaligned APK", { alignStatus: 1 }],

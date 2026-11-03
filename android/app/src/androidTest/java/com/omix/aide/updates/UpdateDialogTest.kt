@@ -5,7 +5,9 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import com.omix.aide.ui.releases.UpdateDialog
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -16,10 +18,18 @@ class UpdateDialogTest {
     private val manifest = ReleaseManifest("1.0.13", 1013, 1, false, 24, "2026-11-03T12:00:00Z", "Safer updates and installation fixes.", "https://github.com/oliver4441/aide/releases/tag/v1.0.13", "a".repeat(64), listOf(asset))
     private val base = UpdateUiState(InstalledVersion("1.0.12", 1012), manifest, asset, UpdateStage.AVAILABLE, visible = true)
 
-    private fun show(state: UpdateUiState, onDownload: () -> Unit = {}, onPermission: () -> Unit = {}, onLater: () -> Unit = {}) {
+    private fun show(
+        state: UpdateUiState,
+        onDownload: () -> Unit = {},
+        onPermission: () -> Unit = {},
+        onLater: () -> Unit = {},
+        onInstall: () -> Unit = {},
+        onCheckInstallation: () -> Unit = {},
+        onCloseApp: () -> Unit = {}
+    ) {
         compose.setContent {
             MaterialTheme {
-                UpdateDialog(state, onLater, onDownload, {}, {}, onPermission, {}, {})
+                UpdateDialog(state, onLater, onDownload, {}, onInstall, onPermission, onCheckInstallation, onCloseApp)
             }
         }
     }
@@ -30,14 +40,26 @@ class UpdateDialogTest {
         compose.onNodeWithText("Aide 1.0.13 • build 1013").assertIsDisplayed()
         compose.onNodeWithText("Released 2026-11-03 • 8.0 MB").assertIsDisplayed()
         compose.onNodeWithText("Later").assertIsDisplayed()
+        compose.onNodeWithText("Release notes").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(manifest.releaseNotes).performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Update now").performClick()
         assertTrue(downloaded)
     }
+    @Test fun laterDefersAnOptionalUpdateWithoutDownloading() {
+        var deferred = false
+        var downloaded = false
+        show(base, onDownload = { downloaded = true }, onLater = { deferred = true })
+        compose.onNodeWithText("Later").performClick()
+        assertTrue(deferred)
+        assertFalse(downloaded)
+    }
     @Test fun mandatoryOfferCannotBeDeferredButCanCloseApp() {
-        show(base.copy(manifest = manifest.copy(minimumSupportedVersionCode = 1013)))
+        var closed = false
+        show(base.copy(manifest = manifest.copy(minimumSupportedVersionCode = 1013)), onCloseApp = { closed = true })
         compose.onNodeWithText("Update required").assertIsDisplayed()
         compose.onNodeWithText("Later").assertDoesNotExist()
-        compose.onNodeWithText("Close app").assertIsDisplayed()
+        compose.onNodeWithText("Close app").performClick()
+        assertTrue(closed)
     }
     @Test fun progressIsVisibleAndCanContinueInBackground() {
         show(base.copy(stage = UpdateStage.DOWNLOADING, bytes = 4_194_304))
@@ -71,9 +93,21 @@ class UpdateDialogTest {
         compose.onNodeWithText("Install update").assertDoesNotExist()
     }
     @Test fun verifiedDownloadRequiresExplicitInstallationHandoff() {
-        show(base.copy(stage = UpdateStage.READY))
+        var handedToAndroid = false
+        show(base.copy(stage = UpdateStage.READY), onInstall = { handedToAndroid = true })
         compose.onNodeWithText("Ready to install").assertIsDisplayed()
-        compose.onNodeWithText("Install update").assertIsDisplayed()
+        assertFalse(handedToAndroid)
+        compose.onNodeWithText("Install update").performClick()
+        assertTrue(handedToAndroid)
+    }
+    @Test fun installationHandoffExplainsAndroidConfirmationAndOffersARefresh() {
+        var checked = false
+        show(base.copy(stage = UpdateStage.INSTALLING), onCheckInstallation = { checked = true })
+        compose.onNodeWithText("Continue in Android").assertIsDisplayed()
+        compose.onNodeWithText("No silent installation is attempted.", substring = true).assertExists()
+        compose.onNodeWithText("Install update").assertDoesNotExist()
+        compose.onNodeWithText("Check installation").performClick()
+        assertTrue(checked)
     }
     @Test fun noUpdateAndNetworkFailuresHaveNativeStates() {
         show(UpdateUiState(stage = UpdateStage.CURRENT, visible = true, message = "You're up to date."))

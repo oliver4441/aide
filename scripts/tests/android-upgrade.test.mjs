@@ -25,6 +25,9 @@ if (args[0] === 'install') {
   if (args[1] === 'am' && args[2] === 'start') {
     if (state.phase === 'old' || scenario === 'new-crash') state.crash = true;
     output = 'Status: ok\\n';
+    if ((scenario === 'old-start-timeout' && state.phase === 'old') || (scenario === 'new-start-timeout' && state.phase === 'new')) status = 124;
+  } else if (args[1] === 'uiautomator' && scenario === 'ui-idle-timeout') {
+    status = 124;
   } else if (args[1] === 'dumpsys') {
     const uid = scenario === 'lost-uid' && state.phase === 'new' ? '10002' : '10001';
     const code = state.phase === 'old' ? '1012' : scenario === 'wrong-code' ? '1012' : '1013';
@@ -67,6 +70,11 @@ test("upgrade gate allows repairing the known v12 crash without attributing its 
   assert.equal(commands.filter(c => c[0] === "shell" && c[1] === "pidof").length, 2);
   assert.ok(!commands.some(c => c[0] === "uninstall" || (c[0] === "install" && c.includes("-d"))));
 });
+test("a hung old crash dialog cannot block repair or be attributed to the replacement APK", () => {
+  const result = run("old-start-timeout");
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  assert.match(result.stdout, /Previous production APK could not launch/);
+});
 test("upgrade UID comparison supports Android 15 appId as well as legacy userId", () => {
   const result = run("app-id");
   assert.equal(result.status, 0, result.stdout + result.stderr);
@@ -81,7 +89,9 @@ for (const [scenario, message] of [
   ["lost-data", "Upgrade lost the app-private data marker"],
   ["lost-uid", "Upgrade did not retain the package UID"],
   ["wrong-code", "Unexpected installed code"],
-  ["dead-process", ""]
+  ["dead-process", ""],
+  ["new-start-timeout", "Android compatibility test failed"],
+  ["ui-idle-timeout", "Android compatibility test failed"]
 ]) {
   test(`upgrade gate fails closed for ${scenario}`, () => {
     const result = run(scenario);

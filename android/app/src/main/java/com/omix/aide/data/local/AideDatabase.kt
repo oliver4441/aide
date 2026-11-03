@@ -141,19 +141,17 @@ abstract class AideDatabase : RoomDatabase() {
             }
         }
 
-        fun getDatabase(context: Context): AideDatabase {
-            return INSTANCE ?: synchronized(this) {
-                val instance = Room.databaseBuilder(
-                    context.applicationContext,
-                    AideDatabase::class.java,
-                    "aide_database"
-                )
-                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
-                    .fallbackToDestructiveMigration()
-                    .build()
-                INSTANCE = instance
-                instance
+        fun getDatabase(context: Context): AideDatabase =
+            INSTANCE ?: synchronized(this) {
+                INSTANCE ?: buildDatabase(context, "aide_database").also { INSTANCE = it }
             }
-        }
+
+        /** Shared by production and isolated on-device migration tests. */
+        internal fun buildDatabase(context: Context, name: String): AideDatabase =
+            Room.databaseBuilder(context.applicationContext, AideDatabase::class.java, name)
+                .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
+                // An unknown schema must reach DatabaseHealth's recovery screen,
+                // never erase local-only products/sales to make a new APK open.
+                .build()
     }
 }

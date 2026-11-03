@@ -56,6 +56,18 @@ internal fun UpdateUiState.withRelease(
     )
 }
 
+/** An empty GitHub response cannot invalidate a separately persisted download target. */
+internal fun UpdateUiState.withNoRelease(manual: Boolean, supportedAbis: List<String>, sdk: Int): UpdateUiState {
+    if (!manual) return this
+    val known = manifest
+    return if (known != null && hasUpdate) {
+        withRelease(known, supportedAbis, sdk, manual = true, deferred = false)
+    } else {
+        UpdateUiState(installed = installed, stage = UpdateStage.CURRENT, visible = true,
+            message = "You're up to date. No newer compatible release is available.")
+    }
+}
+
 /** Never infer success from RESULT_OK, a preference, or merely opening the installer. */
 internal fun UpdateUiState.afterInstallationReturn(actual: InstalledVersion, pendingVersion: Long): UpdateUiState {
     if (pendingVersion > 0 && actual.code >= pendingVersion) {

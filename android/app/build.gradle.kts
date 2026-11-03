@@ -53,7 +53,7 @@ android {
         create("release") {
             // Request both schemes. v2 is required for this app's minSdk 24+;
             // v1 is only an optional fallback and may be omitted by the signer.
-            // CI verifies v2 and smoke-tests installability on an API 29 emulator.
+            // CI verifies v2 and smoke-tests signed upgrades on API 24 and 35.
             enableV1Signing = true
             enableV2Signing = true
             enableV3Signing = true

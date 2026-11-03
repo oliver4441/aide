@@ -189,7 +189,8 @@ post.
   first launch. Uninstalling deletes everything; Settings says so and offers the
   JSON export.
 - **Database health** — if the database cannot be opened, the app shows the
-  recovery screen instead of crashing in a loop (`DatabaseHealth`).
+  recovery screen instead of crashing in a loop (`DatabaseHealth`). An unknown
+  migration or downgrade never automatically wipes local business records.
 - **Updates** — `UpdateManager` checks stable Android **GitHub Releases** in the
   background on launch/resume, throttled to once every six hours (manual Settings
   checks bypass this). A native Material 3 dialog shows version/date/size and

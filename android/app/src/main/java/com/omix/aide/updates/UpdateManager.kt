@@ -87,7 +87,7 @@ class UpdateManager private constructor(private val context: Context) {
             }
             when (val result = withContext(Dispatchers.IO) { repository.check(manual) }) {
                 is CheckResult.Release -> applyManifest(result.manifest, manual)
-                is CheckResult.NoRelease -> if (manual) mutable.value = mutable.value.copy(stage = UpdateStage.CURRENT, visible = true, message = "You're up to date. No newer compatible release is available.")
+                is CheckResult.NoRelease -> mutable.value = mutable.value.withNoRelease(manual, Build.SUPPORTED_ABIS.toList(), Build.VERSION.SDK_INT)
                 is CheckResult.Failed -> {
                     result.cached?.let { applyManifest(it, manual) }
                     if (manual) mutable.value = mutable.value.copy(

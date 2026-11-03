@@ -7,7 +7,7 @@ TOOLS="${ANDROID_HOME:?}/build-tools/$(find "$ANDROID_HOME/build-tools" -mindept
 DUMP=$("$TOOLS/apksigner" verify --min-sdk-version 24 --verbose --print-certs "$APK")
 printf '%s\n' "$DUMP"
 grep -q 'Verified using v2 scheme (APK Signature Scheme v2): true' <<< "$DUMP"
-ACTUAL_CERT=$(sed -n '/certificate SHA-256 digest:/{s/.*certificate SHA-256 digest:[[:space:]]*//p;q;}' <<< "$DUMP" | tr -d '\r:' | tr '[:upper:]' '[:lower:]')
+ACTUAL_CERT=$(sed -n 's/.*certificate SHA-256 digest:[[:space:]]*//p' <<< "$DUMP" | tr -d '\r:' | tr '[:upper:]' '[:lower:]' | sort -u)
 [ "$ACTUAL_CERT" = "$EXPECTED_CERT" ] || { echo '::error::Signing certificate changed. Android would reject an in-place update.'; exit 1; }
 # Catch unaligned native libraries, including Android 15's 16 KB page-size requirement.
 "$TOOLS/zipalign" -c -P 16 4 "$APK"

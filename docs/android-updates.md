@@ -36,6 +36,15 @@ checks start from `onResume`, not the constructor. Native device tests exercise
 cold start, recreation and resume. Production upgrade checks keep the old v12
 crash log separate and require two successful cold launches of the replacement.
 
+The local fallback for this repair is **1.0.14 (1014)**, following the already
+published v1.0.13. Automatic release selection always re-reads GitHub before
+choosing a version and never overwrites those published APKs.
+
+Unknown database migrations or downgrades now fail into the existing recovery
+screen without destructive fallback. Device tests reconstruct schema versions 2
+and 3 and assert that products, sales and sale items survive migration to 4;
+unknown schemas must retain their original records even when opening fails.
+
 A crashing v12 installation cannot run the new updater. The first repair must
 be a **manual installation of the new production-signed APK over v12**. Keep
 `com.omix.aide` and the existing signing key. **Do not uninstall or clear app
@@ -148,8 +157,8 @@ signer and checksum are independently checked before installation.
   publisher. Build numbers are **independent monotonically increasing integers**.
   Do not remove dots to generate one: `1.0.99 → 1.1.0` otherwise becomes a downgrade.
   Auto-release uses the highest recorded production code + 1 and an explicit
-  `v<major>.<minor>.<patch>+<code>` tag. For example, v1.0.12 (1012) is followed by
-  **v1.0.13+1013**, not by an invented semantic-version encoding.
+  `v<major>.<minor>.<patch>+<code>` tag. For example, v1.0.13 (1013) is followed by
+  **v1.0.14+1014**, not by an invented semantic-version encoding.
 - Unknown build numbers in the newest prior release fail progression validation;
   fix the release record rather than guessing. Published versions/codes cannot
   be reused or overwritten.
@@ -157,8 +166,11 @@ signer and checksum are independently checked before installation.
   Manual tag pushes publish too. Public publication is restricted to master
   history and serialized. Release tests, certificate verification and real
   **previous signed production APK → new signed APK** upgrades must pass first.
-  Upgrade tests do not uninstall or permit downgrades; they verify the retained
-  package UID and a private-data marker, and check startup for crashes.
+  The v1.0.12 (1012) APK is also tested explicitly on both API levels to cover the
+  reported crash and its repair. Upgrade tests do not uninstall or permit
+  downgrades; they verify the retained package UID and a private-data marker, and
+  check startup for crashes. Old crashing launches are bounded so a legacy system
+  crash dialog cannot leave the repair test hanging indefinitely.
 - Maintain `android/release-notes.md` with user-facing changes before each
   release. It is combined with GitHub-generated source notes for the native
   dialog and `CHANGELOG.md`. Generation rejects a version/filename mismatch,
@@ -178,7 +190,7 @@ A maintainer with Actions dispatch permissions can also run:
 
 ```sh
 gh workflow run android-release.yml --ref <review-branch> \
-  -f version=v1.0.13+1013 -f publish=false
+  -f version=v1.0.14+1014 -f publish=false
 ```
 
 The default for manual dispatch is intentionally **false**. Auto-release passes

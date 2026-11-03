@@ -98,6 +98,29 @@ class UpdateStateTest {
         val state = UpdateUiState(installed = installed)
         assertEquals(state, state.afterInstallationReturn(installed, 0))
     }
+    @Test fun emptyReleaseResponseCannotReplaceAKnownMandatoryTargetWithAnUndismissableDoneDialog() {
+        val known = offer(release.copy(mandatory = true)).copy(stage = UpdateStage.CHECKING)
+        val result = known.withNoRelease(true, listOf("arm64-v8a"), 35)
+        assertEquals(UpdateStage.AVAILABLE, result.stage)
+        assertTrue(result.mandatory)
+        assertTrue(result.visible)
+        assertEquals(known.manifest, result.manifest)
+    }
+    @Test fun emptyReleaseResponseKeepsAVerifiedDownloadAndPermissionState() {
+        for (stage in listOf(UpdateStage.READY, UpdateStage.PERMISSION)) {
+            val current = offer().copy(stage = stage)
+            assertEquals(current, current.withNoRelease(true, listOf("arm64-v8a"), 35))
+        }
+    }
+    @Test fun emptyReleaseWithoutAKnownTargetShowsCurrentOnlyForAManualCheck() {
+        val current = UpdateUiState(installed = installed)
+        assertEquals(current, current.withNoRelease(false, listOf("arm64-v8a"), 35))
+        val manual = current.copy(stage = UpdateStage.CHECKING).withNoRelease(true, listOf("arm64-v8a"), 35)
+        assertEquals(UpdateStage.CURRENT, manual.stage)
+        assertFalse(manual.mandatory)
+        assertFalse(manual.hasUpdate)
+        assertTrue(manual.visible)
+    }
     @Test fun returningFromPermissionDoesNotInitiateInstallation() {
         val state = offer().copy(stage = UpdateStage.PERMISSION)
         assertEquals(UpdateStage.PERMISSION, state.afterInstallationReturn(installed, 0).stage)
