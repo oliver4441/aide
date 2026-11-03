@@ -70,6 +70,13 @@ class UpdateRepositoryTest {
         val result = UpdateRepository(ManifestSource { null }, storage, testCertificate).check() as CheckResult.Release
         assertTrue(result.manifest.isMandatory(1012))
     }
+    @Test fun cachedHigherCodePreventsMetadataRollback() = runTest {
+        val current = manifestJson().put("versionCode", 1014)
+        val storage = MemoryStorage().apply { cachedManifest = current.toString() }
+        val result = UpdateRepository(ManifestSource { manifestJson().toString() }, storage, testCertificate).check() as CheckResult.Release
+        assertEquals(1014L, result.manifest.versionCode)
+        assertTrue(result.fromCache)
+    }
     @Test fun cancellationIsPropagatedNotMisreportedAsNoUpdate() = runTest {
         val repository = UpdateRepository(ManifestSource { throw CancellationException() }, MemoryStorage(), testCertificate)
         try { repository.check(); fail("Expected cancellation") } catch (_: CancellationException) { }

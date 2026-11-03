@@ -7,7 +7,7 @@ import sys
 path = pathlib.Path(sys.argv[1])
 if path.is_file():
     lines = path.read_text(errors="replace").splitlines()
-    notable = [line for line in lines if re.search(r"^e: |FAILED|^\* What went wrong|^> |^Script compilation|^  Line |error:|Error:|expected:|^Caused by:", line)]
+    notable = [line for line in lines if re.search(r"^e: |FAILED|^\* What went wrong|^> (?!Task |Run with|Get more help)|^Script compilation|^  Line |error:|Error:|expected:|^Caused by:", line)]
     selected = notable[-35:] if notable else lines[-45:]
     for offset in range(0, len(selected), 10):
         message = "\n".join(selected[offset:offset + 10])[-8000:]

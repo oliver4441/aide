@@ -56,6 +56,10 @@ class ReleaseManifestTest {
         assertEquals(1013L, ReleaseManifest.parse(json.toString(), testCertificate, "v1.0.13+1013").versionCode)
         invalid(json.put("releaseUrl", "https://github.com/$RELEASE_REPOSITORY/releases/tag/v1.0.13+1014"))
     }
+    @Test fun acceptsGithubPercentEncodedPlusButNotEncodedPathTraversal() {
+        assertTrue(isReleaseAssetUrl("https://github.com/$RELEASE_REPOSITORY/releases/download/v1.0.13%2B1013/aide.apk", "v1.0.13+1013"))
+        assertFalse(isReleaseAssetUrl("https://github.com/$RELEASE_REPOSITORY/releases/download/v1.0.13/%2e%2e.apk", "v1.0.13"))
+    }
     @Test fun rejectsMalformedOrMissingMetadata() {
         listOf("", "null", "[]", "{broken", "{\"schemaVersion\":1}").forEach { raw ->
             assertThrows(InvalidManifest::class.java) { ReleaseManifest.parse(raw, testCertificate) }
@@ -82,6 +86,7 @@ class ReleaseManifestTest {
         assertThrows(InvalidManifest::class.java) { ReleaseManifest.parse(manifestJson().toString(), testCertificate, "v1.0.14") }
         invalid(manifestJson().put("versionName", "1.0.13-beta"))
         invalid(manifestJson().put("publishedAt", "yesterday"))
+        invalid(manifestJson().put("publishedAt", "2026-13-40T25:61:00Z"))
     }
     @Test fun rejectsInvalidAssetsAndDuplicateAbis() {
         invalid(manifestJson().put("assets", JSONArray()))

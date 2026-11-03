@@ -158,17 +158,41 @@ class UpdateManager private constructor(private val context: Context) {
             check(manual = true)
             return
         }
-        storage.downloadManifest = raw
-        val request = OneTimeWorkRequestBuilder<ApkDownloadWorker>()
-            .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
-            .setInputData(workDataOf("version" to manifest.versionCode, "sha256" to asset.sha256))
-            .addTag("aide-update")
-            .build()
-        storage.workId = request.id.toString()
         mutable.value = current.copy(stage = UpdateStage.WAITING, bytes = 0, message = null, visible = true)
-        // Only one job at a time. Completed/failed work may be retried explicitly.
-        workManager.enqueueUniqueWork("aide-apk-download", ExistingWorkPolicy.KEEP, request)
-        observe(request.id.toString())
+        scope.launch {
+            try {
+                // A process can restart between enqueueing and observing work.
+                // Reuse the active ID instead of watching a KEEP-ignored request.
+                val active = withContext(Dispatchers.IO) {
+                    workManager.getWorkInfosForUniqueWork("aide-apk-download").get().firstOrNull { !it.state.isFinished }
+                }
+                if (active != null) {
+                    storage.downloadManifest?.let { saved ->
+                        runCatching { ReleaseManifest.parse(saved, BuildConfig.UPDATE_CERT_SHA256) }.getOrNull()?.let { applyManifest(it, false) }
+                    }
+                    storage.workId = active.id.toString()
+                    observe(active.id.toString())
+                } else {
+                    storage.downloadManifest = raw
+                    val request = OneTimeWorkRequestBuilder<ApkDownloadWorker>()
+                        .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+                        .setInputData(workDataOf("version" to manifest.versionCode, "sha256" to asset.sha256))
+                        .addTag("aide-update")
+                        .build()
+                    // Persist the ID before enqueue: a process death at either
+                    // boundary can be recovered by the active-work lookup above.
+                    storage.workId = request.id.toString()
+                    withContext(Dispatchers.IO) {
+                        workManager.enqueueUniqueWork("aide-apk-download", ExistingWorkPolicy.KEEP, request).result.get()
+                    }
+                    observe(request.id.toString())
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                mutable.value = mutable.value.copy(stage = UpdateStage.FAILED, message = "Android couldn't start the download. Please try again.")
+            }
+        }
     }
 
     private fun observe(id: String) {

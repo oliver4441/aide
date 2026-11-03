@@ -9,15 +9,17 @@ changelog; Android release automation also uploads that same Markdown as a
 | Surface | Source |
 | --- | --- |
 | This page | GitHub Releases bodies, in summary |
-| In the app | `GET /api/latest-release`, shown as an update banner |
+| In the Android app | `android-update.json` attached to stable GitHub Releases, shown in a native dialog |
 | On the website (`/downloads`, `/api/releases`) | the full release list |
 | Latest build only | `GET /api/latest-release` |
 
-The Android app deliberately does not carry a copy of the history: it asks for
-the newest release, compares its `versionCode` with its own, and shows a banner
-with the download link when a newer one exists. So **publishing a release
-updates every surface at once**, within the five-minute cache window described
-in [Releases](/docs/api/releases), without shipping a new site build.
+The Android app checks GitHub directly in the background on launch/resume, at
+most once every six hours; a manual Settings check bypasses that throttle. A
+newer signed APK is offered in a native dialog with release notes, download
+size/progress, checksum and signing-certificate verification, and permission
+explanations. Android always controls the installation confirmation. The app
+refreshes its installed version when you return. The website keeps its separate
+five-minute release cache; an Android update does not require a site deploy.
 
 ## Tag format
 
@@ -43,10 +45,9 @@ no versionCode.
 
 ## Reading the history
 
-- In the app: the update banner shown when a newer release exists, and
-  **Settings → About → Check for updates**, which reports the installed version
-  and opens the newest release if there is one. There is no in-app list of past
-  releases.
+- In the app: the native update dialog and **Settings → About → Check for
+  updates** show the installed/new versions and notes, with Update now/Later
+  (or a mandatory Update/Close app state). There is no list of past releases.
 - On the web: [/downloads](/downloads) shows the full list, with notes and file
   sizes.
 - On GitHub: the [releases page](https://github.com/oliver4441/aide/releases)
@@ -66,8 +67,8 @@ scannable — the app renders them in a narrow column:
 - Receipt footer truncated on narrow screens
 ```
 
-Headings become headings and lists become lists; anything beyond that is
-displayed literally.
+The website renders Markdown. The Android dialog displays safe plain text,
+including all release-note content; Markdown syntax may appear literally.
 
 ## Release checklist
 
@@ -76,14 +77,15 @@ Successful Android CI builds pushed to `master` are published automatically:
 1. Merge the change to `master` and wait for **Android CI** to pass. Pull-request
    and feature-branch builds never publish a public release.
 2. **Android Auto Release** increments the patch version, dispatches the signed
-   release build for that exact commit, and marks the new GitHub release as
-   latest. The workflow verifies the APK signature and identity, uploads the
-   APK and SHA-256 file, and attaches the release notes as `CHANGELOG.md`.
+   release build for that exact commit with the next independent build code.
+   The workflow checks the pinned existing signer and real in-place upgrades on
+   Android API 24/35 before publishing a verified draft with the APK, SHA-256
+   file, `android-update.json`, and `CHANGELOG.md`.
 3. The checksum job updates `public/apk-checksums.json`; the website and app read
-   the published GitHub release automatically (within the cache window).
+   the published GitHub release on their own schedules.
 
 For an explicitly versioned release, a maintainer can still push a `v*` tag or
-run `android-release.yml` manually. `scripts/publish-release.sh <tag>` provides
+run `android-release.yml` manually with `publish=true` (the default only validates). `scripts/publish-release.sh <tag>` provides
 extra local guards for that path (clean tree, unused tag, signing secrets,
 waiting for CI, and verifying the published assets).
 
