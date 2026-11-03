@@ -1,8 +1,5 @@
 package com.omix.aide.ui.releases
 
-import android.content.Intent
-import android.net.Uri
-import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -32,6 +29,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.omix.aide.updates.UpdateManager
+import com.omix.aide.updates.ApkInstaller
 import com.omix.aide.updates.UpdateRetry
 import com.omix.aide.updates.UpdateStage
 import com.omix.aide.updates.UpdateUiState
@@ -60,7 +58,7 @@ fun UpdateHost(manager: UpdateManager, onCloseApp: () -> Unit) {
             },
             onOpenPermission = {
                 try {
-                    permission.launch(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${context.packageName}")))
+                    permission.launch(ApkInstaller.permissionIntent(context))
                 } catch (_: Exception) { manager.permissionUnavailable() }
             },
             onCheckInstallation = manager::installerReturned,
@@ -145,7 +143,8 @@ fun UpdateDialog(
                         Text("Checking the SHA-256 checksum, app identity, version and signing certificate before opening Android's installer.")
                     }
                     UpdateStage.PERMISSION -> Text(
-                        "Android requires permission for Aide to request installation of an APK from GitHub. In the next screen, allow ‘Install unknown apps’ for Aide, then return here and tap Install update. This permission never allows silent installation. You can turn it off afterwards."
+                        if (state.legacyInstallPermission) "This Android version uses the global ‘Unknown sources’ setting. In the next screen, enable it under Security, then return here and tap Install update. Android will still ask you to confirm installation. You can turn Unknown sources off afterwards."
+                        else "Android requires permission for Aide to request installation of an APK from GitHub. In the next screen, allow ‘Install unknown apps’ for Aide, then return here and tap Install update. This permission never allows silent installation. You can turn it off afterwards."
                     )
                     UpdateStage.READY -> Text("Download verified. Tap Install update to open Android's installer. Android controls the final confirmation; your local business data stays on this device.")
                     UpdateStage.INSTALLING -> Text("Finish or cancel in Android's installer, then return to Aide. We will refresh the installed version when you return. No silent installation is attempted.")

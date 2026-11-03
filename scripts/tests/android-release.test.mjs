@@ -60,6 +60,12 @@ test("manifest contains exact signed asset size, hash, identity and update polic
     assert.throws(() => generateManifest(metadata, apk, "notes", { mandatory: "false", minimumSupportedVersionCode: 1 }, certificate));
     assert.throws(() => generateManifest(metadata, apk, "notes", { mandatory: true, minimumSupportedVersionCode: 1014 }, certificate));
     assert.throws(() => generateManifest(metadata, apk, "notes", { mandatory: false, minimumSupportedVersionCode: 1 }, "b".repeat(64)));
+    assert.throws(() => generateManifest({ ...metadata, filename: "aide-9.0.0.apk" }, apk, "notes", { mandatory: false, minimumSupportedVersionCode: 1 }, certificate));
+    for (const date of ["yesterday", "2026-02-30T12:00:00Z", "2026-13-03T12:00:00Z", "2026-11-03T25:00:00Z"]) {
+      assert.throws(() => generateManifest(metadata, apk, "notes", { mandatory: false, minimumSupportedVersionCode: 1 }, certificate, date));
+    }
+    // JSON escaping can exceed the transport bound even with <=64,000 characters.
+    assert.throws(() => generateManifest(metadata, apk, "\u0000".repeat(64_000), { mandatory: false, minimumSupportedVersionCode: 1 }, certificate));
     writeFileSync(apk, "tampered bytes");
     assert.throws(() => generateManifest(metadata, apk, "notes", { mandatory: false, minimumSupportedVersionCode: 1 }, certificate));
   } finally { rmSync(directory, { recursive: true, force: true }); }

@@ -26,6 +26,22 @@
   retroactively**. The updater never uninstalls it or clears data. Export local
   data before any manual migration; do not uninstall merely to retry a download.
 
+## Repairing the v1.0.12 startup crash
+
+`MainActivity` previously read `applicationContext` in a property initializer,
+before Android attached the Activity. Its constructor also launched an unscoped
+update coroutine. Both paths could access an unattached Context. Settings and
+the application-scoped updater are now initialized lazily after attachment;
+checks start from `onResume`, not the constructor. Native device tests exercise
+cold start, recreation and resume. Production upgrade checks keep the old v12
+crash log separate and require two successful cold launches of the replacement.
+
+A crashing v12 installation cannot run the new updater. The first repair must
+be a **manual installation of the new production-signed APK over v12**. Keep
+`com.omix.aide` and the existing signing key. **Do not uninstall or clear app
+storage** merely to fix the crash: that would delete local business data. The
+new native updater handles subsequent releases once this repair is installed.
+
 ## User experience
 
 1. On launch/resume, refresh the installed version through `PackageManager`.
@@ -63,7 +79,9 @@
 7. On Android 8+, explain **Install unknown apps** and open the system setting
    only on user request. Returning with permission granted exposes **Install
    update**; it never launches installation automatically. Users can revoke that
-   source permission afterwards. API 24/25 use Android's older installer flow.
+   source permission afterwards. API 24/25 explain the global **Unknown sources**
+   switch and open Security settings instead of a nonexistent per-app setting.
+   Permission grants never trigger an automatic installer launch.
 8. Use a narrow, non-exported FileProvider with a temporary read grant to hand
    the verified APK to **Android's installer**. Android ALWAYS retains final
    confirmation. No root, device-owner, shell, silent-install or uninstall code
@@ -141,6 +159,10 @@ signer and checksum are independently checked before installation.
   **previous signed production APK → new signed APK** upgrades must pass first.
   Upgrade tests do not uninstall or permit downgrades; they verify the retained
   package UID and a private-data marker, and check startup for crashes.
+- Maintain `android/release-notes.md` with user-facing changes before each
+  release. It is combined with GitHub-generated source notes for the native
+  dialog and `CHANGELOG.md`. Generation rejects a version/filename mismatch,
+  invalid release date or JSON escaping that exceeds the client's byte limit.
 - Assets are first uploaded to a **draft**. Size/state of the APK, checksum,
   manifest and changelog must all match before the draft is made public.
   Never use `--clobber` to replace a published APK. If an upload fails, inspect
@@ -179,7 +201,9 @@ ABI order/fallback/incompatibility, checksum success/tampering, HTTP/network
 failures, failed/interrupted/truncated/oversized downloads, cancellation and
 process-kill leftovers, safe retries/cache reuse, no-release/current/newer-install
 scenarios, persisted six-hour throttling, concurrent checks, manual checks,
-clock rollback, cached mandatory policy and version-code boundary progression.
+clock rollback, cached mandatory policy, idempotent installer/lifecycle callbacks,
+permission returns, and version-code boundary progression. Shell-gate tests also
+reject lost private data, changed UIDs, wrong installed versions and startup crashes.
 Native UI tests run on API 24 and 35 and cover offer/actions, mandatory state,
 progress, retry, permission explanations and explicit install handoff. Production
 signing and upgrade tests run separately with the real existing signing secrets.

@@ -27,8 +27,10 @@ permissions:
   contents: write
 
 concurrency:
-  group: android-signed-release
-  cancel-in-progress: false
+  # Real publications serialize globally; obsolete branch validations can be
+  # superseded without cancelling a release or blocking another review branch.
+  group: android-signed-${{ (startsWith(github.ref, 'refs/tags/v') || inputs.publish) && 'publication' || github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/v') && !inputs.publish }}
 
 jobs:
   build:
@@ -240,7 +242,13 @@ jobs:
           VERSION: ${{ needs.build.outputs.version }}
         run: |
           set -euo pipefail
-          gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes" -f tag_name="$TAG" -f target_commitish="$SHA" --jq .body > dist/CHANGELOG.md
+          gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes" -f tag_name="$TAG" -f target_commitish="$SHA" --jq .body > "$RUNNER_TEMP/source-notes.md"
+          {
+            cat android/release-notes.md
+            echo
+            echo '## Source changes'
+            cat "$RUNNER_TEMP/source-notes.md"
+          } > dist/CHANGELOG.md
           node scripts/android-release.mjs manifest dist/release-metadata.json "dist/aide-$VERSION.apk" dist/CHANGELOG.md dist/android-update.json
           {
             cat dist/CHANGELOG.md

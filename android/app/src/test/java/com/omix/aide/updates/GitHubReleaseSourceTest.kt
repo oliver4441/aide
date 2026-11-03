@@ -33,6 +33,25 @@ class GitHubReleaseSourceTest {
             assertNull(GitHubReleaseSource({ response(list.toString().toByteArray()) }, testCertificate).latest())
         }
     }
+    @Test fun debugOnlyReleaseIsNeverAProductionUpdate() = runTest {
+        val debug = release().apply { getJSONArray("assets").getJSONObject(0).put("name", "app-debug.apk") }
+        assertNull(GitHubReleaseSource({ response(JSONArray().put(debug).toString().toByteArray()) }, testCertificate).latest())
+    }
+    @Test fun highestBuildWinsEvenWhenAnOlderReleaseWasRepublishedFirst() = runTest {
+        val older = release().put("name", "Aide v1.0.13 (1013)")
+        val newer = release("v1.0.14").put("name", "Aide v1.0.14 (1014)")
+        val manifest = manifestJson().put("versionName", "1.0.14").put("versionCode", 1014)
+            .put("releaseUrl", "https://github.com/$RELEASE_REPOSITORY/releases/tag/v1.0.14")
+        manifest.getJSONArray("assets").getJSONObject(0).put("url", "https://github.com/$RELEASE_REPOSITORY/releases/download/v1.0.14/aide.apk")
+        val requested = mutableListOf<String>()
+        val source = GitHubReleaseSource({ url ->
+            requested += url
+            response((if (url.contains("api.github.com")) JSONArray().put(older).put(newer).toString() else manifest.toString()).toByteArray())
+        }, testCertificate)
+        assertEquals(1014L, ReleaseManifest.parse(source.latest()!!, testCertificate).versionCode)
+        assertTrue(requested.last().contains("v1.0.14/"))
+        assertEquals(2, requested.size)
+    }
     @Test fun githubHttpErrorDoesNotMasqueradeAsUpToDate() = runTest {
         try {
             GitHubReleaseSource({ response(status = 429) }, testCertificate).latest()

@@ -238,7 +238,7 @@ class UpdateManager private constructor(private val context: Context) {
                 val apk = File(context.cacheDir, "updates/${asset.fileName}")
                 withContext(Dispatchers.IO) { ApkInstaller.verify(context, manifest, asset, apk) }
                 if (!ApkInstaller.canInstall(context)) {
-                    mutable.value = mutable.value.copy(stage = UpdateStage.PERMISSION, message = null)
+                    mutable.value = mutable.value.copy(stage = UpdateStage.PERMISSION, message = null, legacyInstallPermission = Build.VERSION.SDK_INT < 26)
                 } else {
                     val intent = ApkInstaller.intent(context, apk)
                     storage.pendingInstallVersion = manifest.versionCode
@@ -256,7 +256,9 @@ class UpdateManager private constructor(private val context: Context) {
     }
 
     fun permissionUnavailable() {
-        mutable.value = mutable.value.copy(stage = UpdateStage.PERMISSION, message = "Android couldn't open this setting. Open Settings → Apps → Aide → Install unknown apps, allow this source, then return here.")
+        mutable.value = mutable.value.copy(stage = UpdateStage.PERMISSION, message = if (Build.VERSION.SDK_INT >= 26)
+            "Android couldn't open this setting. Open Settings → Apps → Aide → Install unknown apps, allow this source, then return here."
+            else "Android couldn't open this setting. Open Settings → Security → Unknown sources, then return here. Android will still ask you to confirm installation.")
     }
 
     fun installerReturned() {

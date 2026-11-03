@@ -20,14 +20,14 @@ if [ -n "$PREVIOUS_APK" ]; then
   adb shell am force-stop "$PACKAGE"
   adb logcat -d -s AndroidRuntime:E > android-previous-runtime.txt
   adb shell "printf aide-retain-local-data > '$MARKER'"
-  BEFORE_UID=$(adb shell dumpsys package "$PACKAGE" | sed -n 's/.*userId=\([0-9]*\).*/\1/p' | tr -d '\r')
+  BEFORE_UID=$(adb shell dumpsys package "$PACKAGE" | sed -nE 's/^[[:space:]]*(userId|appId)=([0-9]+).*/\2/p' | tr -d '\r')
 fi
 # No uninstall and no -d downgrade bypass: exercise Android's actual upgrade rules.
 adb install -r "$NEW_APK"
 INSTALLED=$(adb shell dumpsys package "$PACKAGE" | sed -n 's/.*versionCode=\([0-9]*\).*/\1/p' | tr -d '\r')
 [ "$INSTALLED" = "$EXPECTED_CODE" ] || { echo "Unexpected installed code $INSTALLED"; exit 1; }
 if [ -n "$PREVIOUS_APK" ]; then
-  AFTER_UID=$(adb shell dumpsys package "$PACKAGE" | sed -n 's/.*userId=\([0-9]*\).*/\1/p' | tr -d '\r')
+  AFTER_UID=$(adb shell dumpsys package "$PACKAGE" | sed -nE 's/^[[:space:]]*(userId|appId)=([0-9]+).*/\2/p' | tr -d '\r')
   [ -n "$BEFORE_UID" ] && [ "$BEFORE_UID" = "$AFTER_UID" ] || { echo 'Upgrade did not retain the package UID'; exit 1; }
   [ "$(adb shell cat "$MARKER" | tr -d '\r')" = aide-retain-local-data ] || { echo 'Upgrade lost the app-private data marker'; exit 1; }
 fi
@@ -38,7 +38,7 @@ for launch in 1 2; do
   adb shell uiautomator dump /sdcard/aide-upgrade-window.xml
   adb logcat -d -s AndroidRuntime:E > android-runtime.txt
   if grep -E 'FATAL EXCEPTION|Process: com.omix.aide,' android-runtime.txt; then
-    echo 'Production app crashed after installation'; exit 1
+    echo '::error::Production app crashed after installation'; exit 1
   fi
   adb shell pidof "$PACKAGE"
   if [ "$launch" = 1 ]; then adb shell am force-stop "$PACKAGE"; fi

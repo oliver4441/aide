@@ -6,6 +6,7 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.TimeZone
 import org.json.JSONObject
+import org.json.JSONTokener
 
 const val UPDATE_PACKAGE = "com.omix.aide"
 const val RELEASE_REPOSITORY = "oliver4441/aide"
@@ -47,7 +48,9 @@ data class ReleaseManifest(
         fun parse(raw: String, trustedCertificate: String, expectedTag: String? = null): ReleaseManifest {
             try {
                 requireManifest(raw.toByteArray(Charsets.UTF_8).size <= MAX_MANIFEST_BYTES, "Manifest is too large")
-                val json = JSONObject(raw)
+                val tokener = JSONTokener(raw)
+                val json = tokener.nextValue() as? JSONObject ?: throw InvalidManifest("Manifest must be an object")
+                requireManifest(tokener.nextClean() == '\u0000', "Unexpected content after manifest")
                 requireManifest(json.integer("schemaVersion") == 1L, "Unsupported manifest schema")
                 requireManifest(json.text("packageName") == UPDATE_PACKAGE, "Wrong Android package")
                 val name = json.text("versionName")

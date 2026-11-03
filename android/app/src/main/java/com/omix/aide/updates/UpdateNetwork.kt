@@ -88,7 +88,10 @@ class GitHubReleaseSource(
             .filter { it.optString("tag_name").matches(Regex("^v[0-9]+\\.[0-9]+\\.[0-9]+(?:\\+[1-9][0-9]*)?$")) }
             .filter { release ->
                 val assets = release.optJSONArray("assets") ?: JSONArray()
-                (0 until assets.length()).any { assets.getJSONObject(it).optString("name").endsWith(".apk") }
+                (0 until assets.length()).any {
+                    val name = assets.getJSONObject(it).optString("name").lowercase()
+                    name.endsWith(".apk") && !name.contains("debug")
+                }
             }
             .sortedWith(compareByDescending<org.json.JSONObject> { release ->
                 val tag = release.optString("tag_name")

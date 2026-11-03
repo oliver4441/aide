@@ -68,6 +68,12 @@ class ReleaseManifestTest {
             invalid(manifestJson().apply { remove(key) })
         }
     }
+    @Test fun rejectsTrailingGarbageAndConcatenatedJsonObjects() {
+        for (suffix in listOf(" garbage", "{}", "[]")) {
+            assertThrows(InvalidManifest::class.java) { ReleaseManifest.parse(manifestJson().toString() + suffix, testCertificate) }
+        }
+        assertEquals(1013L, ReleaseManifest.parse(manifestJson().toString() + "\n \t", testCertificate).versionCode)
+    }
     @Test fun rejectsWrongSchemaPackageAndCertificate() {
         invalid(manifestJson().put("schemaVersion", 2))
         invalid(manifestJson().put("packageName", "evil.app"))

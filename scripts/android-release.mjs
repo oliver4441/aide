@@ -6,6 +6,7 @@ import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 export const MAX_VERSION_CODE = 2_100_000_000;
+export const MAX_MANIFEST_BYTES = 256 * 1024;
 const REPO = "oliver4441/aide";
 function invariant(value, message) { if (!value) throw new Error(message); }
 function code(value) {
@@ -77,8 +78,10 @@ export function generateManifest(metadata, apk, notes, policy, certificate, publ
   invariant(size > 0 && size <= 512 * 1024 * 1024, "APK size is outside supported limits");
   const sha256 = createHash("sha256").update(readFileSync(apk)).digest("hex");
   invariant(metadata.sha256 === sha256 && Number(metadata.size) === size, "APK changed after verification");
-  invariant(/^aide-[0-9]+\.[0-9]+\.[0-9]+\.apk$/.test(metadata.filename), "Unexpected APK filename");
-  return {
+  invariant(metadata.filename === `aide-${parsed.version}.apk`, "APK filename disagrees with version");
+  invariant(typeof publishedAt === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/.test(publishedAt) &&
+    Number.isFinite(Date.parse(publishedAt)) && new Date(publishedAt).toISOString().slice(0, 19) === publishedAt.slice(0, 19), "Invalid release date");
+  const manifest = {
     schemaVersion: 1, packageName: metadata.package, versionName: parsed.version, versionCode: build,
     minimumSupportedVersionCode: policy.minimumSupportedVersionCode, mandatory: policy.mandatory,
     minSdk: 24, publishedAt, releaseNotes: notes,
@@ -88,6 +91,8 @@ export function generateManifest(metadata, apk, notes, policy, certificate, publ
     // Android chooses the right library. The client also supports ABI splits.
     assets: [{ abi: "universal", url: `https://github.com/${REPO}/releases/download/${metadata.tag}/${metadata.filename}`, sizeBytes: size, sha256 }]
   };
+  invariant(Buffer.byteLength(JSON.stringify(manifest, null, 2) + "\n", "utf8") <= MAX_MANIFEST_BYTES, "Serialized update manifest exceeds the Android response limit");
+  return manifest;
 }
 
 function output(values) {

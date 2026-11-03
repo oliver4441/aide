@@ -64,6 +64,12 @@ class UpdateDialogTest {
         compose.onNodeWithText("Open settings").performClick()
         assertTrue(opened)
     }
+    @Test fun olderAndroidExplainsTheGlobalUnknownSourcesSetting() {
+        show(base.copy(stage = UpdateStage.PERMISSION, legacyInstallPermission = true))
+        compose.onNodeWithText("This Android version uses the global", substring = true).assertExists()
+        compose.onNodeWithText("Open settings").assertIsDisplayed()
+        compose.onNodeWithText("Install update").assertDoesNotExist()
+    }
     @Test fun verifiedDownloadRequiresExplicitInstallationHandoff() {
         show(base.copy(stage = UpdateStage.READY))
         compose.onNodeWithText("Ready to install").assertIsDisplayed()

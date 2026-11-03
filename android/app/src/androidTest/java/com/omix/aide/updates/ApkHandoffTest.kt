@@ -1,6 +1,8 @@
 package com.omix.aide.updates
 
 import android.content.Intent
+import android.os.Build
+import android.provider.Settings
 import androidx.test.platform.app.InstrumentationRegistry
 import java.io.File
 import org.junit.Assert.*
@@ -33,6 +35,16 @@ class ApkHandoffTest {
             assertNotNull(provider)
             assertFalse(provider!!.exported)
         } finally { file.delete() }
+    }
+    @Test fun permissionHandoffMatchesTheAndroidVersionWithoutChangingAnySetting() {
+        val intent = ApkInstaller.permissionIntent(context)
+        if (Build.VERSION.SDK_INT >= 26) {
+            assertEquals(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, intent.action)
+            assertEquals("package:${context.packageName}", intent.data.toString())
+        } else {
+            assertEquals(Settings.ACTION_SECURITY_SETTINGS, intent.action)
+            assertNull(intent.data)
+        }
     }
     @Test fun fileProviderRejectsFilesOutsideTheNarrowUpdateDirectory() {
         val file = File(context.cacheDir, "not-an-update.txt").apply { writeText("private") }

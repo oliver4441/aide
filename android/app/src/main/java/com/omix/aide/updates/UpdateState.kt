@@ -15,7 +15,8 @@ data class UpdateUiState(
     val visible: Boolean = false,
     val bytes: Long = 0,
     val message: String? = null,
-    val retry: UpdateRetry = UpdateRetry.DOWNLOAD
+    val retry: UpdateRetry = UpdateRetry.DOWNLOAD,
+    val legacyInstallPermission: Boolean = false
 ) {
     val mandatory: Boolean get() = manifest?.isMandatory(installed.code) == true
     val hasUpdate: Boolean get() = manifest?.let { isNewerVersion(it.versionCode, installed.code) } == true

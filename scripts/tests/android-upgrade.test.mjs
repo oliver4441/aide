@@ -28,7 +28,7 @@ if (args[0] === 'install') {
   } else if (args[1] === 'dumpsys') {
     const uid = scenario === 'lost-uid' && state.phase === 'new' ? '10002' : '10001';
     const code = state.phase === 'old' ? '1012' : scenario === 'wrong-code' ? '1012' : '1013';
-    output = 'userId=' + uid + '\\nversionCode=' + code + ' minSdk=24\\n';
+    output = (scenario === 'app-id' ? 'appId=' : 'userId=') + uid + '\\nversionCode=' + code + ' minSdk=24\\n';
   } else if (args[1] === 'cat') {
     output = scenario === 'lost-data' ? '' : 'aide-retain-local-data\\n';
   } else if (args[1] === 'pidof') {
@@ -66,6 +66,10 @@ test("upgrade gate allows repairing the known v12 crash without attributing its 
   assert.ok(clearNew > upgrade && clearNew < launchNew);
   assert.equal(commands.filter(c => c[0] === "shell" && c[1] === "pidof").length, 2);
   assert.ok(!commands.some(c => c[0] === "uninstall" || (c[0] === "install" && c.includes("-d"))));
+});
+test("upgrade UID comparison supports Android 15 appId as well as legacy userId", () => {
+  const result = run("app-id");
+  assert.equal(result.status, 0, result.stdout + result.stderr);
 });
 test("fresh installation also has to survive two cold launches", () => {
   const result = run("success", "");
