@@ -131,7 +131,7 @@ class UpdateManager private constructor(private val context: Context) {
             return
         }
         // Do not turn a downloaded/permission-pending APK back into an offer.
-        val preserve = current.manifest?.versionCode == manifest.versionCode && current.stage in setOf(UpdateStage.READY, UpdateStage.PERMISSION, UpdateStage.INSTALLING)
+        val preserve = current.manifest == manifest && (current.stage in setOf(UpdateStage.READY, UpdateStage.PERMISSION, UpdateStage.INSTALLING) || (!manual && current.stage == UpdateStage.FAILED))
         mutable.value = current.copy(manifest = manifest, asset = asset, stage = if (preserve) current.stage else UpdateStage.AVAILABLE, visible = visible, message = if (preserve) current.message else null)
     }
 
@@ -240,6 +240,7 @@ class UpdateManager private constructor(private val context: Context) {
         if (installed.code >= storage.pendingInstallVersion && storage.pendingInstallVersion > 0) {
             onResume()
         } else {
+            storage.pendingInstallVersion = 0
             mutable.value = mutable.value.copy(installed = installed, stage = UpdateStage.READY, visible = true,
                 message = "Installation was not completed. Android may have cancelled or rejected it. Your existing app and data are unchanged. Tap Install update to try again.")
         }

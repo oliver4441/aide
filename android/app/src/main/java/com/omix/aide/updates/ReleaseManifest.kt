@@ -1,7 +1,10 @@
 package com.omix.aide.updates
 
 import java.net.URI
-import org.json.JSONArray
+import java.text.ParsePosition
+import java.text.SimpleDateFormat
+import java.util.Locale
+import java.util.TimeZone
 import org.json.JSONObject
 
 const val UPDATE_PACKAGE = "com.omix.aide"
@@ -67,6 +70,13 @@ data class ReleaseManifest(
                 requireManifest(releaseUrl == "https://github.com/$RELEASE_REPOSITORY/releases/tag/$tag", "Invalid release URL")
                 val published = json.text("publishedAt")
                 requireManifest(published.matches(Regex("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?Z$")), "Invalid release date")
+                val dateOnlySeconds = published.replace(Regex("\\.\\d+Z$"), "Z")
+                val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.ROOT).apply {
+                    isLenient = false
+                    timeZone = TimeZone.getTimeZone("UTC")
+                }
+                val position = ParsePosition(0)
+                requireManifest(dateFormat.parse(dateOnlySeconds, position) != null && position.index == dateOnlySeconds.length, "Invalid release date")
                 val notes = json.text("releaseNotes")
                 requireManifest(notes.length <= 64_000, "Release notes are too long")
                 val array = json.getJSONArray("assets")

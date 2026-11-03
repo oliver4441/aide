@@ -1,9 +1,12 @@
 name: Android Release
-run-name: "Signed Android ${{ inputs.version || github.ref_name }}${{ inputs.publish == false && ' (validation only)' || '' }}"
+run-name: "Signed Android ${{ inputs.version || github.ref_name }}${{ !startsWith(github.ref, 'refs/tags/v') && !inputs.publish && ' (validation only)' || '' }}"
 
 on:
   push:
     tags: ['v*']
+    # Branch pushes validate the REAL production key and in-place upgrades,
+    # without requiring workflow-dispatch privileges or publishing anything.
+    branches: [arena/**, feat/*, fix/*]
   workflow_dispatch:
     inputs:
       version:
@@ -61,7 +64,7 @@ jobs:
       - name: Determine validation or publication mode
         id: mode
         env:
-          SHOULD_PUBLISH: ${{ github.event_name == 'push' || inputs.publish }}
+          SHOULD_PUBLISH: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || inputs.publish }}
         run: |
           set -euo pipefail
           SHA=$(git rev-parse HEAD)
@@ -74,11 +77,15 @@ jobs:
         id: version
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ inputs.version || github.ref_name }}
+          TAG: ${{ inputs.version || (startsWith(github.ref, 'refs/tags/v') && github.ref_name) || '' }}
         run: |
           set -euo pipefail
           gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" > "$RUNNER_TEMP/releases.json"
-          node scripts/android-release.mjs resolve "$TAG" "$RUNNER_TEMP/releases.json" > "$RUNNER_TEMP/version.json"
+          if [ -n "$TAG" ]; then
+            node scripts/android-release.mjs resolve "$TAG" "$RUNNER_TEMP/releases.json" > "$RUNNER_TEMP/version.json"
+          else
+            node scripts/android-release.mjs next "$RUNNER_TEMP/releases.json" > "$RUNNER_TEMP/version.json"
+          fi
           cat "$RUNNER_TEMP/version.json"
       - name: Decode the existing release key
         env:
@@ -96,7 +103,12 @@ jobs:
           CODE: ${{ steps.version.outputs.version_code }}
         run: |
           chmod +x gradlew
-          ./gradlew testDebugUnitTest testReleaseUnitTest assembleRelease -PaideVersionName="$VERSION" -PaideVersionCode="$CODE" --console=plain
+          mkdir -p build
+          set +e
+          ./gradlew testDebugUnitTest testReleaseUnitTest assembleRelease -PaideVersionName="$VERSION" -PaideVersionCode="$CODE" --console=plain 2>&1 | tee build/signed-validation.log
+          STATUS=${PIPESTATUS[0]}
+          if [ "$STATUS" != 0 ]; then python3 ../scripts/annotate-android-failures.py build/signed-validation.log; fi
+          exit "$STATUS"
       - name: Collect the exact APK
         id: apk
         env:
@@ -144,7 +156,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: signed-release-test-reports
-          path: android/app/build/test-results/
+          path: |
+            android/app/build/test-results/
+            android/build/signed-validation.log
       - name: Remove decoded key
         if: always()
         run: rm -f "$RUNNER_TEMP/aide-release.jks"

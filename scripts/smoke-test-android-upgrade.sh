@@ -3,11 +3,15 @@
 set -euo pipefail
 PREVIOUS_APK="$1" NEW_APK="$2" EXPECTED_CODE="$3"
 PACKAGE=com.omix.aide
+adb root
+adb wait-for-device
 adb logcat -c
+MARKER="/data/user/0/$PACKAGE/databases/.aide-upgrade-marker"
 if [ -n "$PREVIOUS_APK" ]; then
   adb install "$PREVIOUS_APK"
   adb shell am start -W -n "$PACKAGE/com.omix.aide.MainActivity"
   adb shell am force-stop "$PACKAGE"
+  adb shell "printf aide-retain-local-data > '$MARKER'"
   BEFORE_UID=$(adb shell dumpsys package "$PACKAGE" | sed -n 's/.*userId=\([0-9]*\).*/\1/p' | tr -d '\r')
 fi
 # No uninstall and no -d downgrade bypass: exercise Android's real upgrade rules.
@@ -17,10 +21,11 @@ INSTALLED=$(adb shell dumpsys package "$PACKAGE" | sed -n 's/.*versionCode=\([0-
 if [ -n "$PREVIOUS_APK" ]; then
   AFTER_UID=$(adb shell dumpsys package "$PACKAGE" | sed -n 's/.*userId=\([0-9]*\).*/\1/p' | tr -d '\r')
   [ -n "$BEFORE_UID" ] && [ "$BEFORE_UID" = "$AFTER_UID" ] || { echo 'Upgrade did not retain the package UID'; exit 1; }
+  [ "$(adb shell cat "$MARKER" | tr -d '\r')" = aide-retain-local-data ] || { echo 'Upgrade lost the app-private data marker'; exit 1; }
 fi
 adb shell am start -W -n "$PACKAGE/com.omix.aide.MainActivity"
 # Wait for the main window without a fixed multi-second sleep.
-adb shell am wait-for-broadcast-idle || true
+adb shell uiautomator dump /sdcard/aide-upgrade-window.xml
 adb logcat -d -s AndroidRuntime:E > android-runtime.txt
 if grep -E 'FATAL EXCEPTION|Process: com.omix.aide,' android-runtime.txt; then
   echo 'Production app crashed after installation'; exit 1

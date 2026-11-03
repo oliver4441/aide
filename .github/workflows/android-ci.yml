@@ -45,13 +45,20 @@ jobs:
       - run: chmod +x android/gradlew
       - name: Unit tests (debug and release), lint and APKs
         working-directory: android
-        run: ./gradlew testDebugUnitTest testReleaseUnitTest lintDebug assembleDebug assembleDebugAndroidTest assembleRelease -PaideAllowUnsignedRelease=true --console=plain
+        run: |
+          mkdir -p build
+          set +e
+          ./gradlew testDebugUnitTest testReleaseUnitTest lintDebug assembleDebug assembleDebugAndroidTest assembleRelease -PaideAllowUnsignedRelease=true --console=plain 2>&1 | tee build/validation.log
+          STATUS=${PIPESTATUS[0]}
+          if [ "$STATUS" != 0 ]; then python3 ../scripts/annotate-android-failures.py build/validation.log; fi
+          exit "$STATUS"
       - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: android-unit-and-lint-reports
           path: |
+            android/build/validation.log
             android/app/build/reports/
             android/app/build/test-results/
       - name: Upload debug and UI-test APKs

@@ -190,11 +190,16 @@ post.
   JSON export.
 - **Database health** — if the database cannot be opened, the app shows the
   recovery screen instead of crashing in a loop (`DatabaseHealth`).
-- **Update check** — `UpdateChecker` asks
-  `https://aide.omixsystems.store/api/latest-release` for the published version
-  code and shows a banner when a newer APK exists. This is the only network call
-  the app makes; an offline device simply does not see the banner.
-- **WorkManager** — two unique periodic jobs; both are re-enqueued on launch and
+- **Updates** — `UpdateManager` checks stable Android **GitHub Releases** in the
+  background on launch/resume, throttled to once every six hours (manual Settings
+  checks bypass this). A native Material 3 dialog shows version/date/size and
+  release notes, Update now/Later, download progress/retry, checksum and signer
+  verification, permission guidance and Android-controlled installation. Mandatory
+  updates offer Update/Close app, never silent installation. WorkManager persists
+  downloads across navigation/restarts; installed version is refreshed on return.
+  Update metadata and user-approved APK downloads are the only network traffic;
+  no business data is sent. See [Android updates](android-updates.md).
+- **WorkManager** — two unique periodic reminder jobs plus user-requested one-off APK downloads; reminder jobs both are re-enqueued on launch and
   whenever the notification settings change.
 
 ---
