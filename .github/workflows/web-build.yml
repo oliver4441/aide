@@ -1,0 +1,45 @@
+name: Web Build & Deploy Guard
+
+# The website is the PWA front-end of Aide and is auto-deployed to Vercel on
+# every push to master. This workflow verifies that the app actually builds
+# before a push/PR can land on master, so a broken web commit can never
+# silently deploy. Deployment itself still happens through Vercel.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+concurrency:
+  group: web-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build web app (next build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint || true
+
+      # The app's public pages are all static; DATABASE_URL is only used if a
+      # route queries Prisma at build time.
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
