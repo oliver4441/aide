@@ -2,7 +2,7 @@
 /** Shared, tested source of truth for release versions and updater manifests. */
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync, appendFileSync, statSync } from "node:fs";
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 export const MAX_VERSION_CODE = 2_100_000_000;
@@ -95,6 +95,39 @@ export function generateManifest(metadata, apk, notes, policy, certificate, publ
   return manifest;
 }
 
+/** Resolve an unpublished release by ID and prove its uploads match verified local bytes. */
+export function verifyUploadedDraft(releases, metadata, directory, sourceSha) {
+  invariant(Array.isArray(releases), "GitHub release response must be an array");
+  const parsed = parseTag(metadata.tag);
+  const build = code(Number(metadata.version_code));
+  invariant(parsed.version === metadata.version && (!parsed.explicitCode || parsed.explicitCode === build), "Draft version disagrees with verified metadata");
+  invariant(/^[a-f0-9]{40}$/.test(sourceSha), "A full verified source SHA is required");
+  const filename = `aide-${parsed.version}.apk`;
+  invariant(metadata.filename === filename && metadata.package === "com.omix.aide", "Unexpected verified APK identity");
+  const matches = releases.filter(release => release?.tag_name === metadata.tag);
+  invariant(matches.length === 1, "Expected exactly one release for the draft tag");
+  const release = matches[0];
+  invariant(release.draft === true, "Refusing to modify a published release");
+  invariant(release.prerelease === false, "Refusing to publish a prerelease as stable");
+  invariant(Number.isSafeInteger(release.id) && release.id > 0, "Invalid draft release ID");
+  invariant(release.target_commitish === sourceSha, "Draft target differs from the verified source SHA");
+  const names = [filename, filename + ".sha256", "android-update.json", "CHANGELOG.md"];
+  invariant(Array.isArray(release.assets) && release.assets.length === names.length, "Draft must contain exactly the four expected release assets");
+  for (const name of names) {
+    const uploaded = release.assets.filter(asset => asset?.name === name);
+    invariant(uploaded.length === 1, "Missing or duplicate release asset: " + name);
+    const asset = uploaded[0];
+    const bytes = readFileSync(join(directory, name));
+    const digest = createHash("sha256").update(bytes).digest("hex");
+    invariant(bytes.length > 0 && asset.state === "uploaded" && asset.size === bytes.length, "Missing or incomplete release asset: " + name);
+    invariant(asset.digest === "sha256:" + digest, "Uploaded SHA-256 differs from verified bytes: " + name);
+    if (name === filename) {
+      invariant(metadata.sha256 === digest && metadata.size === bytes.length, "APK changed after production verification");
+    }
+  }
+  return release.id;
+}
+
 function output(values) {
   console.log(JSON.stringify(values, null, 2));
   if (process.env.GITHUB_OUTPUT) {
@@ -106,12 +139,16 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
     const [command, ...args] = process.argv.slice(2);
     if (command === "next") output(nextVersion(JSON.parse(readFileSync(args[0], "utf8"))));
     else if (command === "resolve") output(resolveVersion(args[0], JSON.parse(readFileSync(args[1], "utf8"))));
+    else if (command === "verify-draft") {
+      const [releasesPath, metadataPath, directory, sourceSha] = args;
+      console.log(verifyUploadedDraft(JSON.parse(readFileSync(releasesPath, "utf8")), JSON.parse(readFileSync(metadataPath, "utf8")), directory, sourceSha));
+    }
     else if (command === "manifest") {
       const [metadataPath, apkPath, notesPath, outputPath] = args;
       const manifest = generateManifest(JSON.parse(readFileSync(metadataPath, "utf8")), apkPath, readFileSync(notesPath, "utf8"), JSON.parse(readFileSync("android/update-policy.json", "utf8")), readFileSync("android/release-certificate.sha256", "utf8"));
       writeFileSync(outputPath, JSON.stringify(manifest, null, 2) + "\n");
       console.log(`Wrote ${outputPath}`);
-    } else throw new Error("Usage: android-release.mjs next <releases.json> | resolve <tag> <releases.json> | manifest <metadata.json> <apk> <notes.md> <output.json>");
+    } else throw new Error("Usage: android-release.mjs next <releases.json> | resolve <tag> <releases.json> | manifest <metadata.json> <apk> <notes.md> <output.json> | verify-draft <releases.json> <metadata.json> <asset-dir> <source-sha>");
   } catch (error) {
     console.error(error.message);
     process.exitCode = 1;
