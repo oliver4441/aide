@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useSales } from "@/hooks/useSales";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 import { formatMoney } from "@/lib/format";
@@ -44,9 +44,18 @@ export default function SalesPage() {
   const { data: business } = useBusinessSettings();
   const [exportMenu, setExportMenu] = useState(false);
 
-  const sales = allSales ?? [];
-  const total = sales.length;
-  const totalRevenue = sales.reduce((s, sale) => s + sale.total, 0);
+  // Memoized so the derived array is referentially stable across renders.
+  const sales = useMemo(() => allSales ?? [], [allSales]);
+
+  // Memoized single-pass summary so toggling local state (export menu) does not
+  // re-walk the whole sales array.
+  const { total, totalRevenue } = useMemo(() => {
+    let sum = 0;
+    for (let i = 0; i < sales.length; i++) {
+      sum += sales[i].total || 0;
+    }
+    return { total: sales.length, totalRevenue: sum };
+  }, [sales]);
 
   return (
     <div className="space-y-8 font-reading">

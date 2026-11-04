@@ -43,7 +43,7 @@ export default function NotificationCenterPage() {
       <div>
         <Link
           href="/dashboard"
-          className="inline-flex items-center gap-1 text-sm font-medium text-secondary hover:text-ink transition-colors"
+          className="inline-flex items-center gap-1 text-sm font-medium text-secondary hover:text-ink"
         >
           <ArrowLeft className="w-4 h-4" /> Back to dashboard
         </Link>
@@ -82,11 +82,11 @@ export default function NotificationCenterPage() {
               key={n.id}
               onClick={() => open(n)}
               className={cn(
-                "group relative flex gap-3  border border-rule bg-ground p-4 cursor-pointer transition-colors hover:bg-ground/60",
+                "group relative flex gap-3  border border-rule bg-ground p-4 cursor-pointer hover:bg-ground/60",
                 !n.read && "border-accent/30 bg-accent/[0.04]"
               )}
             >
-              <span className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", dotColor[n.type])} />
+              <span className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-none", dotColor[n.type])} />
               <div className="min-w-0 flex-1">
                 <p className={cn("text-sm leading-snug", !n.read ? "font-semibold text-ink" : "font-medium text-secondary")}>
                   {n.title}
@@ -105,7 +105,7 @@ export default function NotificationCenterPage() {
                   remove(n.id);
                 }}
                 aria-label="Dismiss"
-                className="self-start p-1 text-secondary/40 opacity-0 group-hover:opacity-100 hover:text-danger transition-opacity"
+                className="self-start p-1 text-secondary/40 opacity-0 group-hover:opacity-100 hover:text-danger"
               >
                 <Trash2 className="w-4 h-4" />
               </button>

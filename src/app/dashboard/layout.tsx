@@ -30,7 +30,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <AdBanner />
         <div className="p-4 md:px-10 md:pb-10 max-w-[1200px] mx-auto">
           <nav className="text-sm text-secondary mb-2 flex items-center gap-2 flex-wrap" aria-label="Breadcrumb">
-            <Link href="/" className="hover:text-ink transition-colors">Home</Link>
+            <Link href="/" className="hover:text-ink">Home</Link>
             <span aria-hidden="true">/</span>
             <span aria-current="page">Dashboard</span>
           </nav>

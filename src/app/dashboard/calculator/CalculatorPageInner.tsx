@@ -172,13 +172,13 @@ export default function CalculatorPageInner() {
   }, [inputDigit, inputDot, chooseOp, equals, backspace, clearAll, percent]);
 
   const numBtn =
-    "h-14 sm:h-16  bg-ground text-ink text-xl font-semibold hover:bg-rule/15  transition-all select-none";
+    "h-14 sm:h-16  bg-ground text-ink text-xl font-semibold hover:bg-rule/15 select-none";
   const utilBtn =
-    "h-14 sm:h-16  bg-ground text-secondary text-lg font-semibold hover:bg-rule/15  transition-all select-none";
+    "h-14 sm:h-16  bg-ground text-secondary text-lg font-semibold hover:bg-rule/15 select-none";
   const opBtn =
-    "h-14 sm:h-16  bg-accent/10 text-accent text-xl font-semibold hover:bg-accent/20  transition-all select-none";
+    "h-14 sm:h-16  bg-accent/10 text-accent text-xl font-semibold hover:bg-accent/20 select-none";
   const eqBtn =
-    "h-14 sm:h-16  bg-accent text-ground text-xl font-bold hover:bg-ink  transition-all   select-none";
+    "h-14 sm:h-16  bg-accent text-ground text-xl font-bold hover:bg-ink   select-none";
 
   return (
     <div className="max-w-md mx-auto">
@@ -207,7 +207,7 @@ export default function CalculatorPageInner() {
           <button
             onClick={copyResult}
             title="Copy result"
-            className="shrink-0 mt-1 w-9 h-9 bg-ground text-secondary hover:text-accent hover:bg-rule/15 transition-colors flex items-center justify-center"
+            className="shrink-0 mt-1 w-9 h-9 bg-ground text-secondary hover:text-accent hover:bg-rule/15 flex items-center justify-center"
           >
             {copied ? (
               <svg className="w-4 h-4 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>

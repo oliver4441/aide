@@ -73,7 +73,7 @@ export default function OfflineStatus() {
   if (state === "syncing") {
     return (
       <div className="flex items-center gap-2 px-4 py-2 text-xs font-display text-secondary">
-        <span className="w-2 h-2 border border-accent text-accent animate-pulse" />
+        <span className="w-2 h-2 border border-accent text-accent" />
         Syncing
       </div>
     );

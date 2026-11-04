@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import UiLoader from "./UiLoader";
 
 export interface UiButtonProps {
   href?: string;
@@ -53,7 +54,7 @@ export default function UiButton({
 
   const inner = loading ? (
     <>
-      <span className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-[1.5px] border-current border-t-transparent" />
+      <UiLoader size={16} className="mr-2" />
       <span>{children}</span>
     </>
   ) : (

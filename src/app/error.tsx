@@ -48,19 +48,19 @@ export default function Error({
         <div className="flex flex-col justify-center gap-3 sm:flex-row">
           <button
             onClick={reset}
-            className="w-full bg-accent px-4 py-2.5 text-sm font-semibold text-ground transition-colors hover:bg-ink sm:w-auto"
+            className="w-full bg-accent px-4 py-2.5 text-sm font-semibold text-ground hover:bg-ink sm:w-auto"
           >
             Try again
           </button>
           <a
             href="/"
-            className="w-full border border-rule px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-rule/15 sm:w-auto"
+            className="w-full border border-rule px-4 py-2.5 text-sm font-semibold text-ink hover:bg-rule/15 sm:w-auto"
           >
             Go home
           </a>
           <a
             href="/help"
-            className="w-full border border-rule px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-rule/15 sm:w-auto"
+            className="w-full border border-rule px-4 py-2.5 text-sm font-semibold text-ink hover:bg-rule/15 sm:w-auto"
           >
             Help
           </a>

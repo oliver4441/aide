@@ -38,7 +38,7 @@ export default function DocsNavList({ groups, onNavigate }: DocsNavListProps) {
                     href={item.href}
                     onClick={onNavigate}
                     aria-current={active ? "page" : undefined}
-                    className={`block  px-3 py-1.5 text-sm transition-colors ${
+                    className={`block  px-3 py-1.5 text-sm ${
                       active
                         ? "bg-accent/10 font-semibold text-accent"
                         : "text-secondary hover:bg-rule/15 hover:text-ink"

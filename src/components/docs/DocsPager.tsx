@@ -40,7 +40,7 @@ export default function DocsPager({
   ) => (
     <Link
       href={href}
-      className={`group flex min-h-[76px] flex-col justify-center  border border-rule px-5 py-4 transition-colors hover:border-accent hover:bg-rule/15 ${
+      className={`group flex min-h-[76px] flex-col justify-center  border border-rule px-5 py-4 hover:border-accent hover:bg-rule/15 ${
         direction === "right" ? "items-end text-right" : "items-start"
       }`}
     >
