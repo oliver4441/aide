@@ -57,7 +57,7 @@ export default function AdminConsolePage() {
     <div className="space-y-8 font-reading">
       <div className="border-b border-rule pb-6">
         <h1 className="font-display text-2xl md:text-3xl font-black text-ink">Admin Console</h1>
-        <p className="font-display text-sm text-secondary mt-1">Platform management — Aide BETA</p>
+        <p className="font-display text-sm text-secondary mt-1">Platform management</p>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

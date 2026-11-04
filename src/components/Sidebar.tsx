@@ -35,31 +35,30 @@ interface NavItem {
   label: string;
   href: string;
   icon: string;
-  offlineReady?: boolean;
 }
 
 const navSections: NavSection[] = [
   {
     title: "Main",
     items: [
-      { label: "Dashboard", href: "/dashboard", icon: "dashboard", offlineReady: true },
-      { label: "New Sale", href: "/dashboard/pos", icon: "sale", offlineReady: true },
-      { label: "Sales History", href: "/dashboard/sales", icon: "history", offlineReady: true },
+      { label: "Dashboard", href: "/dashboard", icon: "dashboard" },
+      { label: "New Sale", href: "/dashboard/pos", icon: "sale" },
+      { label: "Sales History", href: "/dashboard/sales", icon: "history" },
     ],
   },
   {
     title: "Manage",
     items: [
-      { label: "Inventory", href: "/dashboard/inventory", icon: "stock", offlineReady: true },
-      { label: "Reports", href: "/dashboard/reports", icon: "reports", offlineReady: true },
+      { label: "Inventory", href: "/dashboard/inventory", icon: "stock" },
+      { label: "Reports", href: "/dashboard/reports", icon: "reports" },
     ],
   },
   {
     title: "Account",
     items: [
-      { label: "Settings", href: "/dashboard/settings", icon: "settings", offlineReady: true },
-      { label: "Calculator", href: "/dashboard/calculator", icon: "calculator", offlineReady: true },
-      { label: "Help", href: "/help", icon: "help", offlineReady: false },
+      { label: "Settings", href: "/dashboard/settings", icon: "settings" },
+      { label: "Calculator", href: "/dashboard/calculator", icon: "calculator" },
+      { label: "Help", href: "/help", icon: "help" },
     ],
   },
 ];
@@ -97,17 +96,6 @@ function NavIcon({ name, className = "w-[18px] h-[18px]" }: { name: string; clas
   return <Icon className={className} strokeWidth={1.8} />;
 }
 
-function OfflineBadge() {
-  return (
-    <span className="ml-auto flex items-center gap-1 text-[9px] font-medium text-secondary border border-rule px-1.5 py-0.5">
-      <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.242 2.829a5 5 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3" />
-      </svg>
-      Offline
-    </span>
-  );
-}
-
 export default function Sidebar() {
   const pathname = usePathname();
   const { data: business } = useBusinessSettings();
@@ -129,7 +117,7 @@ export default function Sidebar() {
   const sections: NavSection[] = isAdmin
     ? [
         ...navSections,
-        { title: "Platform", items: [{ label: "Admin Console", href: "/dashboard/admin", icon: "shield", offlineReady: false }] },
+        { title: "Platform", items: [{ label: "Admin Console", href: "/dashboard/admin", icon: "shield" }] },
       ]
     : navSections;
 
@@ -216,7 +204,6 @@ export default function Sidebar() {
                         <NavIcon name={item.icon} />
                       </span>
                       {item.label}
-                      {item.offlineReady && <OfflineBadge />}
                     </Link>
                   );
                 })}
