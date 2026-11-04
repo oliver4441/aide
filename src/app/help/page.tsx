@@ -52,7 +52,7 @@ export default function HelpPage() {
             <ThemeToggle />
             <Link
               href="/login"
-              className="bg-accent text-ground px-4 py-2 text-sm font-semibold hover:bg-ink transition-colors"
+              className="bg-accent text-ground px-4 py-2 text-sm font-semibold hover:bg-ink"
             >
               Open App
             </Link>
@@ -62,7 +62,7 @@ export default function HelpPage() {
 
       <div className="max-w-4xl mx-auto px-6 py-12">
         <nav className="text-sm text-secondary mb-6 flex items-center gap-2 flex-wrap" aria-label="Breadcrumb">
-          <Link href="/" className="hover:text-ink transition-colors">Home</Link>
+          <Link href="/" className="hover:text-ink">Home</Link>
           <span aria-hidden="true">/</span>
           <span aria-current="page">Help Center</span>
         </nav>
@@ -77,14 +77,14 @@ export default function HelpPage() {
           <p className="mt-6 flex flex-wrap items-center justify-center gap-4">
             <Link
               href="/docs/getting-started/new-user-guide"
-              className="inline-flex items-center gap-2 bg-accent px-5 py-3 text-sm font-semibold text-ground transition-colors hover:bg-ink"
+              className="inline-flex items-center gap-2 bg-accent px-5 py-3 text-sm font-semibold text-ground hover:bg-ink"
             >
               New here? Start with the new user guide
               <span aria-hidden="true">&rarr;</span>
             </Link>
             <Link
               href="/docs"
-              className="inline-flex items-center gap-2 border border-rule px-5 py-3 text-sm font-semibold text-secondary transition-colors hover:bg-rule/15"
+              className="inline-flex items-center gap-2 border border-rule px-5 py-3 text-sm font-semibold text-secondary hover:bg-rule/15"
             >
               Browse the full documentation
               <span aria-hidden="true">&rarr;</span>
@@ -102,7 +102,7 @@ export default function HelpPage() {
             <a
               key={tab.href}
               href={tab.href}
-              className="flex-1 text-center px-4 py-2.5 text-sm font-medium text-secondary hover:text-ink hover:bg-rule/15 transition-colors whitespace-nowrap"
+              className="flex-1 text-center px-4 py-2.5 text-sm font-medium text-secondary hover:text-ink hover:bg-rule/15 whitespace-nowrap"
             >
               {tab.label}
             </a>
@@ -126,7 +126,7 @@ export default function HelpPage() {
               { n: 9, title: "Install the app", d: "Use the Install banner (or browser menu → Add to Home Screen) so Aide opens full-screen like a native app and works offline. The Android APK is on the Get the app page; on desktop and iPhone you install it from the browser." },
             ].map((s) => (
               <div key={s.n} className="flex gap-4 bg-ground border border-rule p-4">
-                <div className="w-8 h-8 rounded-full bg-accent/15 text-accent font-bold flex items-center justify-center shrink-0 text-sm">
+                <div className="w-8 h-8 rounded-none bg-accent/15 text-accent font-bold flex items-center justify-center shrink-0 text-sm">
                   {s.n}
                 </div>
                 <div>
@@ -225,7 +225,7 @@ export default function HelpPage() {
                 href={link.href}
                 target={link.href.startsWith("http") ? "_blank" : undefined}
                 rel={link.href.startsWith("http") ? "noopener noreferrer" : undefined}
-                className="bg-ground border border-rule px-4 py-2 text-sm text-ink hover:bg-rule/15 transition-colors"
+                className="bg-ground border border-rule px-4 py-2 text-sm text-ink hover:bg-rule/15"
               >
                 {link.label} →
               </a>

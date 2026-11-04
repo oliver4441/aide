@@ -57,19 +57,19 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
           <nav className="hidden items-center gap-6 text-sm md:flex" aria-label="Site">
             <Link
               href="/help"
-              className="text-secondary transition-colors hover:text-ink"
+              className="text-secondary hover:text-ink"
             >
               Help centre
             </Link>
             <Link
               href="/downloads"
-              className="text-secondary transition-colors hover:text-ink"
+              className="text-secondary hover:text-ink"
             >
               Get the app
             </Link>
             <a
               href={`mailto:${SUPPORT_EMAIL}`}
-              className="text-secondary transition-colors hover:text-ink"
+              className="text-secondary hover:text-ink"
             >
               Contact
             </a>

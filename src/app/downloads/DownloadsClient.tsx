@@ -11,9 +11,9 @@ import {
   Smartphone,
   Package,
   Apple,
-  Loader2,
 } from "lucide-react";
 import UiButton from "@/components/ui/UiButton";
+import UiLoader from "@/components/ui/UiLoader";
 import { fetchLatestRelease, getDeviceLabel, type ReleaseInfo } from "@/lib/device";
 
 
@@ -79,7 +79,7 @@ function CopyableHash({ hash }: { hash?: string }) {
     <button
       onClick={copy}
       title="Copy full SHA-256"
-      className="inline-flex items-center gap-1.5 bg-ground px-2 py-1 font-mono text-[11px] text-secondary hover:text-ink transition-colors"
+      className="inline-flex items-center gap-1.5 bg-ground px-2 py-1 font-mono text-[11px] text-secondary hover:text-ink"
     >
       {copied ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
       {copied ? "Copied" : shortHash(hash)}
@@ -132,7 +132,7 @@ export default function DownloadsClient() {
         <div className="mx-auto max-w-4xl px-4 py-4 flex items-center justify-between">
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-secondary hover:text-ink transition-colors"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-secondary hover:text-ink"
           >
             <ArrowLeft className="w-4 h-4" /> Back to home
           </Link>
@@ -182,7 +182,7 @@ export default function DownloadsClient() {
               { n: 3, t: "Open the APK and install", d: "Tap aide-release.apk in your downloads, then Install. Done." },
             ].map((s) => (
               <li key={s.n} className="flex gap-3">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent text-xs font-bold">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-none bg-accent/15 text-accent text-xs font-bold">
                   {s.n}
                 </span>
                 <span>
@@ -196,13 +196,13 @@ export default function DownloadsClient() {
           <div className="mt-6 flex flex-col sm:flex-row gap-3">
             {loading ? (
               <div className="flex h-[50px] w-full sm:w-64 items-center justify-center border border-rule">
-                <Loader2 className="w-4 h-4 animate-spin text-secondary" />
+                <UiLoader size={16} className="text-secondary" />
               </div>
             ) : latestApk ? (
               <a
                 href={latestApk}
                 download={release?.apkName ?? true}
-                className="inline-flex w-full sm:w-auto items-center justify-center gap-2 bg-accent px-6 py-3.5 text-sm font-semibold text-ground transition hover:bg-ink active:scale-[0.99]"
+                className="inline-flex w-full sm:w-auto items-center justify-center gap-2 bg-accent px-6 py-3.5 text-sm font-semibold text-ground hover:bg-ink"
               >
                 <Download className="w-4 h-4" />
                 Download APK{release?.version ? ` (v${release.version})` : ""}
@@ -249,7 +249,7 @@ export default function DownloadsClient() {
 
           {loading ? (
             <div className="flex justify-center py-12">
-              <Loader2 className="w-6 h-6 animate-spin text-secondary" />
+              <UiLoader size={24} className="text-secondary" />
             </div>
           ) : androidReleases.length === 0 ? (
             <p className="border border-rule bg-ground p-6 text-sm text-secondary">
@@ -268,7 +268,7 @@ export default function DownloadsClient() {
                         v{r.version ?? r.tag}
                       </span>
                       {r.prerelease && (
-                        <span className="rounded-full bg-warning/20 px-2 py-0.5 text-[10px] font-semibold text-warning">
+                        <span className="rounded-none bg-warning/20 px-2 py-0.5 text-[10px] font-semibold text-warning">
                           pre-release
                         </span>
                       )}
@@ -299,7 +299,7 @@ export default function DownloadsClient() {
                             <a
                               href={a.downloadUrl}
                               download={a.name}
-                              className="inline-flex items-center gap-1.5 bg-accent px-3 py-1.5 text-xs font-semibold text-ground transition hover:bg-ink"
+                              className="inline-flex items-center gap-1.5 bg-accent px-3 py-1.5 text-xs font-semibold text-ground hover:bg-ink"
                             >
                               <Download className="w-3.5 h-3.5" />
                               Download

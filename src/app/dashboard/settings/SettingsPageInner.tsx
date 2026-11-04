@@ -36,10 +36,10 @@ function ToggleRow({
         role="switch"
         aria-checked={value}
         onClick={() => onChange(!value)}
-        className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors ${value ? "border-accent bg-accent" : "border-rule bg-rule/30"}`}
+        className={`relative h-6 w-11 shrink-0 rounded-none border ${value ? "border-accent bg-accent" : "border-rule bg-rule/30"}`}
       >
         <span
-          className={`absolute top-0.5 h-5 w-5 rounded-full  transition-all ${value ? "right-0.5 bg-ground" : "left-0.5 bg-ink"}`}
+          className={`absolute top-0.5 h-5 w-5 rounded-none ${value ? "right-0.5 bg-ground" : "left-0.5 bg-ink"}`}
         />
       </button>
     </label>
@@ -240,7 +240,7 @@ export default function SettingsPage() {
         <h2 className="font-display text-lg font-black text-ink mb-4">Account</h2>
         <div className="space-y-4">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold text-lg">
+            <div className="w-12 h-12 rounded-none bg-accent/20 flex items-center justify-center text-accent font-bold text-lg">
               {session?.user?.name?.[0] || "U"}
             </div>
             <div>
@@ -256,7 +256,7 @@ export default function SettingsPage() {
                 setShowEmailForm((v) => !v);
                 setEmailStatus(null);
               }}
-              className="px-4 py-2 border border-rule text-secondary text-xs font-medium hover:bg-rule/15 transition-colors"
+              className="px-4 py-2 border border-rule text-secondary text-xs font-medium hover:bg-rule/15"
             >
               Change Email
             </button>
@@ -266,7 +266,7 @@ export default function SettingsPage() {
                 setShowPasswordForm((v) => !v);
                 setPasswordStatus(null);
               }}
-              className="px-4 py-2 border border-rule text-secondary text-xs font-medium hover:bg-rule/15 transition-colors"
+              className="px-4 py-2 border border-rule text-secondary text-xs font-medium hover:bg-rule/15"
             >
               Change Password
             </button>
@@ -288,7 +288,7 @@ export default function SettingsPage() {
                 <button
                   onClick={saveEmail}
                   disabled={savingEmail || !newEmail.trim()}
-                  className="px-4 py-2.5 bg-accent text-ground text-sm font-semibold hover:bg-ink transition-colors disabled:opacity-40"
+                  className="px-4 py-2.5 bg-accent text-ground text-sm font-semibold hover:bg-ink disabled:opacity-40"
                 >
                   {savingEmail ? "Saving..." : "Update Email"}
                 </button>
@@ -347,7 +347,7 @@ export default function SettingsPage() {
               <button
                 onClick={savePassword}
                 disabled={savingPassword || !currentPassword || !newPassword}
-                className="px-4 py-2.5 bg-accent text-ground text-sm font-semibold hover:bg-ink transition-colors disabled:opacity-40"
+                className="px-4 py-2.5 bg-accent text-ground text-sm font-semibold hover:bg-ink disabled:opacity-40"
               >
                 {savingPassword ? "Saving..." : "Update Password"}
               </button>
@@ -429,7 +429,7 @@ export default function SettingsPage() {
         <div className="mt-6 flex gap-3">
           <button
             onClick={save}
-            className="px-5 py-2.5 bg-accent text-ground text-sm font-semibold hover:bg-ink transition-colors"
+            className="px-5 py-2.5 bg-accent text-ground text-sm font-semibold hover:bg-ink"
           >
             Save Changes
           </button>
@@ -445,7 +445,7 @@ export default function SettingsPage() {
                 });
               }
             }}
-            className="px-5 py-2.5 border border-rule text-secondary text-sm font-medium hover:bg-rule/15 transition-colors"
+            className="px-5 py-2.5 border border-rule text-secondary text-sm font-medium hover:bg-rule/15"
           >
             Cancel
           </button>
@@ -488,7 +488,7 @@ export default function SettingsPage() {
             <button
               onClick={addCategory}
               disabled={!newCategory.trim()}
-              className="px-4 py-2.5 bg-accent text-ground text-sm font-semibold hover:bg-ink transition-colors disabled:opacity-40"
+              className="px-4 py-2.5 bg-accent text-ground text-sm font-semibold hover:bg-ink disabled:opacity-40"
             >
               Add
             </button>
@@ -500,12 +500,12 @@ export default function SettingsPage() {
               {categories.map((cat) => (
                 <div
                   key={cat.id}
-                  className="flex items-center justify-between px-3 py-2 hover:bg-ground/50 transition-colors"
+                  className="flex items-center justify-between px-3 py-2 hover:bg-ground/50"
                 >
                   <span className="text-sm text-ink">{cat.name}</span>
                   <button
                     onClick={() => deleteCategory(cat.id)}
-                    className="text-xs text-secondary hover:text-danger transition-colors"
+                    className="text-xs text-secondary hover:text-danger"
                   >
                     Remove
                   </button>
@@ -549,11 +549,11 @@ export default function SettingsPage() {
         <div className="flex gap-3">
           <button
             onClick={exportData}
-            className="px-4 py-2 border border-danger/30 text-danger text-xs font-medium hover:bg-danger/10 transition-colors"
+            className="px-4 py-2 border border-danger/30 text-danger text-xs font-medium hover:bg-danger/10"
           >
             Export All Data
           </button>
-          <button className="px-4 py-2 border border-danger/30 text-danger text-xs font-medium hover:bg-danger/10 transition-colors">
+          <button className="px-4 py-2 border border-danger/30 text-danger text-xs font-medium hover:bg-danger/10">
             Delete Business
           </button>
         </div>

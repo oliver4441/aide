@@ -21,7 +21,7 @@ function Crumbs({ trail }: { trail: Breadcrumb[] }) {
                   {crumb.name}
                 </span>
               ) : (
-                <Link href={crumb.href} className="transition-colors hover:text-ink">
+                <Link href={crumb.href} className="hover:text-ink">
                   {crumb.name}
                 </Link>
               )}
@@ -53,7 +53,7 @@ function DetailsToc({ headings }: { headings: DocHeading[] }) {
           <li key={heading.id} className="text-sm">
             <a
               href={`#${heading.id}`}
-              className="text-secondary transition-colors hover:text-accent"
+              className="text-secondary hover:text-accent"
             >
               {heading.text}
             </a>

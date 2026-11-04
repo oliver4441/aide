@@ -29,7 +29,7 @@ export default function DocsMobileNav() {
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
         aria-controls="docs-mobile-nav"
-        className="flex w-full items-center justify-between border-b border-rule bg-ground px-4 py-3 text-sm font-medium text-ink transition-colors hover:bg-rule/15"
+        className="flex w-full items-center justify-between border-b border-rule bg-ground px-4 py-3 text-sm font-medium text-ink hover:bg-rule/15"
       >
         <span className="flex items-center gap-2">
           <svg
@@ -55,7 +55,7 @@ export default function DocsMobileNav() {
           strokeWidth="2"
           strokeLinecap="round"
           aria-hidden="true"
-          className={`transition-transform ${open ? "rotate-180" : ""}`}
+          className={open ? "rotate-180" : ""}
         >
           <path d="m6 9 6 6 6-6" />
         </svg>

@@ -43,7 +43,7 @@ export default function PrivacyPolicyPage() {
           </Link>
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-secondary hover:text-ink transition-colors"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-secondary hover:text-ink"
           >
             <ArrowLeft className="w-4 h-4" /> Back to home
           </Link>
@@ -219,13 +219,13 @@ export default function PrivacyPolicyPage() {
         <div className="mt-12 pt-6 border-t border-rule flex flex-col sm:flex-row gap-3">
           <Link
             href="/terms"
-            className="inline-flex items-center justify-center border border-rule px-5 py-2.5 text-sm font-semibold text-ink hover:bg-rule/15 transition-colors"
+            className="inline-flex items-center justify-center border border-rule px-5 py-2.5 text-sm font-semibold text-ink hover:bg-rule/15"
           >
             Read the Terms of Service
           </Link>
           <Link
             href="/"
-            className="inline-flex items-center justify-center bg-accent px-5 py-2.5 text-sm font-semibold text-ground hover:bg-ink transition-colors"
+            className="inline-flex items-center justify-center bg-accent px-5 py-2.5 text-sm font-semibold text-ground hover:bg-ink"
           >
             Back to home
           </Link>

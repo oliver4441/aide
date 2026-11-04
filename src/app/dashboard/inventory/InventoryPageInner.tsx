@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { useProducts } from "@/hooks/useProducts";
 import { useCategories } from "@/hooks/useCategories";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
@@ -92,17 +92,32 @@ export default function InventoryPage() {
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
   const [generatedSku, setGeneratedSku] = useState<string | null>(null);
 
-  const allProducts = products ?? [];
-  const allCategories = categories ?? [];
+  // Memoized so the derived arrays are referentially stable for the hooks below.
+  const allProducts = useMemo(() => products ?? [], [products]);
+  const allCategories = useMemo(() => categories ?? [], [categories]);
 
-  const filtered = allProducts.filter((p) => {
-    const matchCategory = !selectedCategory || p.categoryId === selectedCategory;
-    const matchSearch =
-      !search ||
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      (p.sku && p.sku.toLowerCase().includes(search.toLowerCase()));
-    return matchCategory && matchSearch && !p.deletedAt;
-  });
+  // O(1) category-name lookups in table rows instead of an O(C) scan per row.
+  const categoryMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (let i = 0; i < allCategories.length; i++) {
+      map.set(allCategories[i].id, allCategories[i].name);
+    }
+    return map;
+  }, [allCategories]);
+
+  // Memoized so typing in the modal form / toggling modal state does not
+  // re-lowercase and re-filter the whole catalogue on every render.
+  const filtered = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return allProducts.filter((p) => {
+      const matchCategory = !selectedCategory || p.categoryId === selectedCategory;
+      const matchSearch =
+        !query ||
+        p.name.toLowerCase().includes(query) ||
+        (p.sku && p.sku.toLowerCase().includes(query));
+      return matchCategory && matchSearch && !p.deletedAt;
+    });
+  }, [allProducts, selectedCategory, search]);
 
   const openAdd = () => {
     setEditing(null);
@@ -289,7 +304,7 @@ export default function InventoryPage() {
                       </div>
                     </td>
                     <td className="px-5 py-3 text-sm text-secondary hidden md:table-cell">
-                      {allCategories.find((c) => c.id === p.categoryId)?.name || "—"}
+                      {(p.categoryId && categoryMap.get(p.categoryId)) || "—"}
                     </td>
                     <td className="px-5 py-3 text-sm text-secondary text-right whitespace-nowrap">
                       {formatMoney(p.buyingPrice)}

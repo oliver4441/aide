@@ -86,7 +86,6 @@ export default function AdBanner() {
   const [idx, setIdx] = useState(0);
   const [visible, setVisible] = useState(true);
   const [dismissed, setDismissed] = useState(false);
-  const [fading, setFading] = useState(false);
   const idxRef = useRef(0);
 
   useEffect(() => {
@@ -99,13 +98,11 @@ export default function AdBanner() {
   }, []);
 
   useEffect(() => {
+    // Newsprint has no cross-fade motion: the next ad simply replaces the
+    // current one on the tick.
     const t = setInterval(() => {
-      setFading(true);
-      setTimeout(() => {
-        idxRef.current = (idxRef.current + 1) % ads.length;
-        setIdx(idxRef.current);
-        setFading(false);
-      }, 300);
+      idxRef.current = (idxRef.current + 1) % ads.length;
+      setIdx(idxRef.current);
     }, 6000);
     return () => clearInterval(t);
   }, []);
@@ -116,10 +113,7 @@ export default function AdBanner() {
 
   return (
     <div className="max-w-[1200px] mx-auto px-4 md:px-10 pt-3">
-      <div
-        className={`border border-rule p-2 flex items-center justify-between gap-3 ${fading ? "opacity-0" : "opacity-100"} font-reading`}
-        style={{ opacity: fading ? 0 : 1, transition: "opacity 300ms" }}
-      >
+      <div className="border border-rule p-2 flex items-center justify-between gap-3 font-reading">
         <span className="text-secondary shrink-0 hidden sm:block">{ad.icon}</span>
         <a
           href={ad.url}

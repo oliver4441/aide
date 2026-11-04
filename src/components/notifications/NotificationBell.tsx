@@ -98,7 +98,7 @@ export default function NotificationBell() {
                     onClick={() => openAtIndex(n)}
                     className={`group relative flex gap-3 border-b border-rule px-4 py-3 cursor-pointer ${!n.read ? "border-l-2 border-l-accent" : ""}`}
                   >
-                    <span className={`mt-1.5 h-2 w-2 shrink-0 border rounded-full ${dotColor[n.type]}`} />
+                    <span className={`mt-1.5 h-2 w-2 shrink-0 border rounded-none ${dotColor[n.type]}`} />
                     <div className="min-w-0 flex-1">
                       <p className={`text-[13px] ${!n.read ? "font-black text-ink" : "font-display text-secondary"}`}>
                         {n.title}

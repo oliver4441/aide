@@ -63,7 +63,7 @@ export default function DocsToc({ headings }: { headings: DocHeading[] }) {
               <a
                 href={`#${heading.id}`}
                 aria-current={active ? "true" : undefined}
-                className={`-ml-px block border-l-2 py-1 transition-colors ${
+                className={`-ml-px block border-l-2 py-1 ${
                   heading.level === 3 ? "pl-6" : "pl-3"
                 } ${
                   active

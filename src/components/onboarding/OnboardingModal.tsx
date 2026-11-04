@@ -87,7 +87,7 @@ export default function OnboardingModal({ storageKey, onClose }: { storageKey: s
             {STEPS.map((_, i) => (
               <div key={i} className="flex items-center">
                 <div
-                  className={`w-2.5 h-2.5 rounded-full ${
+                  className={`w-2.5 h-2.5 rounded-none ${
                     i <= step ? "bg-ink" : "bg-rule"
                   }`}
                 />

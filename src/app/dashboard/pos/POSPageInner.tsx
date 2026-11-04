@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useProducts } from "@/hooks/useProducts";
 import { useSales } from "@/hooks/useSales";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
@@ -31,7 +31,8 @@ export default function POSPage() {
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [initialProductHandled, setInitialProductHandled] = useState(false);
 
-  const allProducts = products ?? [];
+  // Memoized so the derived array is referentially stable for the hooks below.
+  const allProducts = useMemo(() => products ?? [], [products]);
   const filtered = allProducts.filter(
     (p) =>
       p.name.toLowerCase().includes(search.toLowerCase()) ||
