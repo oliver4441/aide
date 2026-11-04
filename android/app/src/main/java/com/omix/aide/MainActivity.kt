@@ -96,6 +96,13 @@ class MainActivity : ComponentActivity() {
      * The saved business settings, held as state so that changing the accent or
      * currency re-themes and re-formats the running app instead of only taking
      * effect after a restart.
+     *
+     * Read lazily on purpose: a property initializer runs inside the activity
+     * constructor, which is before the system has attached a base context, so
+     * `applicationContext` is still null there. Reading it eagerly threw an
+     * NPE from the constructor and crashed the app on every launch ("Aide
+     * keeps stopping" straight after install). The first access happens in
+     * onCreate, where the context exists.
      */
     private val settings by lazy { mutableStateOf(SettingsStore.read(applicationContext)) }
 
