@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -22,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.omix.aide.data.local.entities.ProductEntity
@@ -29,6 +31,7 @@ import com.omix.aide.ui.money
 import com.omix.aide.ui.moneyBare
 import com.omix.aide.ui.components.*
 import com.omix.aide.ui.theme.WarningAmber
+import com.omix.aide.ui.viewmodel.CashPaymentRules
 import com.omix.aide.ui.viewmodel.SellViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -40,6 +43,11 @@ fun SellScreen(
     val uiState by sellViewModel.uiState.collectAsState()
     var showCheckoutSheet by remember { mutableStateOf(false) }
     var isGridView by remember { mutableStateOf(true) }
+    val isCashPayment = uiState.paymentMethod == CashPaymentRules.CASH
+    val cashAmountIsValid = CashPaymentRules.isCashAmountSufficient(
+        uiState.subtotal,
+        uiState.amountPaid
+    )
 
     Column(modifier = Modifier.fillMaxSize()) {
         AideLocalOnlyBanner()
@@ -308,7 +316,9 @@ fun SellScreen(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     listOf("CASH", "MOBILE_MONEY", "CARD").forEach { method ->
@@ -318,13 +328,15 @@ fun SellScreen(
                             onClick = { sellViewModel.setPaymentMethod(method) },
                             label = {
                                 Text(
-                                    text = method.replace("_", " "),
+                                    text = when (method) {
+                                        "CASH" -> "Cash"
+                                        "MOBILE_MONEY" -> "Mobile money"
+                                        else -> "Card"
+                                    },
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                 )
                             },
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(44.dp),
+                            modifier = Modifier.height(48.dp),
                             shape = RoundedCornerShape(12.dp),
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = MaterialTheme.colorScheme.primary,
@@ -336,19 +348,36 @@ fun SellScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                OutlinedTextField(
-                    value = uiState.amountPaid,
-                    onValueChange = { sellViewModel.setAmountPaid(it) },
-                    label = { Text("Amount Received") },
-                    placeholder = { Text("%.2f".format(uiState.subtotal)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                    singleLine = true
-                )
+                if (isCashPayment) {
+                    OutlinedTextField(
+                        value = uiState.amountPaid,
+                        onValueChange = { sellViewModel.setAmountPaid(it) },
+                        label = { Text("Cash received") },
+                        placeholder = { Text("Exact total: ${moneyBare(uiState.subtotal)}") },
+                        supportingText = {
+                            Text(
+                                text = when {
+                                    !cashAmountIsValid -> "Enter at least ${money(uiState.subtotal)} to complete this sale."
+                                    else -> "Leave blank if the customer pays the exact total."
+                                }
+                            )
+                        },
+                        isError = !cashAmountIsValid,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        singleLine = true
+                    )
+                } else {
+                    Text(
+                        text = "${if (uiState.paymentMethod == "CARD") "Card" else "Mobile money"} payment is recorded as paid in full.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
 
-                // The notes a customer actually hands over: the exact total
-                // plus the usual round-ups. Restored after the UI overhaul
-                // dropped them, so the cashier is not typing at the till.
+                // Cashier-friendly tender shortcuts; non-cash methods are paid
+                // in full and do not need an amount-received field.
                 val quickAmounts = remember(uiState.subtotal) {
                     listOf(
                         uiState.subtotal,
@@ -357,7 +386,7 @@ fun SellScreen(
                         roundUpTo(uiState.subtotal, 1000.0)
                     ).filter { it > 0.0 }.distinct().take(4)
                 }
-                if (quickAmounts.isNotEmpty()) {
+                if (isCashPayment && quickAmounts.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(
                         modifier = Modifier
@@ -381,36 +410,44 @@ fun SellScreen(
 
                 // Change calculation
                 val paid = uiState.amountPaid.toDoubleOrNull()
-                if (paid != null && paid > 0.0) {
-                    val due = paid - uiState.subtotal
+                if (isCashPayment && paid != null && paid >= uiState.subtotal) {
+                    val change = paid - uiState.subtotal
                     Spacer(modifier = Modifier.height(12.dp))
                     AideCard(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = if (due >= 0) "Change due to customer" else "Balance owed",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Text(
-                                    text = money(kotlin.math.abs(due)),
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    fontFamily = FontFamily.Monospace,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (due >= 0) MaterialTheme.colorScheme.primary else WarningAmber
-                                )
-                            }
+                        Row(
+                            modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Change due",
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text(
+                                text = money(change),
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
                         }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(20.dp))
 
+                uiState.error?.let { message ->
+                    Text(
+                        text = message,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                }
+
                 AideButton(
-                    text = "Complete Sale • ${money(uiState.subtotal)}",
+                    text = "${if (isCashPayment) "Complete cash sale" else "Confirm sale"} • ${money(uiState.subtotal)}",
+                    enabled = uiState.cart.isNotEmpty() && (!isCashPayment || cashAmountIsValid),
                     onClick = {
                         sellViewModel.completeSale { saleId ->
                             showCheckoutSheet = false
