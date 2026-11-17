@@ -1,25 +1,36 @@
--- AIDE-02 — Organisation hierarchy backfill
--- ---------------------------------------------------------------
--- Gives every existing single-business account a parent Organization
--- so the new tenant model (Organization -> Business -> ... ) is
--- populated for legacy data.
+-- AIDE-02 — Organisation hierarchy backfill + NOT NULL hardening
+-- ------------------------------------------------------------------
+-- Gives every existing single-business account a parent Organization and
+-- tightens business."organizationId" to NOT NULL so the tenant model is
+-- enforced at the database level. New accounts already create their own
+-- Organization in the register / "create my business" / reviews flows, so
+-- this only needs to cover legacy rows.
 --
--- DEPLOY ORDER
---   1. `npx prisma db push`   -- creates the new tables and the nullable
---                                business."organizationId" FK column from the
---                                updated schema.prisma.
---   2. `psql "$DATABASE_URL" -f prisma/org-backfill.sql`
+-- IDEMPOTENT: safe to run more than once. On a fresh database (tables not yet
+-- created) run `npx prisma db push` first; on a database that already holds
+-- Business rows you may run this script first (it adds the column safely) and
+-- then `prisma db push` to reconcile the rest of the schema. Both steps are
+-- repeatable.
 --
--- This script is idempotent: re-running it is a no-op once every Business has
--- an Organization. It does NOT drop or alter column nullability — the
--- organizationId column stays nullable until AIDE-03 enforces org scoping
--- application-side (see docs/architecture/org-hierarchy.md).
+-- Recommended deploy order (either works):
+--   A) npx prisma db push
+--      psql "$DATABASE_URL" -f prisma/org-backfill.sql
+--   B) psql "$DATABASE_URL" -f prisma/org-backfill.sql
+--      npx prisma db push
+-- If `prisma db push` refuses to add a NOT NULL column to a populated table,
+-- use order (B).
 
 BEGIN;
 
--- 1. One Organization per existing Business (1:1). Use the Business slug as
---    the Org slug so the linkage below is deterministic, and because slugs are
---    already unique per Business.
+-- Make sure we can generate IDs on older Postgres too (no-op on pg13+ where
+-- gen_random_uuid() is part of core).
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+-- 0. Ensure the column exists as nullable. No-op if db push already created it.
+ALTER TABLE "Business" ADD COLUMN IF NOT EXISTS "organizationId" text;
+
+-- 1. One Organization per existing Business (1:1), keyed on the existing unique
+--    Business slug so the linkage below is deterministic.
 INSERT INTO "Organization" ("id", "name", "legalName", "slug", "taxId", "baseCurrency", "status", "createdAt", "updatedAt")
 SELECT
   gen_random_uuid(),
@@ -42,5 +53,24 @@ SET "organizationId" = o."id"
 FROM "Organization" o
 WHERE b."organizationId" IS NULL
   AND o."slug" = b."slug";
+
+-- 3. The column is now fully populated, so enforce NOT NULL.
+ALTER TABLE "Business" ALTER COLUMN "organizationId" SET NOT NULL;
+
+-- 4. Add the foreign key if it is not already present. prisma db push creates
+--    the same constraint (name Business_organizationId_fkey, ON DELETE RESTRICT);
+--    the guard keeps this script idempotent.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'Business_organizationId_fkey'
+  ) THEN
+    ALTER TABLE "Business"
+      ADD CONSTRAINT "Business_organizationId_fkey"
+      FOREIGN KEY ("organizationId") REFERENCES "Organization"("id")
+      ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 COMMIT;
