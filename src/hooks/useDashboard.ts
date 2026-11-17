@@ -66,9 +66,9 @@ export function useDashboard(businessId?: string): DashboardData {
 
     for (let i = 0; i < salesList.length; i++) {
       const s = salesList[i];
-      todayRevenue += s.total || 0;
-      todayProfit += s.profit || 0;
-      todayCost += s.cost || 0;
+      todayRevenue += Number(s.total) || 0;
+      todayProfit += Number(s.profit) || 0;
+      todayCost += Number(s.cost) || 0;
     }
 
     return {

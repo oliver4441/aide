@@ -137,7 +137,7 @@ export default function SettingsPage() {
       name: form.name,
       type: form.type,
       currency: form.currency,
-      taxRate: parseFloat(form.taxRate) || 16,
+      taxRate: (parseFloat(form.taxRate) || 16).toFixed(4),
       receiptFooter: form.receiptFooter,
     });
   };

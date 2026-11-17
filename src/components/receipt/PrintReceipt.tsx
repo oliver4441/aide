@@ -3,25 +3,30 @@
 import { createRoot } from "react-dom/client";
 import ReceiptDocument from "./ReceiptDocument";
 
-interface PrintSale {
+export interface PrintSale {
   id: string;
-  total: number;
-  cost?: number;
-  profit?: number;
-  paid: number;
-  change: number;
+  total: number | string;
+  cost?: number | string;
+  profit?: number | string;
+  paid: number | string;
+  change: number | string;
+  tax?: number | string;
+  taxRate?: number | string;
   paymentMethod: string;
-  items: { id?: string; name: string; quantity: number; price: number; cost?: number }[];
+  items: { id?: string; name: string; quantity: number; price: number | string; cost?: number | string }[];
   createdAt: string | Date;
   cashier?: string;
 }
 
-interface PrintBusiness {
+export interface PrintBusiness {
   name: string;
   type?: string;
   currency?: string;
-  taxRate?: number;
+  taxRate?: number | string;
   receiptFooter?: string;
+  id?: string;
+  slug?: string;
+  logoUrl?: string;
 }
 
 export function printReceipt(sale: PrintSale, business: PrintBusiness, shareUrl?: string) {

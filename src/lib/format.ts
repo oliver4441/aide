@@ -11,8 +11,19 @@ const defaultMoneyFormatter = new Intl.NumberFormat("en-KE", {
 
 const dateTimeFormatterCache = new Map<string, Intl.DateTimeFormat>();
 
-export function formatMoney(amount: number, currency: string = "KSh"): string {
-  return `${currency} ${defaultMoneyFormatter.format(Number(amount) || 0)}`;
+/**
+ * Converts a monetary value (number, string, or Prisma Decimal) to a number.
+ * Prisma Decimal is returned as a string from the driver to preserve precision.
+ */
+export function toMoneyNumber(value: number | string | null | undefined): number {
+  if (value === null || value === undefined) return 0;
+  if (typeof value === 'number') return value;
+  const n = Number(value);
+  return isNaN(n) ? 0 : n;
+}
+
+export function formatMoney(amount: number | string, currency: string = "KSh"): string {
+  return `${currency} ${defaultMoneyFormatter.format(toMoneyNumber(amount))}`;
 }
 
 export function formatDate(date: string | Date, opts?: Intl.DateTimeFormatOptions): string {

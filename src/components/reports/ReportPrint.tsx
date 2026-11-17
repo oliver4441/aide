@@ -5,26 +5,26 @@ import { formatMoney, formatDate } from "@/lib/format";
 
 interface ReportSale {
   id: string;
-  total: number;
-  cost: number;
-  profit: number;
-  paid: number;
-  change: number;
+  total: number | string;
+  cost: number | string;
+  profit: number | string;
+  paid: number | string;
+  change: number | string;
   paymentMethod: string;
-  items: { name: string; quantity: number; price: number; cost: number }[];
+  items: { name: string; quantity: number; price: number | string; cost: number | string }[];
   createdAt: string;
   cashier?: string;
 }
 
 interface ReportData {
   sales: ReportSale[];
-  totalRevenue: number;
-  totalCost: number;
-  totalProfit: number;
+  totalRevenue: number | string;
+  totalCost: number | string;
+  totalProfit: number | string;
   totalTransactions: number;
-  avgSale: number;
-  topProducts: { name: string; quantity: number; revenue: number }[];
-  paymentBreakdown: { method: string; count: number; total: number }[];
+  avgSale: number | string;
+  topProducts: { name: string; quantity: number; revenue: number | string }[];
+  paymentBreakdown: { method: string; count: number; total: number | string }[];
   dateRange: string;
 }
 
@@ -113,7 +113,7 @@ function ReportDocument({ data, businessName }: { data: ReportData; businessName
         <div className="np-report-card">
           <div className="np-report-label">Profit Margin</div>
           <div className="np-report-value">
-            {data.totalRevenue > 0 ? Math.round((data.totalProfit / data.totalRevenue) * 100) : 0}%
+            {Number(data.totalRevenue) > 0 ? Math.round((Number(data.totalProfit) / Number(data.totalRevenue)) * 100) : 0}%
           </div>
         </div>
       </div>
@@ -165,7 +165,7 @@ function ReportDocument({ data, businessName }: { data: ReportData; businessName
                   <td style={{ textAlign: "center" }}>{p.count}</td>
                   <td style={{ textAlign: "right", fontWeight: 700 }}>{formatMoney(p.total)}</td>
                   <td style={{ textAlign: "right" }}>
-                    {data.totalRevenue > 0 ? Math.round((p.total / data.totalRevenue) * 100) : 0}%
+                    {Number(data.totalRevenue) > 0 ? Math.round((Number(p.total) / Number(data.totalRevenue)) * 100) : 0}%
                   </td>
                 </tr>
               ))}
