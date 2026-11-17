@@ -153,6 +153,24 @@ org- and branch-scoped authorization server-side is explicitly **AIDE-03** work
 and is intentionally out of scope here so this change ships without touching
 every data route.
 
+### Authorization foundation (added this milestone)
+
+The shared, pure selection primitive `selectAccessible` (`src/lib/accessSelect.mjs`)
+is now used by `requireBusiness`, and two org-scoped resolvers were added to
+`src/lib/apiAuth.ts`:
+
+- `getAccessibleOrganizationIds(user)` — distinct orgs a user belongs to, via
+  their business memberships.
+- `resolveOrganization(requestedOrganizationId, request)` — mirrors
+  `requireBusiness` at the company level: a requested org is honoured only when
+  the caller is a member, otherwise it falls back to the first org. Never
+  returns an org the caller does not belong to.
+
+These are the primitives AIDE-03 (RBAC) will extend with role/permission
+checks; they do not yet enforce any role. A cross-tenant isolation unit test
+lives at `scripts/tests/org-access.test.mjs` (pure, no DB), covering the
+"never leak another tenant's id" rule.
+
 ## What is NOT in this milestone (follow-ups)
 
 - Org-scoped RBAC, invitations, suspension/offboarding → **AIDE-03**.
@@ -170,6 +188,7 @@ every data route.
   applicable location dimensions → `Organization` model + `Business.organizationId`
   present; location models added. (Enforcement is AIDE-03.) ✅ (schema)
 - Existing single-business accounts map safely → backfill script. ✅
-- Cross-organisation / cross-branch isolation tests specified → defined as
-  AIDE-03 acceptance work; not added here to avoid coupling this PR to the
-  auth refactor.
+- Cross-organisation / cross-branch isolation tests specified →
+  `scripts/tests/org-access.test.mjs` covers the cross-tenant selection rule, and
+  the org-scoped resolvers in `src/lib/apiAuth.ts` derive org scope from
+  business membership. Branch-dimension enforcement is AIDE-03 / AIDE-11 work.
