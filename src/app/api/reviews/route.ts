@@ -11,19 +11,53 @@ export const dynamic = "force-dynamic";
  * to whichever real tenant happens to be oldest in the database.
  */
 const PLATFORM_SLUG = "aide-platform-reviews";
+const PLATFORM_ORG_SLUG = "aide-platform";
+
+// Anonymous reviewers still need a businessId (the column is required). Keep one
+// dedicated platform Organisation + Business row for them instead of attributing
+// the review to whichever real tenant happens to be oldest in the database.
+async function getPlatformOrgId(): Promise<string> {
+  const existing = await prisma.organization.findUnique({
+    where: { slug: PLATFORM_ORG_SLUG },
+    select: { id: true },
+  });
+  if (existing) return existing.id;
+
+  const created = await prisma.organization.create({
+    data: {
+      name: "Aide (platform)",
+      legalName: "Aide (platform)",
+      slug: PLATFORM_ORG_SLUG,
+      baseCurrency: "KES",
+      status: "ACTIVE",
+    },
+    select: { id: true },
+  });
+  return created.id;
+}
 
 async function getPlatformBusinessId(): Promise<string> {
   const existing = await prisma.business.findUnique({
     where: { slug: PLATFORM_SLUG },
-    select: { id: true },
+    select: { id: true, organizationId: true },
   });
-  if (existing) return existing.id;
+  if (existing) {
+    // Self-heal legacy rows created before AIDE-02 (nullable organizationId).
+    if (!existing.organizationId) {
+      await prisma.business.update({
+        where: { id: existing.id },
+        data: { organizationId: await getPlatformOrgId() },
+      });
+    }
+    return existing.id;
+  }
 
   const created = await prisma.business.create({
     data: {
       name: "Aide (platform reviews)",
       type: "OTHER",
       slug: PLATFORM_SLUG,
+      organizationId: await getPlatformOrgId(),
     },
   });
   return created.id;

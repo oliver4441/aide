@@ -137,12 +137,13 @@ DDL and avoid a NOT-NULL migration on a populated table, `organizationId` is
   `src/app/api/business/route.ts` (the "create my business" endpoint), so the
   model stays coherent for future accounts too.
 
-### Known tolerated exception
+### Platform placeholder (resolved)
 
 `src/app/api/reviews/route.ts` lazily creates a single platform placeholder
-`Business` (`aide-platform-reviews`) to attribute anonymous reviews. That row
-keeps a `NULL organizationId` — acceptable for a non-operational placeholder.
-AIDE-03 (or a cleanup PR) can introduce a platform Organization for it.
+`Business` (`aide-platform-reviews`) to attribute anonymous reviews. It now also
+creates a platform `Organization` (`aide-platform`) and links the placeholder to
+it, and self-heals any legacy placeholder row that predates AIDE-02 (nullable
+`organizationId`). So every `Business` is org-owned; no row is left unlinked.
 
 ## Tenant isolation (unchanged this milestone)
 
