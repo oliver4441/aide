@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { authOptions } from "./auth";
 import { verifyToken } from "./mobileAuth";
 import { prisma } from "./prisma";
+import { selectAccessible } from "./accessSelect.mjs";
 
 export type SessionUser = {
   id: string;
@@ -101,11 +102,8 @@ export async function requireBusiness(
     throw new UnauthorizedError("No business membership");
   }
 
-  if (requestedBusinessId && businessIds.includes(requestedBusinessId)) {
-    return { user, businessId: requestedBusinessId, businessIds };
-  }
-
-  return { user, businessId: businessIds[0], businessIds };
+  const businessId = selectAccessible(requestedBusinessId, businessIds) ?? businessIds[0];
+  return { user, businessId, businessIds };
 }
 
 /**
@@ -119,6 +117,59 @@ export async function canAccessBusiness(user: SessionUser, businessId?: string |
     select: { id: true },
   });
   return Boolean(membership);
+}
+
+/**
+ * The distinct Organizations a user belongs to, derived from their business
+ * memberships (Business -> Organization). Null organizationIds are skipped:
+ * before the AIDE-02 backfill some legacy rows may still be unlinked, and they
+ * simply do not grant organization scope.
+ *
+ * This is the foundation AIDE-03 (RBAC) builds on — it does not itself enforce
+ * any role or permission; it only answers "which orgs can this user see?".
+ */
+export async function getAccessibleOrganizationIds(user: SessionUser): Promise<string[]> {
+  const memberships = await prisma.businessMembership.findMany({
+    where: { userId: user.id },
+    select: { business: { select: { organizationId: true } } },
+  });
+  const ids = memberships
+    .map((m) => m.business?.organizationId)
+    .filter((id): id is string => Boolean(id));
+  return Array.from(new Set(ids));
+}
+
+/**
+ * Resolves the Organization to operate on and asserts the caller belongs to it,
+ * mirroring `requireBusiness` but at the company level.
+ *
+ * A caller-supplied `organizationId` is only honoured when the caller is a
+ * member; otherwise we fall back to their first organization. Never returns an
+ * organization the caller does not belong to. Cross-organization isolation is
+ * enforced here; per-role authorization is AIDE-03.
+ */
+export async function resolveOrganization(
+  requestedOrganizationId?: string | null,
+  request?: NextRequest
+): Promise<{
+  user: SessionUser;
+  organizationId: string;
+  organizationIds: string[];
+  businessIds: string[];
+}> {
+  const user = await requireUser(request);
+  const businessIds = await getAccessibleBusinessIds(user);
+  if (businessIds.length === 0) {
+    throw new UnauthorizedError("No business membership");
+  }
+
+  const organizationIds = await getAccessibleOrganizationIds(user);
+  if (organizationIds.length === 0) {
+    throw new UnauthorizedError("No organization membership");
+  }
+
+  const organizationId = selectAccessible(requestedOrganizationId, organizationIds) ?? organizationIds[0];
+  return { user, organizationId, organizationIds, businessIds };
 }
 
 export function toAuthError(err: unknown): NextResponse {

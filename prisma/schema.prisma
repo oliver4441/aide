@@ -64,6 +64,155 @@ model Business {
   reviews       Review[]
   notifications Notification[]
   notificationPrefs NotificationPreference[]
+
+  // Top-level tenant (legal entity / company). A Business is the operational
+  // unit (branch / store) that belongs to an Organization. Nullable for the
+  // transition window; see docs/architecture/org-hierarchy.md.
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  organizationId String?
+
+  @@index([organizationId])
+}
+
+// Legal entity / company that owns one or more businesses (branches / stores)
+// and the location dimensions below. Introduced by AIDE-02.
+model Organization {
+  id            String    @id @default(cuid())
+  name          String
+  legalName     String?
+  slug          String    @unique
+  taxId         String?
+  baseCurrency  String    @default("KES")
+  status        OrgStatus @default(ACTIVE)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  businesses      Business[]
+  departments     Department[]
+  warehouses      Warehouse[]
+  stockLocations  StockLocation[]
+  terminals       POSTerminal[]
+  cashDrawers     CashDrawer[]
+}
+
+enum OrgStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+// Org sub-unit used for cost centres and responsibility boundaries.
+model Department {
+  id             String       @id @default(cuid())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+  name           String
+  code           String?
+  costCentre     String?
+  parent         Department?  @relation("DepartmentHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  parentId       String?
+  children       Department[] @relation("DepartmentHierarchy")
+  active         Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@index([parentId])
+}
+
+enum WarehouseType {
+  WAREHOUSE
+  STOCK_ROOM
+}
+
+// A warehouse or stock room. Optionally tied to a branch (Business).
+model Warehouse {
+  id             String        @id @default(cuid())
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+  branch         Business?     @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  branchId       String?
+  name           String
+  code           String?
+  type           WarehouseType @default(WAREHOUSE)
+  address        String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  stockLocations StockLocation[]
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@index([branchId])
+}
+
+// A bin / shelf / zone inside a warehouse.
+model StockLocation {
+  id             String       @id @default(cuid())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+  warehouse      Warehouse    @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  warehouseId    String
+  name           String
+  code           String?
+  zone           String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  terminals      POSTerminal[]
+  @@unique([warehouseId, code])
+  @@index([organizationId])
+  @@index([warehouseId])
+}
+
+// A POS terminal / checkout lane. Optional branch + stock-location association.
+model POSTerminal {
+  id             String         @id @default(cuid())
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+  branch         Business?      @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  branchId       String?
+  location       StockLocation? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  locationId     String?
+  name           String
+  code           String?
+  active         Boolean        @default(true)
+  openedAt       DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  cashDrawers    CashDrawer[]
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@index([branchId])
+  @@index([locationId])
+}
+
+enum CashDrawerStatus {
+  CLOSED
+  OPEN
+}
+
+// A physical cash drawer, optionally assigned to a terminal / branch.
+model CashDrawer {
+  id             String           @id @default(cuid())
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+  branch         Business?        @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  branchId       String?
+  terminal       POSTerminal?     @relation(fields: [terminalId], references: [id], onDelete: SetNull)
+  terminalId     String?
+  name           String
+  code           String?
+  status         CashDrawerStatus @default(CLOSED)
+  openedAt       DateTime?
+  openedBy       String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@index([branchId])
+  @@index([terminalId])
 }
 
 enum BusinessType {

@@ -132,6 +132,25 @@ export async function POST(request: NextRequest) {
   const slugBase = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "business";
   const slug = `${slugBase}-${Date.now().toString(36)}`;
 
+  // A new business also gets its own Organization (the company) so it is
+  // tenant-scoped from creation. AIDE-02 / AIDE-03 extend this with
+  // multi-org membership and RBAC.
+  const orgSlugBase = slugBase === "business" ? "org" : slugBase;
+  let orgSlug = `${orgSlugBase}-${Date.now().toString(36)}`;
+  for (let i = 0; i < 10 && (await prisma.organization.findUnique({ where: { slug: orgSlug }, select: { id: true } })); i++) {
+    orgSlug = `${orgSlugBase}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+  }
+  const organization = await prisma.organization.create({
+    data: {
+      name,
+      legalName: name,
+      slug: orgSlug,
+      baseCurrency: "KES",
+      status: "ACTIVE",
+    },
+    select: { id: true },
+  });
+
   const business = await prisma.business.create({
     data: {
       name,
@@ -139,6 +158,7 @@ export async function POST(request: NextRequest) {
       slug,
       currency: "KSh",
       taxRate: 16,
+      organizationId: organization.id,
       memberships: {
         create: { userId, role: "OWNER" },
       },
