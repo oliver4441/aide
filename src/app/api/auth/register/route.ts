@@ -27,6 +27,26 @@ async function uniqueSlug(name: string): Promise<string> {
   return `${base}-${Date.now()}`;
 }
 
+/** Derives a unique, URL-safe slug for an Organization. */
+async function uniqueOrgSlug(name: string): Promise<string> {
+  const base =
+    name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 40) || "org";
+
+  for (let i = 0; i < 20; i++) {
+    const candidate = i === 0 ? base : `${base}-${Math.random().toString(36).slice(2, 6)}`;
+    const taken = await prisma.organization.findUnique({
+      where: { slug: candidate },
+      select: { id: true },
+    });
+    if (!taken) return candidate;
+  }
+  return `${base}-${Date.now()}`;
+}
+
 export async function POST(request: NextRequest) {
   let body: { name?: string; email?: string; password?: string; businessName?: string };
   try {
@@ -71,6 +91,20 @@ export async function POST(request: NextRequest) {
       select: { id: true, email: true, name: true },
     });
 
+    // Each new account owns one Organization (the company); its first Business
+    // is the initial branch/store under that org. AIDE-02 / AIDE-03 build the
+    // multi-org, multi-branch and RBAC layers on top of this.
+    const organization = await tx.organization.create({
+      data: {
+        name: businessName,
+        legalName: businessName,
+        slug: await uniqueOrgSlug(businessName),
+        baseCurrency: "KES",
+        status: "ACTIVE",
+      },
+      select: { id: true },
+    });
+
     const business = await tx.business.create({
       data: {
         name: businessName,
@@ -78,6 +112,7 @@ export async function POST(request: NextRequest) {
         slug: await uniqueSlug(businessName),
         currency: "KSh",
         taxRate: 16,
+        organizationId: organization.id,
       },
       select: { id: true, name: true },
     });
