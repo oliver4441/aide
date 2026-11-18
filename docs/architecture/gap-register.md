@@ -27,7 +27,7 @@
 | AUTH-05 | Session management (refresh, expiry) | ✅ | N/A | ✅ | — | NextAuth JWT cookie |
 | AUTH-06 | Password reset / recovery | ❌ | N/A | ❌ | — | No forgot-password flow |
 | AUTH-07 | MFA / 2FA | ❌ | N/A | ❌ | AIDE-19 | Security hardening |
-| AUTH-08 | Role-based access (Owner/Manager/Staff) | ✅ | N/A | ✅ | — | `BusinessMembership.role` |
+| AUTH-08 | Role-based access (Owner/Manager/Staff) | ✅ | N/A | 🟡 | AIDE-03 | `BusinessMembership.role` exists; enforcement partial |
 | AUTH-09 | Employee invitation flow | ❌ | N/A | ❌ | AIDE-03 | Invite link + role assignment |
 | AUTH-10 | Access revocation / deprovisioning | ❌ | N/A | ❌ | AIDE-03 | Remove membership |
 | AUTH-11 | Audit log of auth events | ❌ | N/A | ❌ | AIDE-19 | Login, role change, revoke |
@@ -40,8 +40,8 @@
 |----|------------|-----|---------|--------|-------|-------|
 | TEN-01 | Single business per user | ✅ | ✅ (local) | ✅ | — | `BusinessMembership` |
 | TEN-02 | Multi-business per user | ✅ | ✅ (local) | ✅ | — | Multiple memberships |
-| TEN-03 | Organization (parent of businesses) | ✅ | ❌ | 🟡 | AIDE-02 | PR #66 merged; Android not migrated |
-| TEN-04 | Location/branch under organization | ✅ | ❌ | 🟡 | AIDE-02 | PR #66 merged; Android not migrated |
+| TEN-03 | Organization (parent of businesses) | ✅ | ❌ | 🟡 | AIDE-02 | PR #68 merged; Android not migrated |
+| TEN-04 | Location/branch under organization | ✅ | ❌ | 🟡 | AIDE-02 | PR #68 merged; Android not migrated |
 | TEN-05 | Department/cost center | ❌ | ❌ | ❌ | AIDE-02 | Future |
 | TEN-06 | Cross-business reporting (consolidated) | ❌ | ❌ | ❌ | AIDE-14 | Head-office view |
 | TEN-07 | Business settings (currency, tax, footer) | ✅ | ✅ (local) | ✅ | — | `/api/business` PATCH |
@@ -164,7 +164,7 @@
 | ACC-11 | Bank reconciliation | ❌ | ❌ | ❌ | AIDE-16 | |
 | ACC-12 | Multi-currency | ❌ | ❌ | ❌ | AIDE-14 | |
 | ACC-13 | Consolidated accounts (multi-entity) | ❌ | ❌ | ❌ | AIDE-14 | |
-| ACC-14 | Monetary precision (Decimal not Float) | ❌ | ❌ | ❌ | AIDE-04 | Prisma `Float` → PostgreSQL `double precision` |
+| ACC-14 | Monetary precision (Decimal not Float) | ✅ | ❌ | 🟡 | AIDE-04 | Web: Decimal(19,4) migrated; Android: still Float |
 
 ---
 
@@ -257,8 +257,8 @@
 
 | Migration | Risk Level | Blocking Issue | Rollback Plan |
 |-----------|------------|----------------|---------------|
-| Float → Decimal (monetary) | 🔴 **High** | AIDE-04 | Dual-column backfill; compensating migration |
-| Org/Location hierarchy (PR #66) | 🟡 **Medium** | AIDE-02 (done) | Backfill script reversible; queries scoped to `businessId` |
+| Float → Decimal (monetary) | ✅ **Done** | AIDE-04 (done) | Dual-column backfill + Phase 2 cutover complete |
+| Org/Location hierarchy (PR #68) | ✅ **Done** | AIDE-02 (done) | Backfill script reversible; queries scoped to `businessId` |
 | Android Room v4 migration | 🟢 **Low** | — | Explicit migrations tested; no destructive fallback |
 | Sync conflict resolver changes | 🟡 **Medium** | AIDE-18 | Deterministic; conflicts surfaced for review |
 | Desktop build removal | 🟢 **Low** | #19 (done) | Assets left on GitHub Releases |
@@ -267,8 +267,10 @@
 
 ## 15. Recommended Next Actions (Priority Order)
 
-1. **AIDE-04** — Migrate monetary fields to exact decimal arithmetic (blocks accounting)
+1. **AIDE-04** ✅ — Decimal migration complete (web Prisma + Neon done, Android pending)
 2. **AIDE-03** — Tenant-scoped RBAC, employee membership, access lifecycle (unlocks multi-user)
+   - ✅ All 8 API routes now use `requireBusiness()` for membership-based tenant isolation
+   - ❌ Employee profiles, invitation flow, role templates still missing
 3. **AIDE-05** — Double-entry accounting schema + central posting engine (core value)
 4. **AIDE-18** — Shared offline-first multi-user (Android sync) — strategic differentiator
 5. **AIDE-06** — Connect POS/payments/expenses to GL (closes loop)
