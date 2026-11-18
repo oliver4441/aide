@@ -103,9 +103,9 @@ export default function ReportsPage() {
 
     for (let i = 0; i < totalTransactions; i++) {
       const sale = sales[i];
-      const saleTotal = sale.total || 0;
-      const saleCost = sale.cost || 0;
-      const saleProfit = sale.profit || 0;
+      const saleTotal = Number(sale.total) || 0;
+      const saleCost = Number(sale.cost) || 0;
+      const saleProfit = Number(sale.profit) || 0;
 
       totalRevenue += saleTotal;
       totalCost += saleCost;
@@ -143,7 +143,7 @@ export default function ReportsPage() {
             prodMap[item.name] = p;
           }
           p.quantity += item.quantity;
-          p.revenue += item.price * item.quantity;
+          p.revenue += Number(item.price) * item.quantity;
         }
       }
 

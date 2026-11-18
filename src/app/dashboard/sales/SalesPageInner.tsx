@@ -52,7 +52,7 @@ export default function SalesPage() {
   const { total, totalRevenue } = useMemo(() => {
     let sum = 0;
     for (let i = 0; i < sales.length; i++) {
-      sum += sales[i].total || 0;
+      sum += Number(sales[i].total) || 0;
     }
     return { total: sales.length, totalRevenue: sum };
   }, [sales]);
