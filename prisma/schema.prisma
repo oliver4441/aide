@@ -66,10 +66,12 @@ model Business {
   notificationPrefs NotificationPreference[]
 
   // Top-level tenant (legal entity / company). A Business is the operational
-  // unit (branch / store) that belongs to an Organization. Nullable for the
-  // transition window; see docs/architecture/org-hierarchy.md.
-  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  organizationId String?
+  // unit (branch / store) that belongs to an Organization. Required: every
+  // Business is linked to exactly one Organization. Legacy rows are backfilled
+  // and the column tightened to NOT NULL by prisma/org-backfill.sql (see
+  // docs/architecture/org-hierarchy.md).
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  organizationId String
 
   @@index([organizationId])
 }

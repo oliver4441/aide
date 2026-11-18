@@ -58,7 +58,7 @@ erDiagram
     }
     Business {
         string id PK
-        string organizationId FK "nullable (transition)"
+        string organizationId FK "NOT NULL"
     }
     Department {
         string id PK
@@ -96,9 +96,10 @@ erDiagram
 
 - `enum OrgStatus { ACTIVE ARCHIVED }`
 - `model Organization` — the company. `slug` is unique; one per legal entity.
-- `Business.organization` / `Business.organizationId` — **optional** relation
-  (`String?`) with `onDelete: Restrict`, plus `@@index([organizationId])`.
-  Optional on purpose (see Migration strategy).
+- `Business.organization` / `Business.organizationId` — **required** relation
+  (`String`, NOT NULL) with `onDelete: Restrict`, plus `@@index([organizationId])`.
+  Every Business is linked to exactly one Organization; legacy rows are backfilled
+  and the column is tightened to NOT NULL by `prisma/org-backfill.sql`.
 - `model Department` — `organizationId`, optional `parentId` self-relation
   (`DepartmentHierarchy`), `costCentre`, `active`. Unique `(organizationId, name)`.
 - `enum WarehouseType { WAREHOUSE STOCK_ROOM }`
@@ -116,17 +117,20 @@ except where a nullable `branchId`/`locationId`/`terminalId` uses `SetNull`.
 `Business.organization` uses `Restrict` so an org that still owns businesses
 cannot be deleted.
 
-## Migration strategy (backwards-compatible)
+## Migration strategy (backwards-compatible for existing data)
 
 The repo applies schema via `prisma db push` (no Prisma migrations folder, and
-CI only runs `tsc` + `next build`). To keep `db push` as the single source of
-DDL and avoid a NOT-NULL migration on a populated table, `organizationId` is
-**nullable** in the schema:
+CI only runs `tsc` + `next build`). `business.organizationId` is a **required,
+NOT NULL** column; `prisma/org-backfill.sql` is what makes that safe on a
+populated database:
 
-1. `npx prisma db push` creates the new tables and a nullable
-   `business."organizationId"` FK column (no data risk).
+1. `npx prisma db push` creates the new tables and the
+   `business."organizationId"` FK column. On a database that already contains
+   Business rows, run the backfill (step 2) first so the column is added and
+   populated as nullable before it is tightened to NOT NULL.
 2. `psql "$DATABASE_URL" -f prisma/org-backfill.sql` creates one Organization
-   per existing Business (slug-derived) and links them. Idempotent / re-runnable.
+   per existing Business (slug-derived), links every Business, then `ALTER`s the
+   column to `NOT NULL` and adds the FK. Idempotent / re-runnable.
 
 ### Existing single-business accounts
 
@@ -174,8 +178,9 @@ lives at `scripts/tests/org-access.test.mjs` (pure, no DB), covering the
 ## What is NOT in this milestone (follow-ups)
 
 - Org-scoped RBAC, invitations, suspension/offboarding → **AIDE-03**.
-- Tightening `business.organizationId` to `NOT NULL` once org creation is
-  guaranteed everywhere and AIDE-03 enforces it.
+- ~~Tightening `business.organizationId` to `NOT NULL`~~ — **done**: the column is
+  now required in the schema and `prisma/org-backfill.sql` enforces it (populate
+  + `SET NOT NULL` + FK) on existing data.
 - Moving the operational boundary from `businessId` to
   `organizationId` + branch dimensions in data routes and the sync engine.
 - Cashier shifts / till float on `CashDrawer` → **AIDE-11**.
