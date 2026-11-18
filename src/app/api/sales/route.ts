@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireBusiness, toAuthError } from "@/lib/apiAuth";
+import { postSale, seedChartOfAccounts } from "@/lib/accounting/post";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,10 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
 
+    // Calculate tax from business settings
+    const taxRate = body.taxRate || 0;
+    const taxMultiplier = taxRate / 100;
+
     // Create sale with items in a transaction
     const sale = await prisma.$transaction(async (tx) => {
       let total = 0;
@@ -54,11 +59,18 @@ export async function POST(request: NextRequest) {
         };
       });
 
+      // VAT-inclusive tax: tax = total - total/(1+rate/100)
+      const tax = taxMultiplier > 0
+        ? total - total / (1 + taxMultiplier)
+        : 0;
+
       const created = await tx.sale.create({
         data: {
           total,
           cost,
           profit: total - cost,
+          tax,
+          taxRate: taxRate,
           paid: body.paid || total,
           change: (body.paid || total) - total,
           paymentMethod: body.paymentMethod || "CASH",
@@ -81,6 +93,28 @@ export async function POST(request: NextRequest) {
 
       return created;
     });
+
+    // Auto-seed chart of accounts if this is the first sale
+    const accountCount = await prisma.account.count({ where: { businessId } });
+    if (accountCount === 0) {
+      await seedChartOfAccounts(businessId);
+    }
+
+    // Auto-post sale to general ledger (non-blocking — don't fail the sale if posting fails)
+    try {
+      await postSale({
+        businessId,
+        saleId: sale.id,
+        total: Number(sale.total),
+        cost: Number(sale.cost),
+        tax: Number(sale.tax),
+        paymentMethod: sale.paymentMethod,
+        date: sale.createdAt,
+      });
+    } catch (postingErr) {
+      // Log but don't fail the sale — GL posting can be retried
+      console.error(`[AIDE-06] Failed to post sale ${sale.id} to GL:`, postingErr);
+    }
 
     return NextResponse.json(sale, { status: 201 });
   } catch (err) {

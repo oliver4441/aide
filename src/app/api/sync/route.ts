@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireBusiness, canAccessBusiness, toAuthError } from "@/lib/apiAuth";
 import { resolveConflict, checkStockOversell } from "@/lib/conflicts";
+import { postSale, seedChartOfAccounts } from "@/lib/accounting/post";
 
 export const dynamic = "force-dynamic";
 
@@ -192,8 +193,8 @@ async function handleSaleMutation(
     : businessIds[0];
   if (!businessId) return;
 
-  await prisma.$transaction(async (tx) => {
-    const created = await tx.sale.create({
+  const created = await prisma.$transaction(async (tx) => {
+    const sale = await tx.sale.create({
       data: {
         id: recordId,
         total: saleData.total,
@@ -218,7 +219,7 @@ async function handleSaleMutation(
           quantity: item.quantity,
           price: item.price,
           cost: item.cost,
-          saleId: created.id,
+          saleId: sale.id,
           productId: item.productId || null,
         },
       });
@@ -254,7 +255,30 @@ async function handleSaleMutation(
         }
       }
     }
+
+    return sale;
   });
+
+  // Auto-seed chart of accounts if this is the first sale
+  const accountCount = await prisma.account.count({ where: { businessId } });
+  if (accountCount === 0) {
+    await seedChartOfAccounts(businessId);
+  }
+
+  // Auto-post synced sale to general ledger (non-blocking)
+  try {
+    await postSale({
+      businessId,
+      saleId: created.id,
+      total: Number(created.total),
+      cost: Number(created.cost),
+      tax: Number(created.tax),
+      paymentMethod: created.paymentMethod,
+      date: created.createdAt,
+    });
+  } catch (postingErr) {
+    console.error(`[AIDE-06] Failed to post synced sale ${created.id} to GL:`, postingErr);
+  }
 }
 
 export async function GET(request: NextRequest) {

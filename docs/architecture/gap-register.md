@@ -154,17 +154,18 @@
 | ACC-01 | Chart of accounts | ✅ | ❌ | 🟡 | AIDE-05 | 22 standard accounts seeded on first use |
 | ACC-02 | Double-entry journal entries | ✅ | ❌ | 🟡 | AIDE-05 | Central posting engine with balance enforcement |
 | ACC-03 | General ledger | ✅ | ❌ | 🟡 | AIDE-05 | JournalEntry + JournalLine models, queryable via API |
-| ACC-04 | Trial balance | ❌ | ❌ | ❌ | AIDE-07 | |
-| ACC-05 | Profit & Loss (P&L) | ❌ | ❌ | ❌ | AIDE-07 | |
-| ACC-06 | Balance Sheet | ❌ | ❌ | ❌ | AIDE-07 | |
-| ACC-07 | Cash Flow Statement | ❌ | ❌ | ❌ | AIDE-07 | |
-| ACC-08 | Accounting periods (open/close) | ❌ | ❌ | ❌ | AIDE-07 | |
-| ACC-09 | Year-end closing | ❌ | ❌ | ❌ | AIDE-07 | |
-| ACC-10 | Fixed assets / depreciation | ❌ | ❌ | ❌ | AIDE-07 | |
-| ACC-11 | Bank reconciliation | ❌ | ❌ | ❌ | AIDE-16 | |
-| ACC-12 | Multi-currency | ❌ | ❌ | ❌ | AIDE-14 | |
-| ACC-13 | Consolidated accounts (multi-entity) | ❌ | ❌ | ❌ | AIDE-14 | |
-| ACC-14 | Monetary precision (Decimal not Float) | ✅ | ❌ | 🟡 | AIDE-04 | Web: Decimal(19,4) migrated; Android: still Float |
+| ACC-04 | POS → GL auto-post | ✅ | ❌ | 🟡 | AIDE-06 | Every sale (direct + sync) posts balanced journal entries |
+| ACC-05 | Trial balance | ❌ | ❌ | ❌ | AIDE-07 | |
+| ACC-06 | Profit & Loss (P&L) | ❌ | ❌ | ❌ | AIDE-07 | |
+| ACC-07 | Balance Sheet | ❌ | ❌ | ❌ | AIDE-07 | |
+| ACC-08 | Cash Flow Statement | ❌ | ❌ | ❌ | AIDE-07 | |
+| ACC-09 | Accounting periods (open/close) | ❌ | ❌ | ❌ | AIDE-07 | |
+| ACC-10 | Year-end closing | ❌ | ❌ | ❌ | AIDE-07 | |
+| ACC-11 | Fixed assets / depreciation | ❌ | ❌ | ❌ | AIDE-07 | |
+| ACC-12 | Bank reconciliation | ❌ | ❌ | ❌ | AIDE-16 | |
+| ACC-13 | Multi-currency | ❌ | ❌ | ❌ | AIDE-14 | |
+| ACC-14 | Consolidated accounts (multi-entity) | ❌ | ❌ | ❌ | AIDE-14 | |
+| ACC-15 | Monetary precision (Decimal not Float) | ✅ | ❌ | 🟡 | AIDE-04 | Web: Decimal(19,4) migrated; Android: still Float |
 
 ---
 
@@ -274,10 +275,13 @@
 3. **AIDE-05** ✅ — Double-entry accounting: chart of accounts, journal entries, posting engine
    - ✅ 22 standard accounts auto-seeded per business
    - ✅ Central posting engine with balance enforcement
-   - ✅ Sale auto-posting to GL (revenue, COGS, inventory, VAT)
    - ✅ Entry reversal, account balance queries
    - ❌ Android not migrated
-4. **AIDE-06** — Connect POS to GL (auto-post on sale creation)
+4. **AIDE-06** ✅ — Connect POS to GL (auto-post on sale creation)
+   - ✅ Direct sales API auto-posts to GL after each sale
+   - ✅ Synced offline sales auto-post on sync
+   - ✅ Chart of accounts auto-seeded on first sale
+   - ✅ Non-blocking — sale succeeds even if GL posting fails
 5. **AIDE-07** — Core financial statements (P&L, BS, CF) + period controls
 6. **AIDE-18** — Shared offline-first multi-user (Android sync) — strategic differentiator
 7. **AIDE-08** — Customers, quotations, invoices, AR (revenue cycle)
