@@ -155,11 +155,11 @@
 | ACC-02 | Double-entry journal entries | ✅ | ❌ | 🟡 | AIDE-05 | Central posting engine with balance enforcement |
 | ACC-03 | General ledger | ✅ | ❌ | 🟡 | AIDE-05 | JournalEntry + JournalLine models, queryable via API |
 | ACC-04 | POS → GL auto-post | ✅ | ❌ | 🟡 | AIDE-06 | Every sale (direct + sync) posts balanced journal entries |
-| ACC-05 | Trial balance | ❌ | ❌ | ❌ | AIDE-07 | |
-| ACC-06 | Profit & Loss (P&L) | ❌ | ❌ | ❌ | AIDE-07 | |
-| ACC-07 | Balance Sheet | ❌ | ❌ | ❌ | AIDE-07 | |
-| ACC-08 | Cash Flow Statement | ❌ | ❌ | ❌ | AIDE-07 | |
-| ACC-09 | Accounting periods (open/close) | ❌ | ❌ | ❌ | AIDE-07 | |
+| ACC-05 | Trial balance | ✅ | ❌ | 🟡 | AIDE-07 | Verifies debits = credits across all accounts |
+| ACC-06 | Profit & Loss (P&L) | ✅ | ❌ | 🟡 | AIDE-07 | Revenue, COGS, operating expenses, net profit |
+| ACC-07 | Balance Sheet | ✅ | ❌ | 🟡 | AIDE-07 | Assets = Liabilities + Equity, retained earnings |
+| ACC-08 | Cash Flow Statement | ✅ | ❌ | 🟡 | AIDE-07 | Operating, investing, financing activities |
+| ACC-09 | Accounting periods (open/close) | ✅ | ❌ | 🟡 | AIDE-07 | Period CRUD, close/lock controls, role-gated |
 | ACC-10 | Year-end closing | ❌ | ❌ | ❌ | AIDE-07 | |
 | ACC-11 | Fixed assets / depreciation | ❌ | ❌ | ❌ | AIDE-07 | |
 | ACC-12 | Bank reconciliation | ❌ | ❌ | ❌ | AIDE-16 | |
@@ -282,7 +282,14 @@
    - ✅ Synced offline sales auto-post on sync
    - ✅ Chart of accounts auto-seeded on first sale
    - ✅ Non-blocking — sale succeeds even if GL posting fails
-5. **AIDE-07** — Core financial statements (P&L, BS, CF) + period controls
+5. **AIDE-07** ✅ — Core financial statements (P&L, BS, CF) + period controls
+   - ✅ Profit & Loss: revenue, COGS, operating expenses, net profit
+   - ✅ Balance Sheet: assets = liabilities + equity, retained earnings
+   - ✅ Cash Flow: operating, investing, financing activities
+   - ✅ Trial Balance: verifies debits = credits
+   - ✅ Accounting periods: CRUD, close/lock, role-gated
+   - ❌ Android not migrated
+   - ❌ Year-end closing, fixed assets/depreciation still missing
 6. **AIDE-18** — Shared offline-first multi-user (Android sync) — strategic differentiator
 7. **AIDE-08** — Customers, quotations, invoices, AR (revenue cycle)
 8. **AIDE-09** — Suppliers, purchasing, GRN, AP (procurement cycle)
