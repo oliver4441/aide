@@ -69,8 +69,8 @@ export async function GET() {
     }),
   ]);
 
-  const todayTotal = todaySales._sum.total ?? 0;
-  const yesterdayTotal = yesterdaySales._sum.total ?? 0;
+  const todayTotal = Number(todaySales._sum.total ?? 0);
+  const yesterdayTotal = Number(yesterdaySales._sum.total ?? 0);
   const salesChange = yesterdayTotal > 0 ? ((todayTotal - yesterdayTotal) / yesterdayTotal * 100) : 0;
 
   return NextResponse.json({

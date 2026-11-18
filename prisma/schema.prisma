@@ -48,7 +48,7 @@ model Business {
   type          BusinessType
   slug          String    @unique
   currency      String    @default("KSh")
-  taxRate       Float     @default(0)
+  taxRate       Decimal   @default(0) @db.Decimal(19, 4)
   receiptFooter String?
   logoUrl       String?
   createdAt     DateTime  @default(now())
@@ -72,6 +72,11 @@ model Business {
   // docs/architecture/org-hierarchy.md).
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   organizationId String
+
+  // Inverse sides for optional branch→Business relations (AIDE-02).
+  warehouses  Warehouse[]
+  terminals   POSTerminal[]
+  cashDrawers CashDrawer[]
 
   @@index([organizationId])
 }
@@ -267,8 +272,8 @@ model Product {
   id            String   @id @default(cuid())
   name          String
   sku           String?
-  buyingPrice   Float
-  sellingPrice  Float
+  buyingPrice   Decimal  @db.Decimal(19, 4)
+  sellingPrice  Decimal  @db.Decimal(19, 4)
   quantity      Int      @default(0)
   lowStock      Int      @default(5)
   isService     Boolean  @default(false)
@@ -289,13 +294,13 @@ model Product {
 // Sales transactions
 model Sale {
   id            String   @id @default(cuid())
-  total         Float
-  cost          Float
-  profit        Float
-  paid          Float
-  change        Float
-  tax           Float    @default(0)
-  taxRate       Float    @default(0)
+  total         Decimal  @db.Decimal(19, 4)
+  cost          Decimal  @db.Decimal(19, 4)
+  profit        Decimal  @db.Decimal(19, 4)
+  paid          Decimal  @db.Decimal(19, 4)
+  change        Decimal  @db.Decimal(19, 4)
+  tax           Decimal  @default(0) @db.Decimal(19, 4)
+  taxRate       Decimal  @default(0) @db.Decimal(19, 4)
   cashier       String?
   paymentMethod PaymentMethod @default(CASH)
   notes         String?
@@ -318,8 +323,8 @@ model SaleItem {
   id        String @id @default(cuid())
   name      String
   quantity  Int
-  price     Float
-  cost      Float
+  price     Decimal  @db.Decimal(19, 4)
+  cost      Decimal  @db.Decimal(19, 4)
 
   sale      Sale   @relation(fields: [saleId], references: [id])
   saleId    String

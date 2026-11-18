@@ -32,8 +32,8 @@ export interface ProductRecord {
   businessId: string;
   name: string;
   sku?: string;
-  buyingPrice: number;
-  sellingPrice: number;
+  buyingPrice: string; // Decimal as string for exact precision
+  sellingPrice: string;
   quantity: number;
   lowStock: number;
   isService: boolean;
@@ -60,13 +60,13 @@ export interface CategoryRecord {
 export interface SaleRecord {
   id: string;
   businessId: string;
-  total: number;
-  cost: number;
-  profit: number;
-  paid: number;
-  change: number;
-  tax: number;
-  taxRate: number;
+  total: string; // Decimal as string
+  cost: string;
+  profit: string;
+  paid: string;
+  change: string;
+  tax: string;
+  taxRate: string;
   paymentMethod: string;
   notes?: string;
   cashier?: string;
@@ -81,8 +81,8 @@ export interface SaleItemRecord {
   productId?: string;
   name: string;
   quantity: number;
-  price: number;
-  cost: number;
+  price: string; // Decimal as string
+  cost: string;
 }
 
 export interface BusinessRecord {
@@ -91,7 +91,7 @@ export interface BusinessRecord {
   type: string;
   slug: string;
   currency: string;
-  taxRate: number;
+  taxRate: string; // Decimal as string
   receiptFooter?: string;
   logoUrl?: string;
 }
@@ -172,6 +172,61 @@ db.version(3).stores({
   syncConflicts: 'id, entityType, entityId, status, createdAt',
   notifications: 'id, businessId, type, read, createdAt',
   notificationPrefs: 'key',
+});
+
+/**
+ * Version 4: Decimal migration (AIDE-04)
+ * Converts monetary fields from number to string (exact decimal representation)
+ * to avoid floating-point precision issues.
+ */
+db.version(4).stores({
+  products: 'id, businessId, categoryId, name, syncStatus, updatedAt',
+  categories: 'id, businessId, name, syncStatus',
+  sales: 'id, businessId, createdAt, syncStatus, deviceId',
+  saleItems: 'id, saleId, productId',
+  businesses: 'id, slug',
+  syncQueue: '++key, action, table, recordId, timestamp, status, attempts',
+  syncConflicts: 'id, entityType, entityId, status, createdAt',
+  notifications: 'id, businessId, type, read, createdAt',
+  notificationPrefs: 'key',
+}).upgrade(async (tx) => {
+  // Products: buyingPrice, sellingPrice
+  await tx.table('products').toCollection().modify((product) => {
+    if (typeof product.buyingPrice === 'number') {
+      product.buyingPrice = product.buyingPrice.toFixed(4);
+    }
+    if (typeof product.sellingPrice === 'number') {
+      product.sellingPrice = product.sellingPrice.toFixed(4);
+    }
+  });
+
+  // Sales: total, cost, profit, paid, change, tax, taxRate
+  await tx.table('sales').toCollection().modify((sale) => {
+    const fields: (keyof SaleRecord)[] = ['total', 'cost', 'profit', 'paid', 'change', 'tax', 'taxRate'];
+    for (const field of fields) {
+      const value = sale[field];
+      if (typeof value === 'number') {
+        (sale as any)[field] = value.toFixed(4);
+      }
+    }
+  });
+
+  // SaleItems: price, cost
+  await tx.table('saleItems').toCollection().modify((item) => {
+    if (typeof item.price === 'number') {
+      item.price = item.price.toFixed(4);
+    }
+    if (typeof item.cost === 'number') {
+      item.cost = item.cost.toFixed(4);
+    }
+  });
+
+  // Businesses: taxRate
+  await tx.table('businesses').toCollection().modify((business) => {
+    if (typeof business.taxRate === 'number') {
+      business.taxRate = business.taxRate.toFixed(4);
+    }
+  });
 });
 
 export default db;

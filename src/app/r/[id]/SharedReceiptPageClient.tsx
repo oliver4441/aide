@@ -7,19 +7,19 @@ import UiSpinner from "@/components/ui/UiSpinner";
 
 interface SaleData {
   id: string;
-  total: number;
-  paid: number;
-  change: number;
-  taxRate: number;
+  total: string;
+  paid: string;
+  change: string;
+  taxRate: string;
   paymentMethod: string;
   cashier?: string | null;
   createdAt: string;
-  items: { id: string; name: string; quantity: number; price: number; cost: number }[];
+  items: { id: string; name: string; quantity: number; price: string; cost: string }[];
   business: {
     name: string;
     type: string;
     currency: string;
-    taxRate: number;
+    taxRate: string;
     receiptFooter: string | null;
   };
 }

@@ -128,10 +128,10 @@ interface NotificationDao {
 
 /** Aggregate row for the reports header. */
 data class SalesTotalsRow(
-    val revenue: Double,
-    val cost: Double,
-    val profit: Double,
-    val tax: Double,
+    val revenue: Long,
+    val cost: Long,
+    val profit: Long,
+    val tax: Long,
     val count: Int
 )
 
@@ -140,15 +140,15 @@ data class TopProductRow(
     val productId: String?,
     val name: String,
     val quantity: Int,
-    val revenue: Double,
-    val profit: Double
+    val revenue: Long,
+    val profit: Long
 )
 
 /** One row of the payment-method breakdown. */
 data class PaymentBreakdownRow(
     val method: String,
     val count: Int,
-    val total: Double
+    val total: Long
 )
 
 @Dao
@@ -162,7 +162,7 @@ interface ExpenseDao {
 
     /** Overheads only. COGS is already carried on each sale. */
     @Query("SELECT COALESCE(SUM(amount), 0) FROM expenses WHERE businessId = :businessId AND isCogs = 0 AND createdAt >= :sinceIso")
-    suspend fun getOverheadsSince(businessId: String, sinceIso: String): Double
+    suspend fun getOverheadsSince(businessId: String, sinceIso: String): Long
 
     @Query("SELECT category, SUM(amount) AS total FROM expenses WHERE businessId = :businessId AND createdAt >= :sinceIso GROUP BY category ORDER BY total DESC")
     suspend fun getCategoryTotalsSince(businessId: String, sinceIso: String): List<CategoryExpenseRow>
@@ -177,7 +177,7 @@ interface ExpenseDao {
 /** One row of the "spend by category" table. */
 data class CategoryExpenseRow(
     val category: String,
-    val total: Double
+    val total: Long
 )
 
 @Dao
@@ -193,7 +193,7 @@ interface CustomerDao {
     suspend fun getById(id: String): CustomerEntity?
 
     @Query("SELECT COALESCE(SUM(balance), 0) FROM customers WHERE businessId = :businessId")
-    suspend fun getTotalOwed(businessId: String): Double
+    suspend fun getTotalOwed(businessId: String): Long
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertOrUpdate(customer: CustomerEntity)

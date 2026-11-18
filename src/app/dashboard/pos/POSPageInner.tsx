@@ -86,13 +86,16 @@ export default function POSPage() {
     }
   };
 
-  const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const cost = cart.reduce((sum, item) => sum + item.cost * item.quantity, 0);
+  const totalNum = cart.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0);
+  const costNum = cart.reduce((sum, item) => sum + Number(item.cost) * item.quantity, 0);
   const paid = parseFloat(paidAmount) || 0;
-  const change = paid - total;
+  const change = paid - totalNum;
+
+  const total = totalNum.toFixed(4);
+  const cost = costNum.toFixed(4);
 
   const checkout = async () => {
-    if (total === 0 || paid < total) return;
+    if (totalNum === 0 || paid < totalNum) return;
     setProcessing(true);
 
     try {
@@ -108,11 +111,11 @@ export default function POSPage() {
         businessId,
         total,
         cost,
-        profit: total - cost,
-        paid,
-        change: Math.max(0, change),
-        tax: 0,
-        taxRate: business?.taxRate || 0,
+        profit: (totalNum - costNum).toFixed(4),
+        paid: paid.toFixed(4),
+        change: Math.max(0, change).toFixed(4),
+        tax: "0.0000",
+        taxRate: (Number(business?.taxRate) || 0).toFixed(4),
         paymentMethod,
         deviceId,
         syncStatus: "pending",
@@ -125,8 +128,8 @@ export default function POSPage() {
         productId: c.productId,
         name: c.name,
         quantity: c.quantity,
-        price: c.price,
-        cost: c.cost,
+        price: Number(c.price).toFixed(4),
+        cost: Number(c.cost).toFixed(4),
       }));
 
       await createSale(sale, items);
@@ -339,7 +342,7 @@ export default function POSPage() {
               />
             </div>
 
-            {paid >= total && (
+            {Number(paid) >= Number(total) && (
               <div className="text-center text-sm font-display">
                 <span className="text-secondary">Change: </span>
                 <span className="text-success font-black">{formatMoney(change)}</span>
@@ -355,7 +358,7 @@ export default function POSPage() {
               </button>
               <button
                 onClick={checkout}
-                disabled={paid < total || processing}
+                disabled={Number(paid) < Number(total) || processing}
                 className="flex-1 px-4 py-3 border border-accent bg-accent text-ground font-display text-sm font-black hover:bg-ground hover:text-accent disabled:opacity-40"
               >
                 {processing ? "Processing…" : "Complete Sale"}
