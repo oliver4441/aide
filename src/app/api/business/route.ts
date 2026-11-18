@@ -1,29 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { requireUser, requireBusiness, getAccessibleBusinessIds, toAuthError } from "@/lib/apiAuth";
 
 export const dynamic = "force-dynamic";
 
-async function requireSessionUser() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user || (session.user as any).role !== "user") {
-    return null;
-  }
-  return session.user as { id: string; email?: string | null };
-}
+export async function GET(request: NextRequest) {
+  try {
+    const user = await requireUser(request);
+    const businessIds = await getAccessibleBusinessIds(user);
+    if (businessIds.length === 0) {
+      return NextResponse.json({ business: null });
+    }
 
-export async function GET() {
-  const user = await requireSessionUser();
-  if (!user) {
-    return NextResponse.json({ business: null });
+    const membership = await prisma.businessMembership.findFirst({
+      where: { userId: user.id, businessId: { in: businessIds } },
+      include: { business: true },
+      orderBy: { createdAt: "asc" },
+    });
+    return NextResponse.json({ business: membership?.business ?? null });
+  } catch (err) {
+    return toAuthError(err);
   }
-  const membership = await prisma.businessMembership.findFirst({
-    where: { userId: user.id },
-    include: { business: true },
-    orderBy: { createdAt: "asc" },
-  });
-  return NextResponse.json({ business: membership?.business ?? null });
 }
 
 /**
@@ -33,19 +30,7 @@ export async function GET() {
  */
 export async function PATCH(request: NextRequest) {
   try {
-    const user = await requireSessionUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const membership = await prisma.businessMembership.findFirst({
-      where: { userId: user.id },
-      select: { businessId: true },
-      orderBy: { createdAt: "asc" },
-    });
-    if (!membership) {
-      return NextResponse.json({ error: "No business found" }, { status: 404 });
-    }
+    const { businessId } = await requireBusiness(null, request);
 
     const body = await request.json();
     const data: {
@@ -98,72 +83,71 @@ export async function PATCH(request: NextRequest) {
     }
 
     const business = await prisma.business.update({
-      where: { id: membership.businessId },
+      where: { id: businessId },
       data,
     });
 
     return NextResponse.json({ business });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Internal error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return toAuthError(err);
   }
 }
 
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user || (session.user as any).role !== "user") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const userId = (session.user as any).id as string;
-  const body = await request.json();
-  const name = String(body?.name || "").trim();
-  const type = String(body?.type || "OTHER").toUpperCase();
-  if (!name) {
-    return NextResponse.json({ error: "Business name required" }, { status: 400 });
-  }
+  try {
+    const user = await requireUser(request);
+    const body = await request.json();
+    const name = String(body?.name || "").trim();
+    const type = String(body?.type || "OTHER").toUpperCase();
+    if (!name) {
+      return NextResponse.json({ error: "Business name required" }, { status: 400 });
+    }
 
-  const existing = await prisma.businessMembership.findFirst({
-    where: { userId, role: "OWNER" },
-  });
-  if (existing) {
-    return NextResponse.json({ error: "Business already exists" }, { status: 409 });
-  }
+    const existing = await prisma.businessMembership.findFirst({
+      where: { userId: user.id, role: "OWNER" },
+    });
+    if (existing) {
+      return NextResponse.json({ error: "Business already exists" }, { status: 409 });
+    }
 
-  const slugBase = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "business";
-  const slug = `${slugBase}-${Date.now().toString(36)}`;
+    const slugBase = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "business";
+    const slug = `${slugBase}-${Date.now().toString(36)}`;
 
-  // A new business also gets its own Organization (the company) so it is
-  // tenant-scoped from creation. AIDE-02 / AIDE-03 extend this with
-  // multi-org membership and RBAC.
-  const orgSlugBase = slugBase === "business" ? "org" : slugBase;
-  let orgSlug = `${orgSlugBase}-${Date.now().toString(36)}`;
-  for (let i = 0; i < 10 && (await prisma.organization.findUnique({ where: { slug: orgSlug }, select: { id: true } })); i++) {
-    orgSlug = `${orgSlugBase}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
-  }
-  const organization = await prisma.organization.create({
-    data: {
-      name,
-      legalName: name,
-      slug: orgSlug,
-      baseCurrency: "KES",
-      status: "ACTIVE",
-    },
-    select: { id: true },
-  });
-
-  const business = await prisma.business.create({
-    data: {
-      name,
-      type: (["SALON", "SHOP", "RESTAURANT", "GROCERY", "PHARMACY", "ELECTRONICS", "CLOTHING", "OTHER"] as const).includes(type as any) ? (type as any) : "OTHER",
-      slug,
-      currency: "KSh",
-      taxRate: 16,
-      organizationId: organization.id,
-      memberships: {
-        create: { userId, role: "OWNER" },
+    // A new business also gets its own Organization (the company) so it is
+    // tenant-scoped from creation. AIDE-02 / AIDE-03 extend this with
+    // multi-org membership and RBAC.
+    const orgSlugBase = slugBase === "business" ? "org" : slugBase;
+    let orgSlug = `${orgSlugBase}-${Date.now().toString(36)}`;
+    for (let i = 0; i < 10 && (await prisma.organization.findUnique({ where: { slug: orgSlug }, select: { id: true } })); i++) {
+      orgSlug = `${orgSlugBase}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+    }
+    const organization = await prisma.organization.create({
+      data: {
+        name,
+        legalName: name,
+        slug: orgSlug,
+        baseCurrency: "KES",
+        status: "ACTIVE",
       },
-    },
-  });
+      select: { id: true },
+    });
 
-  return NextResponse.json({ business });
+    const business = await prisma.business.create({
+      data: {
+        name,
+        type: (["SALON", "SHOP", "RESTAURANT", "GROCERY", "PHARMACY", "ELECTRONICS", "CLOTHING", "OTHER"] as const).includes(type as any) ? (type as any) : "OTHER",
+        slug,
+        currency: "KSh",
+        taxRate: 16,
+        organizationId: organization.id,
+        memberships: {
+          create: { userId: user.id, role: "OWNER" },
+        },
+      },
+    });
+
+    return NextResponse.json({ business });
+  } catch (err) {
+    return toAuthError(err);
+  }
 }

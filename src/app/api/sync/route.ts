@@ -1,23 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { requireBusiness, canAccessBusiness, toAuthError } from "@/lib/apiAuth";
 import { resolveConflict, checkStockOversell } from "@/lib/conflicts";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
-  // Security: Require active session authentication to push sync mutations
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const userBusinessId = (session.user as any).businessId;
-  const userRole = (session.user as any).role;
-  const isAdmin = userRole === "admin" || userRole === "SUPER_ADMIN";
-
   try {
+    const { user, businessId, businessIds } = await requireBusiness(null, request);
+
     const body = await request.json();
     const { mutations, deviceId } = body;
 
@@ -33,11 +24,11 @@ export async function POST(request: NextRequest) {
 
       try {
         if (table === "products") {
-          await handleProductMutation(action, recordId, data, deviceId, conflicts, userBusinessId, isAdmin);
+          await handleProductMutation(action, recordId, data, deviceId, conflicts, user, businessIds);
         } else if (table === "categories") {
-          await handleCategoryMutation(action, recordId, data, userBusinessId, isAdmin);
+          await handleCategoryMutation(action, recordId, data, user, businessIds);
         } else if (table === "sales") {
-          await handleSaleMutation(action, recordId, data, deviceId, conflicts, userBusinessId, isAdmin);
+          await handleSaleMutation(action, recordId, data, deviceId, conflicts, user, businessIds);
         }
         synced++;
       } catch (err: any) {
@@ -46,8 +37,8 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ synced, conflicts });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err) {
+    return toAuthError(err);
   }
 }
 
@@ -57,13 +48,13 @@ async function handleProductMutation(
   data: any,
   deviceId: string,
   conflicts: any[],
-  userBusinessId?: string,
-  isAdmin?: boolean
+  user: { id: string },
+  businessIds: string[]
 ) {
   if (action === "delete") {
     const existing = await prisma.product.findUnique({ where: { id: recordId } });
     if (!existing) return;
-    if (!isAdmin && userBusinessId && existing.businessId !== userBusinessId) return;
+    if (!businessIds.includes(existing.businessId)) return;
 
     await prisma.product.update({
       where: { id: recordId },
@@ -75,7 +66,7 @@ async function handleProductMutation(
   const existing = await prisma.product.findUnique({ where: { id: recordId } });
 
   if (existing) {
-    if (!isAdmin && userBusinessId && existing.businessId !== userBusinessId) return;
+    if (!businessIds.includes(existing.businessId)) return;
 
     if (new Date(existing.updatedAt).getTime() !== new Date(data.updatedAt).getTime()) {
       const result = resolveConflict({
@@ -118,7 +109,9 @@ async function handleProductMutation(
       },
     });
   } else {
-    const businessId = (!isAdmin && userBusinessId) ? userBusinessId : (data.businessId || userBusinessId);
+    const businessId = data.businessId && businessIds.includes(data.businessId)
+      ? data.businessId
+      : businessIds[0];
     if (!businessId) return;
 
     await prisma.product.create({
@@ -142,13 +135,13 @@ async function handleCategoryMutation(
   action: string,
   recordId: string,
   data: any,
-  userBusinessId?: string,
-  isAdmin?: boolean
+  user: { id: string },
+  businessIds: string[]
 ) {
   if (action === "delete") {
     const existing = await prisma.category.findUnique({ where: { id: recordId } });
     if (!existing) return;
-    if (!isAdmin && userBusinessId && existing.businessId !== userBusinessId) return;
+    if (!businessIds.includes(existing.businessId)) return;
 
     await prisma.category.delete({ where: { id: recordId } }).catch(() => {});
     return;
@@ -157,14 +150,16 @@ async function handleCategoryMutation(
   const existing = await prisma.category.findUnique({ where: { id: recordId } });
 
   if (existing) {
-    if (!isAdmin && userBusinessId && existing.businessId !== userBusinessId) return;
+    if (!businessIds.includes(existing.businessId)) return;
 
     await prisma.category.update({
       where: { id: recordId },
       data: { name: data.name, sortOrder: data.sortOrder },
     });
   } else {
-    const businessId = (!isAdmin && userBusinessId) ? userBusinessId : (data.businessId || userBusinessId);
+    const businessId = data.businessId && businessIds.includes(data.businessId)
+      ? data.businessId
+      : businessIds[0];
     if (!businessId) return;
 
     await prisma.category.create({
@@ -184,15 +179,17 @@ async function handleSaleMutation(
   data: any,
   deviceId: string,
   conflicts: any[],
-  userBusinessId?: string,
-  isAdmin?: boolean
+  user: { id: string },
+  businessIds: string[]
 ) {
   const existing = await prisma.sale.findUnique({ where: { id: recordId } });
   if (existing) return;
 
   const saleData = data.sale || data;
   const items = data.items || [];
-  const businessId = (!isAdmin && userBusinessId) ? userBusinessId : (saleData.businessId || userBusinessId);
+  const businessId = saleData.businessId && businessIds.includes(saleData.businessId)
+    ? saleData.businessId
+    : businessIds[0];
   if (!businessId) return;
 
   await prisma.$transaction(async (tx) => {
@@ -230,7 +227,7 @@ async function handleSaleMutation(
     for (const item of items) {
       if (item.productId) {
         const product = await tx.product.findUnique({ where: { id: item.productId } });
-        if (product && (isAdmin || !userBusinessId || product.businessId === userBusinessId)) {
+        if (product && businessIds.includes(product.businessId)) {
           const movements = items
             .filter((i: any) => i.productId === item.productId)
             .map((i: any) => ({ delta: -i.quantity, timestamp: saleData.createdAt || new Date().toISOString() }));
@@ -261,46 +258,44 @@ async function handleSaleMutation(
 }
 
 export async function GET(request: NextRequest) {
-  // Security: Require active session authentication for data sync pull
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    const { searchParams } = new URL(request.url);
+    const since = searchParams.get("since") || "0";
+    const requestedBusinessId = searchParams.get("businessId");
+
+    if (!requestedBusinessId) {
+      return NextResponse.json({ error: "businessId required" }, { status: 400 });
+    }
+
+    const { businessId, businessIds } = await requireBusiness(requestedBusinessId, request);
+
+    // Verify the requested businessId is in the caller's accessible set
+    if (!businessIds.includes(requestedBusinessId)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const sinceDate = new Date(since);
+
+    const [business, products, categories, sales, saleItems] = await Promise.all([
+      prisma.business.findUnique({ where: { id: requestedBusinessId } }),
+      prisma.product.findMany({
+        where: { businessId: requestedBusinessId, updatedAt: { gt: sinceDate } },
+      }),
+      prisma.category.findMany({
+        where: { businessId: requestedBusinessId, createdAt: { gt: sinceDate } },
+      }),
+      prisma.sale.findMany({
+        where: { businessId: requestedBusinessId, createdAt: { gt: sinceDate } },
+      }),
+      prisma.saleItem.findMany({
+        where: {
+          sale: { businessId: requestedBusinessId, createdAt: { gt: sinceDate } },
+        },
+      }),
+    ]);
+
+    return NextResponse.json({ business, products, categories, sales, saleItems });
+  } catch (err) {
+    return toAuthError(err);
   }
-
-  const { searchParams } = new URL(request.url);
-  const since = searchParams.get("since") || "0";
-  const businessId = searchParams.get("businessId");
-
-  if (!businessId) {
-    return NextResponse.json({ error: "businessId required" }, { status: 400 });
-  }
-
-  // Security: Enforce tenant isolation by verifying user business authorization
-  const userBusinessId = (session.user as any).businessId;
-  const userRole = (session.user as any).role;
-  if (userRole !== "admin" && userRole !== "SUPER_ADMIN" && userBusinessId !== businessId) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const sinceDate = new Date(since);
-
-  const [business, products, categories, sales, saleItems] = await Promise.all([
-    prisma.business.findUnique({ where: { id: businessId } }),
-    prisma.product.findMany({
-      where: { businessId, updatedAt: { gt: sinceDate } },
-    }),
-    prisma.category.findMany({
-      where: { businessId, createdAt: { gt: sinceDate } },
-    }),
-    prisma.sale.findMany({
-      where: { businessId, createdAt: { gt: sinceDate } },
-    }),
-    prisma.saleItem.findMany({
-      where: {
-        sale: { businessId, createdAt: { gt: sinceDate } },
-      },
-    }),
-  ]);
-
-  return NextResponse.json({ business, products, categories, sales, saleItems });
 }
