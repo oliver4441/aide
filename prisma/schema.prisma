@@ -78,6 +78,11 @@ model Business {
   terminals   POSTerminal[]
   cashDrawers CashDrawer[]
 
+  // Double-entry accounting (AIDE-05)
+  accounts          Account[]
+  journalEntries    JournalEntry[]
+  accountingPeriods AccountingPeriod[]
+
   @@index([organizationId])
 }
 
@@ -393,4 +398,145 @@ model NotificationPreference {
   createdAt  DateTime @default(now())
 
   @@unique([userId, businessId, type])
+}
+
+// ============================================================================
+// AIDE-05: Double-entry accounting
+// ============================================================================
+
+/// Account types in the chart of accounts
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  INCOME
+  EXPENSE
+}
+
+/// Sub-type for more granular reporting (e.g. CurrentAsset, FixedAsset)
+enum AccountSubType {
+  /// -- Assets --
+  CURRENT_ASSET
+  FIXED_ASSET
+  ACCOUNTS_RECEIVABLE
+  /// -- Liabilities --
+  CURRENT_LIABILITY
+  LONG_TERM_LIABILITY
+  ACCOUNTS_PAYABLE
+  /// -- Equity --
+  OWNER_EQUITY
+  RETAINED_EARNINGS
+  /// -- Income --
+  SALES_REVENUE
+  SERVICE_REVENUE
+  OTHER_INCOME
+  /// -- Expense --
+  COST_OF_GOODS_SOLD
+  OPERATING_EXPENSE
+  SALARIES_EXPENSE
+  UTILITIES_EXPENSE
+  RENT_EXPENSE
+  DEPRECIATION_EXPENSE
+  OTHER_EXPENSE
+}
+
+/// A single account in the chart of accounts (ACC-01)
+model Account {
+  id            String          @id @default(cuid())
+  code          String          // e.g. "1000", "4001"
+  name          String
+  type          AccountType
+  subType       AccountSubType  @default(OTHER_EXPENSE)
+  description   String?
+  currency      String          @default("KES")
+  isActive      Boolean         @default(true)
+  isSystem      Boolean         @default(false) // system accounts cannot be deleted
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  business      Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId    String
+
+  journalDebits JournalLine[]   @relation("DebitAccount")
+  journalCredits JournalLine[]  @relation("CreditAccount")
+
+  @@unique([businessId, code])
+  @@index([businessId])
+  @@index([type])
+}
+
+/// A journal entry (transaction) — the header (ACC-02)
+model JournalEntry {
+  id            String          @id @default(cuid())
+  entryNumber   String          // e.g. "JE-000001"
+  date          DateTime        @default(now())
+  description   String
+  sourceType    String          // sale | purchase | adjustment | opening | expense
+  sourceId      String?         // ID of the source record (e.g. Sale.id)
+  status        JournalStatus   @default(POSTED)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  business      Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId    String
+
+  lines         JournalLine[]
+
+  @@unique([businessId, entryNumber])
+  @@index([businessId])
+  @@index([date])
+  @@index([sourceType, sourceId])
+}
+
+enum JournalStatus {
+  DRAFT
+  POSTED
+  REVERSED
+}
+
+/// Individual debit/credit lines within a journal entry (ACC-02)
+model JournalLine {
+  id            String          @id @default(cuid())
+  lineOrder     Int             // 1-based order within entry
+  description   String?
+  debit         Decimal         @db.Decimal(19, 4)
+  credit        Decimal         @db.Decimal(19, 4)
+
+  entry         JournalEntry    @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  entryId       String
+
+  debitAccount  Account?        @relation("DebitAccount", fields: [debitAccountId], references: [id])
+  debitAccountId String?
+
+  creditAccount Account?        @relation("CreditAccount", fields: [creditAccountId], references: [id])
+  creditAccountId String?
+
+  @@index([entryId])
+  @@index([debitAccountId])
+  @@index([creditAccountId])
+}
+
+/// Accounting periods for period controls (ACC-08 precursor)
+model AccountingPeriod {
+  id            String            @id @default(cuid())
+  year          Int
+  month         Int               // 1-12
+  label         String            // e.g. "January 2026"
+  status        PeriodStatus      @default(OPEN)
+  closedAt      DateTime?
+  closedBy      String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  business      Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId    String
+
+  @@unique([businessId, year, month])
+  @@index([businessId])
+}
+
+enum PeriodStatus {
+  OPEN
+  CLOSED
+  LOCKED
 }

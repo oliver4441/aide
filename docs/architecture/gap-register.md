@@ -151,9 +151,9 @@
 
 | ID | Capability | Web | Android | Status | Issue | Notes |
 |----|------------|-----|---------|--------|-------|-------|
-| ACC-01 | Chart of accounts | ❌ | ❌ | ❌ | AIDE-05 | |
-| ACC-02 | Double-entry journal entries | ❌ | ❌ | ❌ | AIDE-05 | |
-| ACC-03 | General ledger | ❌ | ❌ | ❌ | AIDE-05 | |
+| ACC-01 | Chart of accounts | ✅ | ❌ | 🟡 | AIDE-05 | 22 standard accounts seeded on first use |
+| ACC-02 | Double-entry journal entries | ✅ | ❌ | 🟡 | AIDE-05 | Central posting engine with balance enforcement |
+| ACC-03 | General ledger | ✅ | ❌ | 🟡 | AIDE-05 | JournalEntry + JournalLine models, queryable via API |
 | ACC-04 | Trial balance | ❌ | ❌ | ❌ | AIDE-07 | |
 | ACC-05 | Profit & Loss (P&L) | ❌ | ❌ | ❌ | AIDE-07 | |
 | ACC-06 | Balance Sheet | ❌ | ❌ | ❌ | AIDE-07 | |
@@ -271,10 +271,15 @@
 2. **AIDE-03** — Tenant-scoped RBAC, employee membership, access lifecycle (unlocks multi-user)
    - ✅ All 8 API routes now use `requireBusiness()` for membership-based tenant isolation
    - ❌ Employee profiles, invitation flow, role templates still missing
-3. **AIDE-05** — Double-entry accounting schema + central posting engine (core value)
-4. **AIDE-18** — Shared offline-first multi-user (Android sync) — strategic differentiator
-5. **AIDE-06** — Connect POS/payments/expenses to GL (closes loop)
-6. **AIDE-07** — Core financial statements (P&L, BS, CF) + period controls
+3. **AIDE-05** ✅ — Double-entry accounting: chart of accounts, journal entries, posting engine
+   - ✅ 22 standard accounts auto-seeded per business
+   - ✅ Central posting engine with balance enforcement
+   - ✅ Sale auto-posting to GL (revenue, COGS, inventory, VAT)
+   - ✅ Entry reversal, account balance queries
+   - ❌ Android not migrated
+4. **AIDE-06** — Connect POS to GL (auto-post on sale creation)
+5. **AIDE-07** — Core financial statements (P&L, BS, CF) + period controls
+6. **AIDE-18** — Shared offline-first multi-user (Android sync) — strategic differentiator
 7. **AIDE-08** — Customers, quotations, invoices, AR (revenue cycle)
 8. **AIDE-09** — Suppliers, purchasing, GRN, AP (procurement cycle)
 9. **AIDE-10** — Inventory movement ledger, costing, multi-warehouse
