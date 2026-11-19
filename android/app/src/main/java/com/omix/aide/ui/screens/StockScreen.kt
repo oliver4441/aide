@@ -50,7 +50,7 @@ fun StockScreen(
     }
 
     val totalValuation = remember(uiState.products) {
-        uiState.products.sumOf { it.sellingPrice * it.quantity }
+        uiState.products.sumOf { it.sellingPrice.asMoney() * it.quantity }
     }
     val lowStockCount = remember(uiState.products) {
         uiState.products.count { it.quantity <= it.lowStock }

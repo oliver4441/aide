@@ -1,6 +1,7 @@
 package com.omix.aide.ui.viewmodel
 
 import com.omix.aide.data.local.dao.SaleWithItems
+import com.omix.aide.data.local.converters.asMoney
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -62,8 +63,8 @@ object SaleTimeline {
         sales.forEach { item ->
             val time = parseSaleTime(item.sale.createdAt) ?: return@forEach
             if (startOfDay(time) == today) {
-                total += item.sale.total
-                profit += item.sale.profit
+                total += item.sale.total.asMoney()
+                profit += item.sale.profit.asMoney()
                 count += 1
             }
         }
@@ -88,7 +89,7 @@ object SaleTimeline {
             val time = parseSaleTime(item.sale.createdAt) ?: return@forEach
             val day = startOfDay(time)
             if (day in wanted) {
-                totals[day] = (totals[day] ?: 0.0) + item.sale.total
+                totals[day] = (totals[day] ?: 0.0) + item.sale.total.asMoney()
             }
         }
         return days.map { it.copy(total = totals[it.dayStart] ?: 0.0) }
