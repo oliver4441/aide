@@ -96,6 +96,13 @@ model Business {
   invoices      Invoice[]
   payments      PaymentAllocation[]
 
+  // AIDE-09: Suppliers & Accounts Payable
+  suppliers         Supplier[]
+  purchaseOrders    PurchaseOrder[]
+  goodsReceived     GoodsReceivedNote[]
+  supplierInvoices  SupplierInvoice[]
+  supplierPayments  SupplierPayment[]
+
   @@index([organizationId])
 }
 
@@ -671,6 +678,198 @@ enum InvoiceStatus {
 }
 
 // ============================================================================
+// AIDE-09: Suppliers & Accounts Payable
+// ============================================================================
+
+/// A supplier/vendor the business purchases from
+model Supplier {
+  id            String            @id @default(cuid())
+  supplierCode  String            // e.g. "SUP-001" (display code)
+  name          String
+  contactName   String?
+  email         String?
+  phone         String?
+  address       String?
+  city          String?
+  taxId         String?           // supplier tax/PIN number
+  notes         String?
+  paymentTerms  Int               @default(30) // days until payment due
+  balance       Decimal           @default(0) @db.Decimal(19, 4) // positive = we owe
+  isActive      Boolean           @default(true)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  business      Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId    String
+
+  purchaseOrders    PurchaseOrder[]
+  goodsReceived     GoodsReceivedNote[]
+  supplierInvoices  SupplierInvoice[]
+  payments          SupplierPayment[]
+
+  @@unique([businessId, supplierCode])
+  @@index([businessId])
+  @@index([name])
+}
+
+/// A purchase order sent to a supplier
+model PurchaseOrder {
+  id            String              @id @default(cuid())
+  poNumber      String              // e.g. "PO-2026-0001"
+  orderDate     DateTime            @default(now())
+  expectedDate  DateTime?
+  status        PurchaseOrderStatus @default(DRAFT)
+  subtotal      Decimal             @db.Decimal(19, 4)
+  tax           Decimal             @default(0) @db.Decimal(19, 4)
+  total         Decimal             @db.Decimal(19, 4)
+  notes         String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  business      Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId    String
+
+  supplier      Supplier            @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  supplierId    String
+
+  lines              PurchaseOrderLine[]
+  goodsReceived      GoodsReceivedNote[]
+  supplierInvoices   SupplierInvoice[]
+
+  @@unique([businessId, poNumber])
+  @@index([businessId])
+  @@index([supplierId])
+  @@index([status])
+}
+
+/// Individual line items on a purchase order
+model PurchaseOrderLine {
+  id            String          @id @default(cuid())
+  description   String
+  quantity      Decimal         @db.Decimal(19, 4)
+  unitPrice     Decimal         @db.Decimal(19, 4)
+  amount        Decimal         @db.Decimal(19, 4) // qty * unitPrice
+
+  purchaseOrder PurchaseOrder   @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  purchaseOrderId String
+
+  @@index([purchaseOrderId])
+}
+
+/// Goods received against a purchase order (GRN)
+model GoodsReceivedNote {
+  id            String            @id @default(cuid())
+  grnNumber     String            // e.g. "GRN-2026-0001"
+  receivedDate  DateTime          @default(now())
+  notes         String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  business      Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId    String
+
+  purchaseOrder PurchaseOrder     @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  purchaseOrderId String
+
+  supplier      Supplier          @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  supplierId    String
+
+  lines         GoodsReceivedLine[]
+
+  @@unique([businessId, grnNumber])
+  @@index([businessId])
+  @@index([purchaseOrderId])
+}
+
+/// Individual line items on a goods received note
+model GoodsReceivedLine {
+  id            String          @id @default(cuid())
+  description   String
+  quantity      Decimal         @db.Decimal(19, 4) // qty received
+  unitCost      Decimal         @db.Decimal(19, 4) // actual unit cost received
+  amount        Decimal         @db.Decimal(19, 4) // qty * unitCost
+  productMatch  String?         // optional: product SKU matched during receiving
+
+  grn           GoodsReceivedNote @relation(fields: [grnId], references: [id], onDelete: Cascade)
+  grnId         String
+
+  @@index([grnId])
+}
+
+/// An invoice received from a supplier
+model SupplierInvoice {
+  id            String                @id @default(cuid())
+  invoiceNumber String                // supplier's invoice number
+  ourRef        String?               // our internal reference
+  issueDate     DateTime              @default(now())
+  dueDate       DateTime
+  status        SupplierInvoiceStatus @default(PENDING)
+  subtotal      Decimal               @db.Decimal(19, 4)
+  tax           Decimal               @default(0) @db.Decimal(19, 4)
+  total         Decimal               @db.Decimal(19, 4)
+  amountPaid    Decimal               @default(0) @db.Decimal(19, 4)
+  balanceDue    Decimal               @db.Decimal(19, 4)
+  notes         String?
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  business      Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId    String
+
+  supplier      Supplier              @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  supplierId    String
+
+  purchaseOrder PurchaseOrder?        @relation(fields: [purchaseOrderId], references: [id])
+  purchaseOrderId String?
+
+  payments      SupplierPayment[]
+
+  @@unique([businessId, invoiceNumber])
+  @@index([businessId])
+  @@index([supplierId])
+  @@index([status])
+  @@index([dueDate])
+}
+
+/// A payment made to a supplier
+model SupplierPayment {
+  id            String            @id @default(cuid())
+  amount        Decimal           @db.Decimal(19, 4)
+  paymentMethod PaymentMethod     @default(CASH)
+  reference     String?           // e.g. bank transfer ref, M-Pesa code
+  notes         String?
+  paidAt        DateTime          @default(now())
+
+  business      Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId    String
+
+  supplier      Supplier          @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  supplierId    String
+
+  invoice       SupplierInvoice?  @relation(fields: [invoiceId], references: [id])
+  invoiceId     String?
+
+  @@index([businessId])
+  @@index([supplierId])
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  SENT
+  PARTIALLY_RECEIVED
+  RECEIVED
+  CANCELLED
+}
+
+enum SupplierInvoiceStatus {
+  PENDING
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+// ============================================================================
 // AIDE-03: Tenant-scoped RBAC — Employee management & invitations
 // ============================================================================
 
@@ -691,6 +890,23 @@ enum Permission {
   CUSTOMER_READ
   CUSTOMER_UPDATE
   CUSTOMER_DELETE
+  // Suppliers
+  SUPPLIER_CREATE
+  SUPPLIER_READ
+  SUPPLIER_UPDATE
+  SUPPLIER_DELETE
+  // Purchasing
+  PURCHASE_ORDER_CREATE
+  PURCHASE_ORDER_READ
+  PURCHASE_ORDER_UPDATE
+  GOODS_RECEIVE
+  // Supplier invoices
+  SUPPLIER_INVOICE_CREATE
+  SUPPLIER_INVOICE_READ
+  SUPPLIER_INVOICE_UPDATE
+  // Supplier payments
+  SUPPLIER_PAYMENT_CREATE
+  SUPPLIER_PAYMENT_READ
   // Accounting
   ACCOUNT_READ
   ACCOUNT_EDIT

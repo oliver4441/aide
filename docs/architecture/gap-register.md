@@ -67,9 +67,9 @@
 | INV-10 | Costing methods (FIFO, Avg, LIFO) | ❌ | ❌ | ❌ | AIDE-10 | |
 | INV-11 | Stock adjustment (manual + reason) | ❌ | ❌ | ❌ | AIDE-10 | Movement log |
 | INV-12 | Stock transfer (multi-location) | ❌ | ❌ | ❌ | AIDE-10, AIDE-14 | |
-| INV-13 | Goods receiving (PO → GRN) | ❌ | ❌ | ❌ | AIDE-09 | |
-| INV-14 | Supplier management | ❌ | ❌ | ❌ | AIDE-09 | |
-| INV-15 | Purchase orders | ❌ | ❌ | ❌ | AIDE-09 | |
+| INV-13 | Goods receiving (PO → GRN) | ✅ | ❌ | 🟡 | AIDE-09 | Web: GRN model with auto PO status update |
+| INV-14 | Supplier management | ✅ | ❌ | 🟡 | AIDE-09 | Web: Supplier CRUD with auto-coded (SUP-NNN) |
+| INV-15 | Purchase orders | ✅ | ❌ | 🟡 | AIDE-09 | Web: PO with line items, status tracking |
 | INV-16 | Reorder points / auto-PO | ❌ | ❌ | ❌ | AIDE-15 | |
 | INV-17 | Inventory valuation report | ❌ | ❌ | ❌ | AIDE-07, AIDE-10 | |
 | INV-18 | Expiry/batch tracking | ❌ | ❌ | ❌ | AIDE-15 | Pharmacy/food |
@@ -123,13 +123,13 @@
 
 | ID | Capability | Web | Android | Status | Issue | Notes |
 |----|------------|-----|---------|--------|-------|-------|
-| AP-01 | Supplier directory | ❌ | ❌ | ❌ | AIDE-09 | |
-| AP-02 | Purchase orders | ❌ | ❌ | ❌ | AIDE-09 | |
-| AP-03 | Goods receiving (GRN) | ❌ | ❌ | ❌ | AIDE-09 | |
-| AP-04 | Supplier invoices | ❌ | ❌ | ❌ | AIDE-09 | |
-| AP-05 | Payment to suppliers | ❌ | ❌ | ❌ | AIDE-09 | |
-| AP-06 | AP aging report | ❌ | ❌ | ❌ | AIDE-09 | |
-| AP-07 | 3-way match (PO/GRN/Invoice) | ❌ | ❌ | ❌ | AIDE-09 | |
+| AP-01 | Supplier directory | ✅ | ❌ | 🟡 | AIDE-09 | Web: full CRUD API with search, auto-coded (SUP-NNN) |
+| AP-02 | Purchase orders | ✅ | ❌ | 🟡 | AIDE-09 | Web: auto-numbered (PO-YEAR-NNNN), line items, status tracking |
+| AP-03 | Goods receiving (GRN) | ✅ | ❌ | 🟡 | AIDE-09 | Web: GRN against PO, auto-updates PO status (PARTIALLY_RECEIVED/RECEIVED) |
+| AP-04 | Supplier invoices | ✅ | ❌ | 🟡 | AIDE-09 | Web: link to PO, payment tracking, status transitions |
+| AP-05 | Payment to suppliers | ✅ | ❌ | 🟡 | AIDE-09 | Web: invoice-specific + general payments, auto-updates supplier balance |
+| AP-06 | AP aging report | ✅ | ❌ | 🟡 | AIDE-09 | Web: 5-bucket aging (current, 1-30, 31-60, 61-90, 90+ days) |
+| AP-07 | 3-way match (PO/GRN/Invoice) | ✅ | ❌ | 🟡 | AIDE-09 | Web: SupplierInvoice links to PurchaseOrder; GRN tracks against PO lines |
 
 ---
 
@@ -297,17 +297,26 @@
    - ❌ Android not migrated
    - ❌ Year-end closing, fixed assets/depreciation still missing
 6. **AIDE-08** ✅ — Customers & Accounts Receivable (web)
-   - ✅ Customer directory: full CRUD API with search, credit limits, balances
-   - ✅ Credit sales: `customerId` on Sale links transactions to customers
-   - ✅ Invoice generation: Invoice + InvoiceLine models, auto-numbered (INV-YEAR-NNNN)
-   - ✅ Payment allocation: record payments against invoices or general balance
-   - ✅ Aging report: 5-bucket breakdown (current, 1-30, 31-60, 61-90, 90+ days)
-   - ✅ Customer statements: transaction history with running balance
-   - ✅ Bad debt write-off: WRITTEN_OFF invoice status
-   - ❌ Invoice email/SMS still missing
-   - ❌ Android not migrated
-7. **AIDE-18** — Shared offline-first multi-user (Android sync) — strategic differentiator
-8. **AIDE-09** — Suppliers, purchasing, GRN, AP (procurement cycle)
+  - ✅ Customer directory: full CRUD API with search, credit limits, balances
+  - ✅ Credit sales: `customerId` on Sale links transactions to customers
+  - ✅ Invoice generation: Invoice + InvoiceLine models, auto-numbered (INV-YEAR-NNNN)
+  - ✅ Payment allocation: record payments against invoices or general balance
+  - ✅ Aging report: 5-bucket breakdown (current, 1-30, 31-60, 61-90, 90+ days)
+  - ✅ Customer statements: transaction history with running balance
+  - ✅ Bad debt write-off: WRITTEN_OFF invoice status
+  - ❌ Invoice email/SMS still missing
+  - ❌ Android not migrated
+7. **AIDE-09** ✅ — Suppliers & Accounts Payable (web)
+  - ✅ Supplier directory: full CRUD API with search, auto-coded (SUP-NNN), payment terms
+  - ✅ Purchase orders: auto-numbered (PO-YEAR-NNNN), line items, status tracking
+  - ✅ Goods receiving (GRN): receive against PO, auto-updates PO status
+  - ✅ Supplier invoices: link to PO, payment tracking, status transitions
+  - ✅ Supplier payments: invoice-specific + general payments, auto-updates balance
+  - ✅ AP aging report: 5-bucket breakdown (current, 1-30, 31-60, 61-90, 90+ days)
+  - ✅ Supplier statements: transaction history with running balance
+  - ✅ 3-way match: SupplierInvoice links to PurchaseOrder; GRN tracks against PO lines
+  - ❌ Android not migrated
+8. **AIDE-18** — Shared offline-first multi-user (Android sync) — strategic differentiator
 9. **AIDE-10** — Inventory movement ledger, costing, multi-warehouse
 10. **AIDE-16/17** — Kenya-specific: M-Pesa, eTIMS, tax engine
 
