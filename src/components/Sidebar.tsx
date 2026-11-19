@@ -19,6 +19,12 @@ import {
   Plus,
   PanelLeftClose,
   PanelLeftOpen,
+  Users,
+  UserPlus,
+  FileText,
+  TrendingUp,
+  RotateCcw,
+  Clock,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -50,7 +56,18 @@ const navSections: NavSection[] = [
     title: "Manage",
     items: [
       { label: "Inventory", href: "/dashboard/inventory", icon: "stock" },
+      { label: "Customers", href: "/dashboard/customers", icon: "users" },
+      { label: "Suppliers", href: "/dashboard/suppliers", icon: "userPlus" },
       { label: "Reports", href: "/dashboard/reports", icon: "reports" },
+      { label: "Financials", href: "/dashboard/financials", icon: "trendingUp" },
+    ],
+  },
+  {
+    title: "Operations",
+    items: [
+      { label: "Shifts", href: "/dashboard/shifts", icon: "clock" },
+      { label: "Refunds", href: "/dashboard/refunds", icon: "rotateCcw" },
+      { label: "Invoices", href: "/dashboard/invoices", icon: "fileText" },
     ],
   },
   {
@@ -74,6 +91,12 @@ const navIcons: Record<string, LucideIcon> = {
   help: HelpCircle,
   shield: Shield,
   more: MoreHorizontal,
+  users: Users,
+  userPlus: UserPlus,
+  fileText: FileText,
+  trendingUp: TrendingUp,
+  rotateCcw: RotateCcw,
+  clock: Clock,
 } as const;
 
 const mobileNavItems = [

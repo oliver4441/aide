@@ -125,12 +125,13 @@ class SyncEngine {
     };
     await db.syncQueue.add(item);
 
+    // Mark sync status on tables that track it (original 3 tables)
     if (table === 'products') {
-      await db.products.update(recordId, { syncStatus: 'pending' });
+      await db.products.update(recordId, { syncStatus: 'pending' }).catch(() => {});
     } else if (table === 'categories') {
-      await db.categories.update(recordId, { syncStatus: 'pending' });
+      await db.categories.update(recordId, { syncStatus: 'pending' }).catch(() => {});
     } else if (table === 'sales') {
-      await db.sales.update(recordId, { syncStatus: 'pending' });
+      await db.sales.update(recordId, { syncStatus: 'pending' }).catch(() => {});
     }
 
     await this.refreshPending();
@@ -175,6 +176,9 @@ class SyncEngine {
           }
         }
       });
+
+      // For new tables (AIDE-03 through AIDE-11), they don't have syncStatus fields
+      // but the queue deletion above already marks them as synced.
 
       if (result.conflicts && result.conflicts.length > 0) {
         await db.syncConflicts.bulkPut(result.conflicts);
@@ -232,6 +236,94 @@ class SyncEngine {
       if (result.saleItems && result.saleItems.length > 0) {
         await db.saleItems.bulkPut(result.saleItems);
         count += result.saleItems.length;
+      }
+
+      // AIDE-05: Accounting
+      if (result.accounts && result.accounts.length > 0) {
+        await db.accounts.bulkPut(result.accounts);
+        count += result.accounts.length;
+      }
+      if (result.journalEntries && result.journalEntries.length > 0) {
+        await db.journalEntries.bulkPut(result.journalEntries);
+        count += result.journalEntries.length;
+      }
+      if (result.journalLines && result.journalLines.length > 0) {
+        await db.journalLines.bulkPut(result.journalLines);
+        count += result.journalLines.length;
+      }
+
+      // AIDE-08: Customers & AR
+      if (result.customers && result.customers.length > 0) {
+        await db.customers.bulkPut(result.customers);
+        count += result.customers.length;
+      }
+      if (result.invoices && result.invoices.length > 0) {
+        await db.invoices.bulkPut(result.invoices);
+        count += result.invoices.length;
+      }
+      if (result.invoiceLines && result.invoiceLines.length > 0) {
+        await db.invoiceLines.bulkPut(result.invoiceLines);
+        count += result.invoiceLines.length;
+      }
+      if (result.paymentAllocations && result.paymentAllocations.length > 0) {
+        await db.paymentAllocations.bulkPut(result.paymentAllocations);
+        count += result.paymentAllocations.length;
+      }
+
+      // AIDE-09: Suppliers & AP
+      if (result.suppliers && result.suppliers.length > 0) {
+        await db.suppliers.bulkPut(result.suppliers);
+        count += result.suppliers.length;
+      }
+      if (result.purchaseOrders && result.purchaseOrders.length > 0) {
+        await db.purchaseOrders.bulkPut(result.purchaseOrders);
+        count += result.purchaseOrders.length;
+      }
+      if (result.purchaseOrderLines && result.purchaseOrderLines.length > 0) {
+        await db.purchaseOrderLines.bulkPut(result.purchaseOrderLines);
+        count += result.purchaseOrderLines.length;
+      }
+      if (result.supplierInvoices && result.supplierInvoices.length > 0) {
+        await db.supplierInvoices.bulkPut(result.supplierInvoices);
+        count += result.supplierInvoices.length;
+      }
+
+      // AIDE-10: Inventory advanced
+      if (result.stockAdjustments && result.stockAdjustments.length > 0) {
+        await db.stockAdjustments.bulkPut(result.stockAdjustments);
+        count += result.stockAdjustments.length;
+      }
+      if (result.stockAdjustmentLines && result.stockAdjustmentLines.length > 0) {
+        await db.stockAdjustmentLines.bulkPut(result.stockAdjustmentLines);
+        count += result.stockAdjustmentLines.length;
+      }
+
+      // AIDE-11: POS advanced
+      if (result.refunds && result.refunds.length > 0) {
+        await db.refunds.bulkPut(result.refunds);
+        count += result.refunds.length;
+      }
+      if (result.refundLines && result.refundLines.length > 0) {
+        await db.refundLines.bulkPut(result.refundLines);
+        count += result.refundLines.length;
+      }
+      if (result.cashierShifts && result.cashierShifts.length > 0) {
+        await db.cashierShifts.bulkPut(result.cashierShifts);
+        count += result.cashierShifts.length;
+      }
+      if (result.splitPayments && result.splitPayments.length > 0) {
+        await db.splitPayments.bulkPut(result.splitPayments);
+        count += result.splitPayments.length;
+      }
+
+      // AIDE-03: RBAC
+      if (result.employees && result.employees.length > 0) {
+        await db.employees.bulkPut(result.employees);
+        count += result.employees.length;
+      }
+      if (result.invitations && result.invitations.length > 0) {
+        await db.invitations.bulkPut(result.invitations);
+        count += result.invitations.length;
       }
 
       localStorage.setItem('aide_last_sync', new Date().toISOString());

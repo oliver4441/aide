@@ -30,6 +30,44 @@ export async function POST(request: NextRequest) {
           await handleCategoryMutation(action, recordId, data, user, businessIds);
         } else if (table === "sales") {
           await handleSaleMutation(action, recordId, data, deviceId, conflicts, user, businessIds);
+        } else if (table === "accounts") {
+          await handleGenericMutation("account", action, recordId, data, businessIds);
+        } else if (table === "journalEntries") {
+          await handleGenericMutation("journalEntry", action, recordId, data, businessIds);
+        } else if (table === "journalLines") {
+          await handleGenericMutation("journalLine", action, recordId, data, businessIds);
+        } else if (table === "customers") {
+          await handleGenericMutation("customer", action, recordId, data, businessIds);
+        } else if (table === "invoices") {
+          await handleGenericMutation("invoice", action, recordId, data, businessIds);
+        } else if (table === "invoiceLines") {
+          await handleGenericMutation("invoiceLine", action, recordId, data, businessIds);
+        } else if (table === "paymentAllocations") {
+          await handleGenericMutation("paymentAllocation", action, recordId, data, businessIds);
+        } else if (table === "suppliers") {
+          await handleGenericMutation("supplier", action, recordId, data, businessIds);
+        } else if (table === "purchaseOrders") {
+          await handleGenericMutation("purchaseOrder", action, recordId, data, businessIds);
+        } else if (table === "purchaseOrderLines") {
+          await handleGenericMutation("purchaseOrderLine", action, recordId, data, businessIds);
+        } else if (table === "supplierInvoices") {
+          await handleGenericMutation("supplierInvoice", action, recordId, data, businessIds);
+        } else if (table === "stockAdjustments") {
+          await handleGenericMutation("stockAdjustment", action, recordId, data, businessIds);
+        } else if (table === "stockAdjustmentLines") {
+          await handleGenericMutation("stockAdjustmentLine", action, recordId, data, businessIds);
+        } else if (table === "refunds") {
+          await handleGenericMutation("refund", action, recordId, data, businessIds);
+        } else if (table === "refundLines") {
+          await handleGenericMutation("refundLine", action, recordId, data, businessIds);
+        } else if (table === "cashierShifts") {
+          await handleGenericMutation("cashierShift", action, recordId, data, businessIds);
+        } else if (table === "splitPayments") {
+          await handleGenericMutation("splitPayment", action, recordId, data, businessIds);
+        } else if (table === "employees") {
+          await handleGenericMutation("employee", action, recordId, data, businessIds);
+        } else if (table === "invitations") {
+          await handleGenericMutation("invitation", action, recordId, data, businessIds);
         }
         synced++;
       } catch (err: any) {
@@ -281,6 +319,61 @@ async function handleSaleMutation(
   }
 }
 
+// Generic mutation handler for models that don't need special conflict resolution.
+// Uses soft-delete (deletedAt) for delete actions where supported.
+async function handleGenericMutation(
+  modelName: string,
+  action: string,
+  recordId: string,
+  data: any,
+  businessIds: string[]
+) {
+  const model = (prisma as any)[modelName];
+  if (!model) {
+    console.error(`[sync] Unknown model: ${modelName}`);
+    return;
+  }
+
+  if (action === "delete") {
+    const existing = await model.findUnique({ where: { id: recordId } }).catch(() => null);
+    if (!existing) return;
+    if (!businessIds.includes(existing.businessId)) return;
+    // Soft delete if supported, else hard delete
+    if (model.update) {
+      await model.update({
+        where: { id: recordId },
+        data: { deletedAt: new Date() },
+      }).catch(() => {
+        // If soft delete fails (no deletedAt field), try hard delete
+        model.delete({ where: { id: recordId } }).catch(() => {});
+      });
+    }
+    return;
+  }
+
+  const existing = await model.findUnique({ where: { id: recordId } }).catch(() => null);
+  if (existing) {
+    if (!businessIds.includes(existing.businessId)) return;
+    // Update with client data, filtering out read-only fields
+    const updateData = { ...data };
+    delete updateData.id;
+    delete updateData.businessId;
+    delete updateData.createdAt;
+    delete updateData.deletedAt;
+    await model.update({
+      where: { id: recordId },
+      data: updateData,
+    }).catch(() => {});
+  } else {
+    const businessId = data.businessId && businessIds.includes(data.businessId)
+      ? data.businessId
+      : businessIds[0];
+    if (!businessId) return;
+    const createData = { ...data, businessId };
+    await model.create({ data: createData }).catch(() => {});
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -299,26 +392,64 @@ export async function GET(request: NextRequest) {
     }
 
     const sinceDate = new Date(since);
+    const w = { businessId: requestedBusinessId };
 
-    const [business, products, categories, sales, saleItems] = await Promise.all([
+    const [
+      business, products, categories, sales, saleItems,
+      // AIDE-05: Accounting
+      accounts, journalEntries, journalLines,
+      // AIDE-08: Customers & AR
+      customers, invoices, invoiceLines, paymentAllocations,
+      // AIDE-09: Suppliers & AP
+      suppliers, purchaseOrders, purchaseOrderLines, supplierInvoices,
+      // AIDE-10: Inventory advanced
+      stockAdjustments, stockAdjustmentLines,
+      // AIDE-11: POS advanced
+      refunds, refundLines, cashierShifts, splitPayments,
+      // AIDE-03: RBAC
+      employees, invitations,
+    ] = await Promise.all([
       prisma.business.findUnique({ where: { id: requestedBusinessId } }),
-      prisma.product.findMany({
-        where: { businessId: requestedBusinessId, updatedAt: { gt: sinceDate } },
-      }),
-      prisma.category.findMany({
-        where: { businessId: requestedBusinessId, createdAt: { gt: sinceDate } },
-      }),
-      prisma.sale.findMany({
-        where: { businessId: requestedBusinessId, createdAt: { gt: sinceDate } },
-      }),
-      prisma.saleItem.findMany({
-        where: {
-          sale: { businessId: requestedBusinessId, createdAt: { gt: sinceDate } },
-        },
-      }),
+      prisma.product.findMany({ where: { ...w, updatedAt: { gt: sinceDate } } }),
+      prisma.category.findMany({ where: { ...w, createdAt: { gt: sinceDate } } }),
+      prisma.sale.findMany({ where: { ...w, createdAt: { gt: sinceDate } } }),
+      prisma.saleItem.findMany({ where: { sale: { businessId: requestedBusinessId, createdAt: { gt: sinceDate } } } }),
+      // Accounting — JournalLine has no businessId, so fetch by entry relation
+      prisma.account.findMany({ where: w }),
+      prisma.journalEntry.findMany({ where: w, orderBy: { date: 'desc' } }),
+      prisma.journalLine.findMany({ where: { entry: { businessId: requestedBusinessId } } }),
+      // Customers & AR — InvoiceLine has no businessId
+      prisma.customer.findMany({ where: w }),
+      prisma.invoice.findMany({ where: w, orderBy: { createdAt: 'desc' } }),
+      prisma.invoiceLine.findMany({ where: { invoice: { businessId: requestedBusinessId } } }),
+      prisma.paymentAllocation.findMany({ where: w }),
+      // Suppliers & AP — PurchaseOrderLine has no businessId
+      prisma.supplier.findMany({ where: w }),
+      prisma.purchaseOrder.findMany({ where: w, orderBy: { createdAt: 'desc' } }),
+      prisma.purchaseOrderLine.findMany({ where: { purchaseOrder: { businessId: requestedBusinessId } } }),
+      prisma.supplierInvoice.findMany({ where: w, orderBy: { createdAt: 'desc' } }),
+      // Inventory — StockAdjustmentLine has no businessId
+      prisma.stockAdjustment.findMany({ where: w, orderBy: { createdAt: 'desc' } }),
+      prisma.stockAdjustmentLine.findMany({ where: { adjustment: { businessId: requestedBusinessId } } }),
+      // POS advanced — RefundLine has no businessId
+      prisma.refund.findMany({ where: w, orderBy: { createdAt: 'desc' } }),
+      prisma.refundLine.findMany({ where: { refund: { businessId: requestedBusinessId } } }),
+      prisma.cashierShift.findMany({ where: w, orderBy: { openedAt: 'desc' } }),
+      prisma.splitPayment.findMany({ where: w }),
+      // RBAC
+      prisma.employee.findMany({ where: w }),
+      prisma.invitation.findMany({ where: { ...w, expiresAt: { gt: new Date() } } }),
     ]);
 
-    return NextResponse.json({ business, products, categories, sales, saleItems });
+    return NextResponse.json({
+      business, products, categories, sales, saleItems,
+      accounts, journalEntries, journalLines,
+      customers, invoices, invoiceLines, paymentAllocations,
+      suppliers, purchaseOrders, purchaseOrderLines, supplierInvoices,
+      stockAdjustments, stockAdjustmentLines,
+      refunds, refundLines, cashierShifts, splitPayments,
+      employees, invitations,
+    });
   } catch (err) {
     return toAuthError(err);
   }

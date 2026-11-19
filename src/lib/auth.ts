@@ -1,7 +1,9 @@
 import { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
+import GoogleProvider from "next-auth/providers/google"
 import { prisma } from "./prisma"
 import bcrypt from "bcryptjs"
+import admin from "./firebaseAdmin"
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "kipkiruigideon890@gmail.com")
   .split(",")
@@ -10,6 +12,17 @@ const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "kipkiruigideon890@gmail.com")
 
 export const authOptions: NextAuthOptions = {
   providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID || process.env.FIREBASE_PROJECT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+      authorization: {
+        params: {
+          prompt: "consent",
+          access_type: "offline",
+          response_type: "code",
+        },
+      },
+    }),
     CredentialsProvider({
       name: "credentials",
       credentials: {
@@ -91,7 +104,65 @@ export const authOptions: NextAuthOptions = {
     maxAge: 30 * 24 * 60 * 60,
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
+      if (account && account.provider === "google" && user) {
+        // Google OAuth sign-in — auto-create User + Business on first login
+        const email = (user.email || "").toLowerCase().trim();
+        const isAdmin = ADMIN_EMAILS.includes(email);
+
+        if (!isAdmin) {
+          let existingUser = await prisma.user.findUnique({
+            where: { email },
+            select: {
+              id: true,
+              businesses: { select: { businessId: true } },
+            },
+          });
+
+          if (!existingUser) {
+            // Create user + first business (OWNER membership)
+            // Create organization first (required by AIDE-02)
+            const org = await prisma.organization.create({
+              data: {
+                name: (user.name || "My Business") + " Org",
+                slug: `org-${Date.now()}`,
+              },
+            });
+            const business = await prisma.business.create({
+              data: {
+                name: (user.name || "My Business"),
+                type: "SHOP",
+                slug: `biz-${Date.now()}`,
+                currency: "KES",
+                taxRate: "16",
+                organizationId: org.id,
+              },
+            });
+            existingUser = await prisma.user.create({
+              data: {
+                email,
+                name: user.name || "Google User",
+                passwordHash: "", // No password for OAuth-only users
+                businesses: {
+                  create: {
+                    businessId: business.id,
+                    role: "OWNER",
+                  },
+                },
+              },
+              include: {
+                businesses: { select: { businessId: true } },
+              },
+            });
+          }
+
+          token.id = existingUser.id;
+          token.role = "user" as const;
+          token.businessId = existingUser.businesses[0]?.businessId ?? null;
+          return token;
+        }
+      }
+
       if (user) {
         token.id = user.id
         token.role = (user as any).role
