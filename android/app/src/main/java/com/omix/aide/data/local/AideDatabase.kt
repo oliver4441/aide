@@ -12,11 +12,17 @@ import com.omix.aide.data.local.entities.*
 /** Idempotent column add: upgrading an already-migrated file must not fail. */
 private fun SupportSQLiteDatabase.addColumnIfMissing(table: String, column: String, definition: String) {
     val cursor = query("PRAGMA table_info(`$table`)", null)
-    val exists = cursor.use { c ->
-        val nameIndex = c.getColumnIndex("name")
-        val found = mutableListOf<String>()
-        while (c.moveToNext()) found.add(c.getString(nameIndex))
-        column in found
+    var exists = false
+    try {
+        val nameIndex = cursor.getColumnIndex("name")
+        while (cursor.moveToNext()) {
+            if (cursor.getString(nameIndex) == column) {
+                exists = true
+                break
+            }
+        }
+    } finally {
+        cursor.close()
     }
     if (!exists) execSQL("ALTER TABLE `$table` ADD COLUMN `$column` $definition")
 }
