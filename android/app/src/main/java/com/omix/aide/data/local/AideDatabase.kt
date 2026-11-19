@@ -442,7 +442,9 @@ abstract class AideDatabase : RoomDatabase() {
                         `locationId` TEXT,
                         `createdAt` TEXT NOT NULL,
                         `updatedAt` TEXT NOT NULL,
-                        PRIMARY KEY(`id`)
+                        PRIMARY KEY(`id`),
+                        FOREIGN KEY(`organizationId`) REFERENCES `organizations`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL,
+                        FOREIGN KEY(`locationId`) REFERENCES `locations`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL
                     )
                     """.trimIndent()
                 )
