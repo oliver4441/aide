@@ -1,5 +1,7 @@
 package com.omix.aide.ui.screens
 
+import com.omix.aide.data.local.converters.asMoney
+
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -308,8 +310,8 @@ fun StockScreen(
                     }
                     Button(
                         onClick = {
-                            val bp = editBuyingPrice.toDoubleOrNull() ?: editingProduct.buyingPrice
-                            val sp = editSellingPrice.toDoubleOrNull() ?: editingProduct.sellingPrice
+                            val bp = editBuyingPrice.toDoubleOrNull() ?: editingProduct.buyingPrice.asMoney()
+                            val sp = editSellingPrice.toDoubleOrNull() ?: editingProduct.sellingPrice.asMoney()
                             val qty = editQuantity.toIntOrNull() ?: editingProduct.quantity
                             val alertQty = editLowStock.toIntOrNull() ?: editingProduct.lowStock
                             if (editName.isNotBlank() && sp > 0) {
@@ -517,7 +519,7 @@ fun StockProductCard(
 
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = money(product.sellingPrice),
+                        text = money(product.sellingPrice.asMoney()),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.primary

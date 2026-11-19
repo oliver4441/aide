@@ -33,3 +33,9 @@ object DecimalConverters {
         return value?.let { String.format("%.4f", it) } ?: "0.0000"
     }
 }
+
+/** Stored scaled Long -> display Double. Use at every UI/report boundary. */
+fun Long.asMoney(): Double = DecimalConverters.fromDecimal(this)
+
+/** Display Double -> stored scaled Long. Use at every write boundary. */
+fun Double.toScaledMoney(): Long = DecimalConverters.toDecimal(this)

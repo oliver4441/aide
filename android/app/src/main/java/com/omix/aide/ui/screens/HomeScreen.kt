@@ -1,5 +1,7 @@
 package com.omix.aide.ui.screens
 
+import com.omix.aide.data.local.converters.asMoney
+
 import androidx.compose.animation.*
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
@@ -346,7 +348,7 @@ fun HomeScreen(
                                     }
                                 }
                                 Text(
-                                    text = money(saleWithItems.sale.total),
+                                    text = money(saleWithItems.sale.total.asMoney()),
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.ExtraBold,
                                     color = MaterialTheme.colorScheme.primary

@@ -1,5 +1,7 @@
 package com.omix.aide.ui.screens
 
+import com.omix.aide.data.local.converters.asMoney
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -105,7 +107,7 @@ fun ReportsScreen(
                             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                 AideStatCard(
                                     title = "Gross Revenue",
-                                    value = money(report.totals.revenue),
+                                    value = money(report.totals.revenue.asMoney()),
                                     subtitle = "${report.totals.count} sale(s)",
                                     icon = Icons.Default.Payments,
                                     modifier = Modifier.weight(1f),
@@ -113,7 +115,7 @@ fun ReportsScreen(
                                 )
                                 AideStatCard(
                                     title = "Gross Profit",
-                                    value = money(report.totals.profit),
+                                    value = money(report.totals.profit.asMoney()),
                                     icon = Icons.Default.TrendingUp,
                                     modifier = Modifier.weight(1f),
                                     valueColor = WarningAmber
@@ -156,7 +158,7 @@ fun ReportsScreen(
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                         Text(
-                                            text = money(report.totals.tax),
+                                            text = money(report.totals.tax.asMoney()),
                                             style = MaterialTheme.typography.titleMedium,
                                             fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.primary
@@ -200,7 +202,7 @@ fun ReportsScreen(
 
                                     Spacer(modifier = Modifier.height(16.dp))
 
-                                    val topRevenue = report.topProducts.maxOf { it.revenue }.coerceAtLeast(1.0)
+                                    val topRevenue = report.topProducts.maxOf { it.revenue }.asMoney().coerceAtLeast(1.0)
 
                                     report.topProducts.forEachIndexed { index, product ->
                                         Column(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
@@ -235,14 +237,14 @@ fun ReportsScreen(
                                                             fontWeight = FontWeight.SemiBold
                                                         )
                                                         Text(
-                                                            text = "${product.quantity} sold • Profit: ${money(product.profit)}",
+                                                            text = "${product.quantity} sold • Profit: ${money(product.profit.asMoney())}",
                                                             style = MaterialTheme.typography.labelSmall,
                                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                                         )
                                                     }
                                                 }
                                                 Text(
-                                                    text = money(product.revenue),
+                                                    text = money(product.revenue.asMoney()),
                                                     style = MaterialTheme.typography.titleMedium,
                                                     fontWeight = FontWeight.ExtraBold,
                                                     color = MaterialTheme.colorScheme.primary
@@ -290,7 +292,7 @@ fun ReportsScreen(
                                     Spacer(modifier = Modifier.height(16.dp))
 
                                     val chartItems = report.payments.map {
-                                        it.method.replace("_", " ") to it.total
+                                        it.method.replace("_", " ") to it.total.asMoney()
                                     }
                                     val colors = listOf(
                                         MaterialTheme.colorScheme.primary,
@@ -336,7 +338,7 @@ fun ReportsScreen(
                                                 fontWeight = FontWeight.Medium
                                             )
                                             Text(
-                                                text = money(row.total),
+                                                text = money(row.total.asMoney()),
                                                 style = MaterialTheme.typography.titleMedium,
                                                 fontWeight = FontWeight.Bold,
                                                 color = DangerRed

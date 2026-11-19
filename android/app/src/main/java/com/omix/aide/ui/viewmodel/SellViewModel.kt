@@ -6,6 +6,8 @@ import com.omix.aide.data.local.entities.ProductEntity
 import com.omix.aide.data.local.entities.SaleItemEntity
 import com.omix.aide.data.repository.ProductRepository
 import com.omix.aide.data.local.BusinessSettings
+import com.omix.aide.data.local.converters.asMoney
+import com.omix.aide.data.local.converters.toScaledMoney
 import com.omix.aide.data.repository.SaleRepository
 import com.omix.aide.ui.vatOn
 import kotlinx.coroutines.flow.*
@@ -25,8 +27,8 @@ data class SellUiState(
     val lastCompletedSaleId: String? = null,
     val error: String? = null
 ) {
-    val subtotal: Double get() = cart.sumOf { it.product.sellingPrice * it.quantity }
-    val totalCost: Double get() = cart.sumOf { it.product.buyingPrice * it.quantity }
+    val subtotal: Double get() = cart.sumOf { it.product.sellingPrice.asMoney() * it.quantity }
+    val totalCost: Double get() = cart.sumOf { it.product.buyingPrice.asMoney() * it.quantity }
     val profit: Double get() = subtotal - totalCost
 }
 
@@ -156,7 +158,7 @@ class SellViewModel(
         }
 
         val paymentMethod = _paymentMethod.value
-        val total = currentCart.sumOf { it.product.sellingPrice * it.quantity }
+        val total = currentCart.sumOf { it.product.sellingPrice.asMoney() * it.quantity }
         val paidVal = CashPaymentRules.amountToRecord(total, paymentMethod, _amountPaid.value)
         if (paidVal == null) {
             _error.value = "Cash received must be at least the sale total"
@@ -165,7 +167,7 @@ class SellViewModel(
         _error.value = null
 
         viewModelScope.launch {
-            val cost = currentCart.sumOf { it.product.buyingPrice * it.quantity }
+            val cost = currentCart.sumOf { it.product.buyingPrice.asMoney() * it.quantity }
             val profit = total - cost
             val change = (paidVal - total).coerceAtLeast(0.0)
 

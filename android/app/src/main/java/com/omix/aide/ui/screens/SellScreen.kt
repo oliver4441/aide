@@ -1,5 +1,7 @@
 package com.omix.aide.ui.screens
 
+import com.omix.aide.data.local.converters.asMoney
+
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -113,7 +115,7 @@ fun SellScreen(
                             AideProductRow(
                                 name = product.name,
                                 stock = product.quantity,
-                                price = money(product.sellingPrice),
+                                price = money(product.sellingPrice.asMoney()),
                                 sku = product.sku,
                                 lowStockThreshold = product.lowStock,
                                 imagePath = product.imageUrl,
@@ -243,7 +245,7 @@ fun SellScreen(
                                         fontWeight = FontWeight.SemiBold
                                     )
                                     Text(
-                                        text = "${moneyBare(item.product.sellingPrice)} each",
+                                        text = "${moneyBare(item.product.sellingPrice.asMoney())} each",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -296,7 +298,7 @@ fun SellScreen(
                                 Spacer(modifier = Modifier.width(8.dp))
 
                                 Text(
-                                    text = money(item.product.sellingPrice * item.quantity),
+                                    text = money(item.product.sellingPrice.asMoney() * item.quantity),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary
@@ -523,7 +525,7 @@ fun SellProductGridCard(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = money(product.sellingPrice),
+                text = money(product.sellingPrice.asMoney()),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.primary

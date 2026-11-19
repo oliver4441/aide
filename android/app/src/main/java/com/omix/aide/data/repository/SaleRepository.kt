@@ -5,6 +5,7 @@ import com.omix.aide.data.local.dao.SaleDao
 import com.omix.aide.data.local.dao.SaleWithItems
 import com.omix.aide.data.local.entities.SaleEntity
 import com.omix.aide.data.local.entities.SaleItemEntity
+import com.omix.aide.data.local.converters.toScaledMoney
 import kotlinx.coroutines.flow.Flow
 import java.text.SimpleDateFormat
 import java.util.*
@@ -47,13 +48,13 @@ class SaleRepository(
         val sale = SaleEntity(
             id = saleId,
             businessId = businessId,
-            total = total,
-            cost = cost,
-            profit = profit,
-            paid = paid,
-            change = change,
-            tax = tax,
-            taxRate = taxRate,
+            total = total.toScaledMoney(),
+            cost = cost.toScaledMoney(),
+            profit = profit.toScaledMoney(),
+            paid = paid.toScaledMoney(),
+            change = change.toScaledMoney(),
+            tax = tax.toScaledMoney(),
+            taxRate = taxRate.toScaledMoney(),
             cashier = cashier,
             paymentMethod = paymentMethod,
             notes = notes,

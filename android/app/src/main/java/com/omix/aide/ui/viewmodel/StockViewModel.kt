@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.omix.aide.data.local.entities.CategoryEntity
 import com.omix.aide.data.local.entities.ProductEntity
+import com.omix.aide.data.local.converters.toScaledMoney
 import com.omix.aide.data.repository.ProductRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -81,8 +82,8 @@ class StockViewModel(
                 id = UUID.randomUUID().toString(),
                 businessId = businessId,
                 name = name,
-                buyingPrice = buyingPrice,
-                sellingPrice = sellingPrice,
+                buyingPrice = buyingPrice.toScaledMoney(),
+                sellingPrice = sellingPrice.toScaledMoney(),
                 quantity = quantity,
                 lowStock = lowStock,
                 sku = sku,
@@ -115,8 +116,8 @@ class StockViewModel(
                 id = id,
                 businessId = businessId,
                 name = name,
-                buyingPrice = buyingPrice,
-                sellingPrice = sellingPrice,
+                buyingPrice = buyingPrice.toScaledMoney(),
+                sellingPrice = sellingPrice.toScaledMoney(),
                 quantity = quantity,
                 lowStock = lowStock,
                 sku = sku,

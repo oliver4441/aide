@@ -1,5 +1,7 @@
 package com.omix.aide.ui.screens
 
+import com.omix.aide.data.local.converters.asMoney
+
 import android.content.Intent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -50,17 +52,17 @@ fun ReceiptScreen(
             appendLine("Date: ${saleData.sale.createdAt}")
             appendLine("-------------------------------")
             saleData.items.forEach { item ->
-                appendLine("${item.name} x${item.quantity}  ${money(item.price * item.quantity)}")
+                appendLine("${item.name} x${item.quantity}  ${money(item.price.asMoney() * item.quantity)}")
             }
             appendLine("-------------------------------")
-            appendLine("TOTAL PAID: ${money(saleData.sale.total)}")
+            appendLine("TOTAL PAID: ${money(saleData.sale.total.asMoney())}")
             appendLine("Payment Method: ${saleData.sale.paymentMethod}")
             if (saleData.sale.change > 0) {
-                appendLine("Change: ${money(saleData.sale.change)}")
+                appendLine("Change: ${money(saleData.sale.change.asMoney())}")
             }
             if (saleData.sale.tax > 0.0) {
                 appendLine(
-                    "VAT (${"%.0f".format(saleData.sale.taxRate)}%): ${money(saleData.sale.tax)}"
+                    "VAT (${"%.0f".format(saleData.sale.taxRate.asMoney())}%): ${money(saleData.sale.tax.asMoney())}"
                 )
             }
             if (settings.receiptFooter.isNotBlank()) {
@@ -136,7 +138,7 @@ fun ReceiptScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(text = "${item.name} x${item.quantity}")
-                                Text(text = money(item.price * item.quantity))
+                                Text(text = money(item.price.asMoney() * item.quantity))
                             }
                         }
                     }
@@ -149,7 +151,7 @@ fun ReceiptScreen(
                     ) {
                         Text(text = "Total Paid:", fontWeight = FontWeight.Bold)
                         Text(
-                            text = money(saleData.sale.total),
+                            text = money(saleData.sale.total.asMoney()),
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -168,7 +170,7 @@ fun ReceiptScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(text = "Change:", style = MaterialTheme.typography.labelMedium)
-                        Text(text = money(saleData.sale.change), style = MaterialTheme.typography.labelMedium)
+                        Text(text = money(saleData.sale.change.asMoney()), style = MaterialTheme.typography.labelMedium)
                     }
 
                     // Only shown when the sale actually carried VAT, so a shop
@@ -179,11 +181,11 @@ fun ReceiptScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = "VAT (${"%.0f".format(saleData.sale.taxRate)}%):",
+                                text = "VAT (${"%.0f".format(saleData.sale.taxRate.asMoney())}%):",
                                 style = MaterialTheme.typography.labelMedium
                             )
                             Text(
-                                text = money(saleData.sale.tax),
+                                text = money(saleData.sale.tax.asMoney()),
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.SemiBold
                             )
