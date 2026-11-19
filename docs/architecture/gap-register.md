@@ -89,15 +89,15 @@
 | POS-07 | Offline sale creation | ✅ | ✅ | ✅ | — | Local-first |
 | POS-08 | Sale sync (push/pull) | ✅ | ❌ | 🟡 | AIDE-18 | Android local-only |
 | POS-09 | Credit sales (customer balance) | ✅ | ✅ | 🟡 | AIDE-08 | Web: `customerId` on Sale; Android: `CustomerEntity.balance` |
-| POS-10 | Refund / void | ❌ | ❌ | ❌ | AIDE-11 | No reversal workflow |
+| POS-10 | Refund / void | ✅ | ❌ | 🟡 | AIDE-11 | Web: Refund model with reason codes, auto-restocks, reversing GL entry |
 | POS-11 | Lay-away / suspended carts | ❌ | ❌ | ❌ | AIDE-11 | |
 | POS-12 | Multi-terminal (registers) | ❌ | ❌ | ❌ | AIDE-11 | |
-| POS-13 | Cashier shifts + cash drawers | ❌ | ❌ | ❌ | AIDE-11 | |
+| POS-13 | Cashier shifts + cash drawers | ✅ | ❌ | 🟡 | AIDE-11 | Web: CashierShift model, open/close with cash reconciliation |
 | POS-14 | Shift Z-report / reconciliation | ❌ | ❌ | ❌ | AIDE-13 | |
-| POS-15 | Tips / service charge | ❌ | ❌ | ❌ | AIDE-11 | |
+| POS-15 | Tips / service charge | ✅ | ❌ | 🟡 | AIDE-11 | Web: `tipAmount` on Sale model |
 | POS-16 | Discounts / promotions | ❌ | ❌ | ❌ | AIDE-15 | |
 | POS-17 | Loyalty / customer points | ❌ | ❌ | ❌ | AIDE-08 | |
-| POS-18 | Split payment (cash + card) | ❌ | ❌ | ❌ | AIDE-11 | |
+| POS-18 | Split payment (cash + card) | ✅ | ❌ | 🟡 | AIDE-11 | Web: SplitPayment model linked to Sale |
 | POS-19 | Sale notes / internal memo | ✅ | ✅ | ✅ | — | `Sale.notes` |
 
 ---
@@ -177,7 +177,7 @@
 | RPT-02 | Top products | ✅ | ✅ | ✅ | — | |
 | RPT-03 | Payment method breakdown | ✅ | ✅ | ✅ | — | |
 | RPT-04 | Sales by category | ✅ | ✅ | ✅ | — | |
-| RPT-05 | Sales by cashier | ❌ | ❌ | ❌ | AIDE-11 | |
+| RPT-05 | Sales by cashier | ✅ | ❌ | 🟡 | AIDE-11 | Web: shift summary includes cashier sales breakdown |
 | RPT-06 | Profit margin by product | ❌ | ❌ | ❌ | AIDE-10 | Needs costing |
 | RPT-07 | Stock valuation | ✅ | ❌ | 🟡 | AIDE-10 | Web: valuation API with per-product and category breakdown |
 | RPT-08 | Low stock report | ✅ | ✅ | ✅ | — | |
@@ -326,8 +326,20 @@
   - ✅ Neon migration applied: aide10_inventory_advanced
   - ❌ Stock transfers (multi-location) still missing
   - ❌ Android not migrated
-9. **AIDE-18** — Shared offline-first multi-user (Android sync) — strategic differentiator
-10. **AIDE-16/17** — Kenya-specific: M-Pesa, eTIMS, tax engine
+9. **AIDE-11** ✅ — POS advanced (web)
+  - ✅ Refund/void: Refund model with reason codes, auto-restocks refunded items, reversing GL entry
+  - ✅ Refund API: create (POST), list (GET), detail (GET), approve/reject (PATCH)
+  - ✅ Cashier shifts: CashierShift model, open/close with cash reconciliation
+  - ✅ Shift API: open shift (POST), list (GET), detail with summary (GET), close with cash count (PATCH)
+  - ✅ Tips/service charge: `tipAmount` on Sale model
+  - ✅ Split payment: SplitPayment model linked to Sale for multi-method payments
+  - ✅ RBAC: SHIFT_OPEN (all roles), SHIFT_CLOSE (OWNER/MANAGER), REFUND_CREATE (OWNER/MANAGER), REFUND_READ (all roles)
+  - ✅ Neon migration applied: aide11_pos_advanced
+  - ❌ Lay-away/suspended carts still missing
+  - ❌ Multi-terminal (registers) still missing
+  - ❌ Android not migrated
+10. **AIDE-18** — Shared offline-first multi-user (Android sync) — strategic differentiator
+11. **AIDE-16/17** — Kenya-specific: M-Pesa, eTIMS, tax engine
 
 ---
 

@@ -43,6 +43,9 @@ model User {
   // AIDE-03: RBAC
   employeeProfile Employee?
   sentInvitations Invitation[] @relation("Inviter")
+  
+  // AIDE-11: POS advanced
+  shifts CashierShift[] @relation("ShiftCashier")
 }
 
 // A business (shop, salon, store, etc.)
@@ -105,6 +108,11 @@ model Business {
   
   // AIDE-10: Inventory advanced
   stockAdjustments  StockAdjustment[]
+
+  // AIDE-11: POS advanced
+  refunds           Refund[]
+  splitPayments     SplitPayment[]
+  shifts            CashierShift[]
 
   @@index([organizationId])
 }
@@ -346,6 +354,13 @@ model Sale {
   // AIDE-08: Credit sales — link to customer for credit tracking
   customer      Customer? @relation(fields: [customerId], references: [id])
   customerId    String?
+
+  // AIDE-11: POS advanced
+  refunds       Refund[]
+  splitPayments SplitPayment[]
+  shift         CashierShift?   @relation("SaleShift", fields: [shiftId], references: [id])
+  shiftId       String?
+  tipAmount     Decimal       @default(0) @db.Decimal(19, 4)
 }
 
 enum PaymentMethod {
@@ -985,6 +1000,11 @@ enum Permission {
   // AIDE-10: Stock adjustments
   STOCK_ADJUST_CREATE
   STOCK_ADJUST_READ
+  // AIDE-11: POS advanced
+  SHIFT_OPEN
+  SHIFT_CLOSE
+  REFUND_CREATE
+  REFUND_READ
 }
 
 /// An employee profile — extends User + BusinessMembership with display info
@@ -1034,4 +1054,125 @@ model Invitation {
   @@index([businessId])
   @@index([token])
   @@index([email])
+}
+
+// ============================================================================
+// AIDE-11: POS Advanced — Refunds, shifts, split payment, tips
+// ============================================================================
+
+/// Reason for a refund (POS-10)
+enum RefundReason {
+  CUSTOMER_REQUEST
+  WRONG_ITEM
+  WRONG_QUANTITY
+  DAMAGED_PRODUCT
+  DOUBLE_CHARGE
+  OTHER
+}
+
+/// Status of a refund (POS-10)
+enum RefundStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+/// Cashier shift tracking (POS-13)
+enum ShiftStatus {
+  OPEN
+  CLOSED
+  LOCKED
+}
+
+/// Refund of a previous sale (POS-10)
+model Refund {
+  id            String            @id @default(cuid())
+  refundNo      String            // e.g. "RFD-2026-0001"
+  reason        RefundReason
+  status        RefundStatus      @default(PENDING)
+  refundedTotal Decimal           @db.Decimal(19, 4)
+  refundedTax   Decimal           @default(0) @db.Decimal(19, 4)
+  notes         String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  sale          Sale              @relation(fields: [saleId], references: [id])
+  saleId        String
+
+  business      Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId    String
+
+  lines         RefundLine[]
+
+  @@unique([businessId, refundNo])
+  @@index([businessId])
+  @@index([saleId])
+}
+
+/// Individual line on a refund
+model RefundLine {
+  id        String   @id @default(cuid())
+  name      String   // snapshot of product name
+  quantity  Int      // quantity refunded
+  price     Decimal  @db.Decimal(19, 4) // price at time of refund
+  cost      Decimal  @db.Decimal(19, 4) // cost at time of refund
+
+  refund    Refund   @relation(fields: [refundId], references: [id], onDelete: Cascade)
+  refundId  String
+
+
+  @@index([refundId])
+}
+
+/// Cashier shift — tracks cash drawer opening/closing (POS-13)
+model CashierShift {
+  id            String            @id @default(cuid())
+  shiftNo       String            // e.g. "SH-2026-0001"
+  status        ShiftStatus       @default(OPEN)
+  openedAt      DateTime          @default(now())
+  closedAt      DateTime?
+  openingCash   Decimal           @default(0) @db.Decimal(19, 4)
+  closingCash   Decimal?
+  expectedCash  Decimal?
+  cashDifference Decimal?         @db.Decimal(19, 4)
+  totalSales    Decimal           @default(0) @db.Decimal(19, 4)
+  totalRefunds  Decimal           @default(0) @db.Decimal(19, 4)
+  totalTips     Decimal           @default(0) @db.Decimal(19, 4)
+  cashCount     Decimal?
+  notes         String?
+  createdAt     DateTime          @default(now())
+
+  business      Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId    String
+
+  cashier       User              @relation("ShiftCashier", fields: [cashierId], references: [id], onDelete: Restrict)
+  cashierId     String
+
+  sales         Sale[]            @relation("SaleShift")
+
+  @@map("CashierShift")
+
+  @@unique([businessId, shiftNo])
+  @@index([businessId])
+  @@index([cashierId])
+  @@index([openedAt])
+}
+
+/// Split payment — one sale, multiple payment methods (POS-18)
+model SplitPayment {
+  id            String            @id @default(cuid())
+  amount        Decimal           @db.Decimal(19, 4)
+  paymentMethod PaymentMethod
+  notes         String?
+  createdAt     DateTime          @default(now())
+
+  sale          Sale              @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  saleId        String
+
+  business      Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId    String
+
+  @@index([saleId])
+  @@index([businessId])
 }

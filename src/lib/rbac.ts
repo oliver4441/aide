@@ -43,6 +43,11 @@ export const Permission = {
   SHIFT_MANAGE: "SHIFT_MANAGE",
   STOCK_ADJUST_CREATE: "STOCK_ADJUST_CREATE",
   STOCK_ADJUST_READ: "STOCK_ADJUST_READ",
+  // AIDE-11: POS advanced
+  SHIFT_OPEN: "SHIFT_OPEN",
+  SHIFT_CLOSE: "SHIFT_CLOSE",
+  REFUND_CREATE: "REFUND_CREATE",
+  REFUND_READ: "REFUND_READ",
 } as const;
 export type Permission = (typeof Permission)[keyof typeof Permission];
 
@@ -94,6 +99,10 @@ export const ROLE_PERMISSIONS: Record<BusinessRole, Permission[]> = {
     Permission.SHIFT_MANAGE,
     Permission.STOCK_ADJUST_CREATE,
     Permission.STOCK_ADJUST_READ,
+    Permission.SHIFT_OPEN,
+    Permission.SHIFT_CLOSE,
+    Permission.REFUND_CREATE,
+    Permission.REFUND_READ,
   ],
   MANAGER: [
     // Can manage sales, products, customers, reports — but not employees or settings
@@ -130,6 +139,10 @@ export const ROLE_PERMISSIONS: Record<BusinessRole, Permission[]> = {
     Permission.SHIFT_MANAGE,
     Permission.STOCK_ADJUST_CREATE,
     Permission.STOCK_ADJUST_READ,
+    Permission.SHIFT_OPEN,
+    Permission.SHIFT_CLOSE,
+    Permission.REFUND_CREATE,
+    Permission.REFUND_READ,
   ],
   STAFF: [
     // Limited to creating and reading sales, reading products
@@ -145,6 +158,8 @@ export const ROLE_PERMISSIONS: Record<BusinessRole, Permission[]> = {
     Permission.JOURNAL_READ,
     Permission.REPORT_READ,
     Permission.STOCK_ADJUST_READ,
+    Permission.SHIFT_OPEN,
+    Permission.REFUND_READ,
   ],
 };
 
