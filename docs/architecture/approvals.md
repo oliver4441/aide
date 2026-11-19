@@ -8,9 +8,9 @@ First delivery slice. Status: **partial** — issue #51 stays open.
   thresholds, quorum (`minApprovals`), approver groups, escalation groups and a
   separation-of-duties flag. Creating a new version deactivates the previous
   one inside a transaction; old versions are never edited.
-- Server-side gates plus HTTP replay executors cover eight action types:
+- Server-side gates plus HTTP replay executors cover seven action types:
   `STOCK_ADJUSTMENT`, `PURCHASE_ORDER`, `SUPPLIER_PAYMENT`, `REFUND`, `JOURNAL`,
-  `PRICE_CHANGE`, `DISCOUNT` and `PERIOD_CLOSE`. An approved request replays the
+  `PRICE_CHANGE` and `PERIOD_CLOSE`. An approved request replays the
   original route with a signed, short-lived internal token so the route's own
   validation, RBAC and tenant checks still run. `executedAt` makes replay
   one-shot.
@@ -41,13 +41,14 @@ First delivery slice. Status: **partial** — issue #51 stays open.
 | Criterion | Status |
 |---|---|
 | Decisions record actor, timestamp, comments, policy version | Done |
-| Approval cannot be bypassed through direct API calls | Done for all eight gated write routes |
+| Approval cannot be bypassed through direct API calls | Done for all seven gated write routes |
 | Concurrent approval attempts handled safely | Done (unique vote + transaction) |
 | Policy changes do not rewrite historical records | Done |
 
 ## Remaining work on #51
 
-- `EXPENSE` has no web write route (Android is local-only), so it stays declarative.
+- `EXPENSE` and `DISCOUNT` have no dedicated web write route (Android is
+  local-only and sales have no discount field yet), so both stay declarative.
 - Configure a cron caller for `POST /api/approvals/escalate` with
   `APPROVAL_CRON_SECRET`.
 - Apply the migration to Neon after review; this slice ships schema + migration

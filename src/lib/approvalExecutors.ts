@@ -123,8 +123,6 @@ async function replayHandler(path: string, method: string): Promise<RouteHandler
     routeModule = await import("@/app/api/periods/[id]/route");
   } else if (path.startsWith("/api/products")) {
     routeModule = await import("@/app/api/products/[id]/route");
-  } else if (path.startsWith("/api/sales")) {
-    routeModule = await import("@/app/api/sales/route");
   } else if (path.startsWith("/api/stock-adjustments")) {
     routeModule = await import("@/app/api/stock-adjustments/route");
   } else {
