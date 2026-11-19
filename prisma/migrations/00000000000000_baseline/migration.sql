@@ -1,2 +1,0 @@
--- Baseline migration: existing database schema
--- This migration marks the current database state as the baseline for Prisma Migrate

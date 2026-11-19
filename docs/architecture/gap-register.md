@@ -27,9 +27,9 @@
 | AUTH-05 | Session management (refresh, expiry) | ✅ | N/A | ✅ | — | NextAuth JWT cookie |
 | AUTH-06 | Password reset / recovery | ❌ | N/A | ❌ | — | No forgot-password flow |
 | AUTH-07 | MFA / 2FA | ❌ | N/A | ❌ | AIDE-19 | Security hardening |
-| AUTH-08 | Role-based access (Owner/Manager/Staff) | ✅ | N/A | 🟡 | AIDE-03 | `BusinessMembership.role` exists; enforcement partial |
-| AUTH-09 | Employee invitation flow | ❌ | N/A | ❌ | AIDE-03 | Invite link + role assignment |
-| AUTH-10 | Access revocation / deprovisioning | ❌ | N/A | ❌ | AIDE-03 | Remove membership |
+| AUTH-08 | Role-based access (Owner/Manager/Staff) | ✅ | N/A | ✅ | AIDE-03 | Permission-based enforcement on all employee/invitation routes |
+| AUTH-09 | Employee invitation flow | ✅ | N/A | ✅ | AIDE-03 | POST /api/invitations creates invite; PATCH accepts |
+| AUTH-10 | Access revocation / deprovisioning | ✅ | N/A | ✅ | AIDE-03 | DELETE /api/employees/[id] removes membership |
 | AUTH-11 | Audit log of auth events | ❌ | N/A | ❌ | AIDE-19 | Login, role change, revoke |
 
 ---
@@ -269,9 +269,15 @@
 ## 15. Recommended Next Actions (Priority Order)
 
 1. **AIDE-04** ✅ — Decimal migration complete (web Prisma + Neon done, Android pending)
-2. **AIDE-03** — Tenant-scoped RBAC, employee membership, access lifecycle (unlocks multi-user)
-   - ✅ All 8 API routes now use `requireBusiness()` for membership-based tenant isolation
-   - ❌ Employee profiles, invitation flow, role templates still missing
+2. **AIDE-03** ✅ — Tenant-scoped RBAC, employee membership, access lifecycle
+   - ✅ All API routes use `requireBusiness()` for membership-based tenant isolation
+   - ✅ Employee profiles with sequential IDs (Employee model)
+   - ✅ Invitation flow: create, accept, revoke (Invitation model)
+   - ✅ Role templates: OWNER (full), MANAGER (no employee/settings), STAFF (POS only)
+   - ✅ Permission-based authorization on all RBAC routes
+   - ✅ Access revocation: DELETE employee removes membership
+   - ❌ Android PIN/biometric lock still missing
+   - ❌ Audit log of auth events still missing
 3. **AIDE-05** ✅ — Double-entry accounting: chart of accounts, journal entries, posting engine
    - ✅ 22 standard accounts auto-seeded per business
    - ✅ Central posting engine with balance enforcement
