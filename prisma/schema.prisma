@@ -91,6 +91,11 @@ model Business {
   employees     Employee[]
   invitations   Invitation[]
 
+  // AIDE-08: Customers & Accounts Receivable
+  customers     Customer[]
+  invoices      Invoice[]
+  payments      PaymentAllocation[]
+
   @@index([organizationId])
 }
 
@@ -324,6 +329,10 @@ model Sale {
   business      Business @relation(fields: [businessId], references: [id])
   businessId    String
   items         SaleItem[]
+
+  // AIDE-08: Credit sales — link to customer for credit tracking
+  customer      Customer? @relation(fields: [customerId], references: [id])
+  customerId    String?
 }
 
 enum PaymentMethod {
@@ -549,6 +558,116 @@ enum PeriodStatus {
   OPEN
   CLOSED
   LOCKED
+}
+
+// ============================================================================
+// AIDE-08: Customers & Accounts Receivable
+// ============================================================================
+
+/// A customer of the business — can hold credit balance and receive invoices
+model Customer {
+  id            String            @id @default(cuid())
+  customerCode  String            // e.g. "CUST-001" (display code)
+  name          String
+  email         String?
+  phone         String?
+  address       String?
+  city          String?
+  notes         String?
+  creditLimit   Decimal           @default(0) @db.Decimal(19, 4)
+  balance       Decimal           @default(0) @db.Decimal(19, 4) // positive = owes money
+  isActive      Boolean           @default(true)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  business      Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId    String
+
+  invoices      Invoice[]
+  payments      PaymentAllocation[]
+  creditSales   Sale[]            // sales on credit linked to this customer
+
+  @@unique([businessId, customerCode])
+  @@index([businessId])
+  @@index([name])
+}
+
+/// An invoice generated for a customer (can be from a sale or standalone)
+model Invoice {
+  id            String            @id @default(cuid())
+  invoiceNumber String            // e.g. "INV-2026-0001"
+  issueDate     DateTime          @default(now())
+  dueDate       DateTime
+  status        InvoiceStatus     @default(DRAFT)
+  subtotal      Decimal           @db.Decimal(19, 4)
+  tax           Decimal           @default(0) @db.Decimal(19, 4)
+  total         Decimal           @db.Decimal(19, 4)
+  amountPaid    Decimal           @default(0) @db.Decimal(19, 4)
+  balanceDue    Decimal           @db.Decimal(19, 4)
+  notes         String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  business      Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId    String
+
+  customer      Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId    String
+
+  lines         InvoiceLine[]
+  payments      PaymentAllocation[]
+
+  @@unique([businessId, invoiceNumber])
+  @@index([businessId])
+  @@index([customerId])
+  @@index([status])
+  @@index([dueDate])
+}
+
+/// Individual line items on an invoice
+model InvoiceLine {
+  id            String          @id @default(cuid())
+  description   String
+  quantity      Decimal         @default(1) @db.Decimal(19, 4)
+  unitPrice     Decimal         @db.Decimal(19, 4)
+  amount        Decimal         @db.Decimal(19, 4) // qty * unitPrice
+
+  invoice       Invoice         @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoiceId     String
+
+  @@index([invoiceId])
+}
+
+/// A payment applied against an invoice or customer balance
+model PaymentAllocation {
+  id            String            @id @default(cuid())
+  amount        Decimal           @db.Decimal(19, 4)
+  paymentMethod PaymentMethod     @default(CASH)
+  reference     String?           // e.g. M-Pesa transaction code
+  notes         String?
+  paidAt        DateTime          @default(now())
+
+  business      Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId    String
+
+  customer      Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId    String
+
+  invoice       Invoice?          @relation(fields: [invoiceId], references: [id])
+  invoiceId     String?
+
+  @@index([businessId])
+  @@index([customerId])
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  CANCELLED
+  WRITTEN_OFF
 }
 
 // ============================================================================

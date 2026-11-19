@@ -88,7 +88,7 @@
 | POS-06 | Receipt print (Bluetooth/USB) | ✅ | ✅ | ✅ | — | Web: print window; Android: print service |
 | POS-07 | Offline sale creation | ✅ | ✅ | ✅ | — | Local-first |
 | POS-08 | Sale sync (push/pull) | ✅ | ❌ | 🟡 | AIDE-18 | Android local-only |
-| POS-09 | Credit sales (customer balance) | ❌ | ✅ | 🟡 | AIDE-08 | Android: `CustomerEntity.balance` |
+| POS-09 | Credit sales (customer balance) | ✅ | ✅ | 🟡 | AIDE-08 | Web: `customerId` on Sale; Android: `CustomerEntity.balance` |
 | POS-10 | Refund / void | ❌ | ❌ | ❌ | AIDE-11 | No reversal workflow |
 | POS-11 | Lay-away / suspended carts | ❌ | ❌ | ❌ | AIDE-11 | |
 | POS-12 | Multi-terminal (registers) | ❌ | ❌ | ❌ | AIDE-11 | |
@@ -106,15 +106,15 @@
 
 | ID | Capability | Web | Android | Status | Issue | Notes |
 |----|------------|-----|---------|--------|-------|-------|
-| AR-01 | Customer directory | ❌ | ✅ | 🟡 | AIDE-08 | Android only (`CustomerEntity`) |
-| AR-02 | Customer credit balance | ❌ | ✅ | 🟡 | AIDE-08 | Denormalized `balance` |
-| AR-03 | Credit sales workflow | ❌ | ❌ | ❌ | AIDE-08 | |
-| AR-04 | Invoice generation | ❌ | ❌ | ❌ | AIDE-08 | |
+| AR-01 | Customer directory | ✅ | ✅ | 🟡 | AIDE-08 | Web: full CRUD API; Android: `CustomerEntity` |
+| AR-02 | Customer credit balance | ✅ | ✅ | 🟡 | AIDE-08 | Web: denormalized `balance` field; Android: `CustomerEntity.balance` |
+| AR-03 | Credit sales workflow | ✅ | ❌ | 🟡 | AIDE-08 | Web: `customerId` on Sale links credit sales |
+| AR-04 | Invoice generation | ✅ | ❌ | 🟡 | AIDE-08 | Web: Invoice + InvoiceLine models, auto-numbered |
 | AR-05 | Invoice email/SMS | ❌ | ❌ | ❌ | AIDE-08, AIDE-20 | |
-| AR-06 | Payment allocation (receipts) | ❌ | ❌ | ❌ | AIDE-08 | |
-| AR-07 | Aging report | ❌ | ❌ | ❌ | AIDE-08 | |
-| AR-08 | Statements | ❌ | ❌ | ❌ | AIDE-08 | |
-| AR-09 | Bad debt write-off | ❌ | ❌ | ❌ | AIDE-08 | |
+| AR-06 | Payment allocation (receipts) | ✅ | ❌ | 🟡 | AIDE-08 | Web: PaymentAllocation model, invoice + general payments |
+| AR-07 | Aging report | ✅ | ❌ | 🟡 | AIDE-08 | Web: 5-bucket aging (current, 1-30, 31-60, 61-90, 90+) |
+| AR-08 | Statements | ✅ | ❌ | 🟡 | AIDE-08 | Web: customer statement with running balance |
+| AR-09 | Bad debt write-off | ✅ | ❌ | 🟡 | AIDE-08 | Web: WRITTEN_OFF invoice status |
 | AR-10 | Customer portal | ❌ | ❌ | ❌ | AIDE-20 | |
 
 ---
@@ -181,7 +181,7 @@
 | RPT-06 | Profit margin by product | ❌ | ❌ | ❌ | AIDE-10 | Needs costing |
 | RPT-07 | Stock valuation | ❌ | ❌ | ❌ | AIDE-10 | |
 | RPT-08 | Low stock report | ✅ | ✅ | ✅ | — | |
-| RPT-09 | Customer sales history | ❌ | ✅ | 🟡 | AIDE-08 | Android only |
+| RPT-09 | Customer sales history | ✅ | ✅ | 🟡 | AIDE-08 | Web: customer statement API; Android only |
 | RPT-10 | Custom date ranges | ✅ | ✅ | ✅ | — | |
 | RPT-11 | Export (CSV/JSON/PDF) | ✅ | ✅ | ✅ | — | |
 | RPT-12 | Scheduled/emailed reports | ❌ | ❌ | ❌ | AIDE-20 | |
@@ -296,8 +296,17 @@
    - ✅ Accounting periods: CRUD, close/lock, role-gated
    - ❌ Android not migrated
    - ❌ Year-end closing, fixed assets/depreciation still missing
-6. **AIDE-18** — Shared offline-first multi-user (Android sync) — strategic differentiator
-7. **AIDE-08** — Customers, quotations, invoices, AR (revenue cycle)
+6. **AIDE-08** ✅ — Customers & Accounts Receivable (web)
+   - ✅ Customer directory: full CRUD API with search, credit limits, balances
+   - ✅ Credit sales: `customerId` on Sale links transactions to customers
+   - ✅ Invoice generation: Invoice + InvoiceLine models, auto-numbered (INV-YEAR-NNNN)
+   - ✅ Payment allocation: record payments against invoices or general balance
+   - ✅ Aging report: 5-bucket breakdown (current, 1-30, 31-60, 61-90, 90+ days)
+   - ✅ Customer statements: transaction history with running balance
+   - ✅ Bad debt write-off: WRITTEN_OFF invoice status
+   - ❌ Invoice email/SMS still missing
+   - ❌ Android not migrated
+7. **AIDE-18** — Shared offline-first multi-user (Android sync) — strategic differentiator
 8. **AIDE-09** — Suppliers, purchasing, GRN, AP (procurement cycle)
 9. **AIDE-10** — Inventory movement ledger, costing, multi-warehouse
 10. **AIDE-16/17** — Kenya-specific: M-Pesa, eTIMS, tax engine
