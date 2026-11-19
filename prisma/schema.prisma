@@ -102,6 +102,9 @@ model Business {
   goodsReceived     GoodsReceivedNote[]
   supplierInvoices  SupplierInvoice[]
   supplierPayments  SupplierPayment[]
+  
+  // AIDE-10: Inventory advanced
+  stockAdjustments  StockAdjustment[]
 
   @@index([organizationId])
 }
@@ -316,6 +319,9 @@ model Product {
   categoryId    String?
 
   saleItems     SaleItem[]
+  
+  // AIDE-10: Inventory advanced
+  stockAdjustmentLines StockAdjustmentLine[]
 }
 
 // Sales transactions
@@ -870,6 +876,59 @@ enum SupplierInvoiceStatus {
 }
 
 // ============================================================================
+// AIDE-10: Inventory Advanced — Stock adjustments, movement ledger, valuation
+// ============================================================================
+
+/// Reason for a stock adjustment (INV-11)
+enum StockAdjustmentReason {
+  COUNT_DIFFERENCE
+  DAMAGE
+  THEFT
+  EXPIRED
+  RETURN_TO_SUPPLIER
+  CUSTOMER_RETURN
+  GIFT_SAMPLE
+  WRITE_OFF
+  OTHER
+}
+
+/// Manual stock adjustment with audit trail (INV-11)
+model StockAdjustment {
+  id            String                  @id @default(cuid())
+  adjustmentNo  String                  // e.g. "SAJ-2026-0001"
+  date          DateTime                @default(now())
+  reason        StockAdjustmentReason
+  notes         String?
+  createdAt     DateTime                @default(now())
+
+  business      Business                @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId    String
+
+  lines         StockAdjustmentLine[]
+
+  @@unique([businessId, adjustmentNo])
+  @@index([businessId])
+  @@index([date])
+}
+
+/// Individual product line on a stock adjustment
+model StockAdjustmentLine {
+  id            String          @id @default(cuid())
+  productName   String          // snapshot of product name
+  quantityDelta Int             // positive = add stock, negative = remove stock
+  unitCost      Decimal         @db.Decimal(19, 4) // cost at time of adjustment
+
+  adjustment    StockAdjustment @relation(fields: [adjustmentId], references: [id], onDelete: Cascade)
+  adjustmentId  String
+
+  product       Product?        @relation(fields: [productId], references: [id])
+  productId     String?
+
+  @@index([adjustmentId])
+  @@index([productId])
+}
+
+// ============================================================================
 // AIDE-03: Tenant-scoped RBAC — Employee management & invitations
 // ============================================================================
 
@@ -923,6 +982,9 @@ enum Permission {
   EMPLOYEE_MANAGE
   // Shifts & drawers
   SHIFT_MANAGE
+  // AIDE-10: Stock adjustments
+  STOCK_ADJUST_CREATE
+  STOCK_ADJUST_READ
 }
 
 /// An employee profile — extends User + BusinessMembership with display info

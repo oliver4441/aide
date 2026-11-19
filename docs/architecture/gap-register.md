@@ -64,14 +64,14 @@
 | INV-07 | Barcode printing | ❌ | ❌ | ❌ | AIDE-15 | |
 | INV-08 | Product variants (size/color) | ❌ | ❌ | ❌ | AIDE-15 | |
 | INV-09 | Bundles/kits | ❌ | ❌ | ❌ | AIDE-15 | |
-| INV-10 | Costing methods (FIFO, Avg, LIFO) | ❌ | ❌ | ❌ | AIDE-10 | |
-| INV-11 | Stock adjustment (manual + reason) | ❌ | ❌ | ❌ | AIDE-10 | Movement log |
+| INV-10 | Costing methods (FIFO, Avg, LIFO) | 🟡 | ❌ | 🟡 | AIDE-10 | Web: buyingPrice-based weighted average cost |
+| INV-11 | Stock adjustment (manual + reason) | ✅ | ❌ | 🟡 | AIDE-10 | Web: StockAdjustment model with reason codes, auto-applies to stock |
 | INV-12 | Stock transfer (multi-location) | ❌ | ❌ | ❌ | AIDE-10, AIDE-14 | |
 | INV-13 | Goods receiving (PO → GRN) | ✅ | ❌ | 🟡 | AIDE-09 | Web: GRN model with auto PO status update |
 | INV-14 | Supplier management | ✅ | ❌ | 🟡 | AIDE-09 | Web: Supplier CRUD with auto-coded (SUP-NNN) |
 | INV-15 | Purchase orders | ✅ | ❌ | 🟡 | AIDE-09 | Web: PO with line items, status tracking |
 | INV-16 | Reorder points / auto-PO | ❌ | ❌ | ❌ | AIDE-15 | |
-| INV-17 | Inventory valuation report | ❌ | ❌ | ❌ | AIDE-07, AIDE-10 | |
+| INV-17 | Inventory valuation report | ✅ | ❌ | 🟡 | AIDE-07, AIDE-10 | Web: valuation API with category breakdown |
 | INV-18 | Expiry/batch tracking | ❌ | ❌ | ❌ | AIDE-15 | Pharmacy/food |
 
 ---
@@ -179,7 +179,7 @@
 | RPT-04 | Sales by category | ✅ | ✅ | ✅ | — | |
 | RPT-05 | Sales by cashier | ❌ | ❌ | ❌ | AIDE-11 | |
 | RPT-06 | Profit margin by product | ❌ | ❌ | ❌ | AIDE-10 | Needs costing |
-| RPT-07 | Stock valuation | ❌ | ❌ | ❌ | AIDE-10 | |
+| RPT-07 | Stock valuation | ✅ | ❌ | 🟡 | AIDE-10 | Web: valuation API with per-product and category breakdown |
 | RPT-08 | Low stock report | ✅ | ✅ | ✅ | — | |
 | RPT-09 | Customer sales history | ✅ | ✅ | 🟡 | AIDE-08 | Web: customer statement API; Android only |
 | RPT-10 | Custom date ranges | ✅ | ✅ | ✅ | — | |
@@ -316,8 +316,17 @@
   - ✅ Supplier statements: transaction history with running balance
   - ✅ 3-way match: SupplierInvoice links to PurchaseOrder; GRN tracks against PO lines
   - ❌ Android not migrated
-8. **AIDE-18** — Shared offline-first multi-user (Android sync) — strategic differentiator
-9. **AIDE-10** — Inventory movement ledger, costing, multi-warehouse
+8. **AIDE-10** ✅ — Inventory advanced (web)
+  - ✅ Stock adjustments: StockAdjustment model with reason codes (COUNT_DIFFERENCE, DAMAGE, THEFT, EXPIRED, etc.)
+  - ✅ Stock adjustment API: create with auto-numbered (SAJ-YEAR-NNNN), applies delta to product quantity
+  - ✅ Stock adjustment detail: view with product snapshots and line items
+  - ✅ Inventory valuation report: per-product breakdown, category summary, total value
+  - ✅ Valuation API: filterable by category, low stock only
+  - ✅ RBAC: STOCK_ADJUST_CREATE (OWNER/MANAGER), STOCK_ADJUST_READ (all roles)
+  - ✅ Neon migration applied: aide10_inventory_advanced
+  - ❌ Stock transfers (multi-location) still missing
+  - ❌ Android not migrated
+9. **AIDE-18** — Shared offline-first multi-user (Android sync) — strategic differentiator
 10. **AIDE-16/17** — Kenya-specific: M-Pesa, eTIMS, tax engine
 
 ---

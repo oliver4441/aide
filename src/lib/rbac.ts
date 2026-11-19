@@ -41,6 +41,8 @@ export const Permission = {
   EMPLOYEE_INVITE: "EMPLOYEE_INVITE",
   EMPLOYEE_MANAGE: "EMPLOYEE_MANAGE",
   SHIFT_MANAGE: "SHIFT_MANAGE",
+  STOCK_ADJUST_CREATE: "STOCK_ADJUST_CREATE",
+  STOCK_ADJUST_READ: "STOCK_ADJUST_READ",
 } as const;
 export type Permission = (typeof Permission)[keyof typeof Permission];
 
@@ -90,6 +92,8 @@ export const ROLE_PERMISSIONS: Record<BusinessRole, Permission[]> = {
     Permission.EMPLOYEE_INVITE,
     Permission.EMPLOYEE_MANAGE,
     Permission.SHIFT_MANAGE,
+    Permission.STOCK_ADJUST_CREATE,
+    Permission.STOCK_ADJUST_READ,
   ],
   MANAGER: [
     // Can manage sales, products, customers, reports — but not employees or settings
@@ -124,6 +128,8 @@ export const ROLE_PERMISSIONS: Record<BusinessRole, Permission[]> = {
     Permission.REPORT_EXPORT,
     Permission.SETTINGS_READ,
     Permission.SHIFT_MANAGE,
+    Permission.STOCK_ADJUST_CREATE,
+    Permission.STOCK_ADJUST_READ,
   ],
   STAFF: [
     // Limited to creating and reading sales, reading products
@@ -138,6 +144,7 @@ export const ROLE_PERMISSIONS: Record<BusinessRole, Permission[]> = {
     Permission.ACCOUNT_READ,
     Permission.JOURNAL_READ,
     Permission.REPORT_READ,
+    Permission.STOCK_ADJUST_READ,
   ],
 };
 
