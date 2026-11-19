@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { formatMoney } from "@/lib/format";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
-import { Plus, Search, X } from "lucide-react";
 
 interface Invoice {
   id: string;
@@ -51,112 +50,130 @@ export default function InvoicesPageInner() {
     return inv.invoiceNo.toLowerCase().includes(q) || inv.customerName.toLowerCase().includes(q);
   });
 
-  const statusColor = (status: string) => {
+  const statusLabel = (status: string) => {
     switch (status) {
-      case "PAID": return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400";
-      case "PARTIALLY_PAID": return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400";
-      case "CANCELLED": return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400";
-      default: return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400";
+      case "PAID": return <span className="font-display text-xs font-black uppercase tracking-wider text-success">Paid</span>;
+      case "PARTIALLY_PAID": return <span className="font-display text-xs font-black uppercase tracking-wider text-warning">Partially Paid</span>;
+      case "CANCELLED": return <span className="font-display text-xs font-black uppercase tracking-wider text-accent">Cancelled</span>;
+      default: return <span className="font-display text-xs font-black uppercase tracking-wider text-secondary">{status}</span>;
     }
   };
 
   const totalOutstanding = invoices.reduce((s, inv) => s + Number(inv.total) - Number(inv.paidAmount), 0);
 
-  if (loading) return <div className="text-secondary">Loading invoices...</div>;
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="h-8 w-64 border-b border-rule" />
+        <div className="space-y-2">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="h-20 border border-rule" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
+    <div className="space-y-8">
+      {/* Header — ruled */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-rule pb-6">
         <div>
-          <h1 className="text-2xl font-bold text-ink">Invoices</h1>
-          <p className="text-secondary text-sm mt-1">
-            {invoices.length} invoices · {formatMoney(totalOutstanding, business?.currency)} outstanding
+          <p className="np-kicker mb-1">Accounts Receivable</p>
+          <h1 className="font-display text-2xl md:text-3xl font-black text-ink mb-1">
+            Invoices
+          </h1>
+          <p className="font-display text-sm text-secondary">
+            {invoices.length} invoice{invoices.length !== 1 ? "s" : ""} · {formatMoney(totalOutstanding, business?.currency)} outstanding
           </p>
         </div>
         <button
           onClick={() => alert("Invoice creation — coming soon. For now, create invoices via credit sales at the POS.")}
-          className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors"
+          className="np-btn"
         >
-          <Plus className="w-4 h-4" />
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
           New Invoice
         </button>
       </div>
 
-      <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary" />
+      {/* Search */}
+      <div className="relative">
+        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+        </svg>
         <input
           type="text"
           placeholder="Search by invoice number or customer..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-rule bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-accent/30"
+          className="w-full pl-10 pr-4 py-2.5 border border-rule bg-ground text-ink font-display text-control focus:outline-none"
         />
       </div>
 
-      <div className="space-y-3">
-        {filtered.length === 0 && (
-          <div className="text-center py-12 text-secondary">
-            No invoices found.
-          </div>
-        )}
+      {/* Invoice List — ruled rows */}
+      {filtered.length === 0 && (
+        <div className="border border-rule p-8 text-center">
+          <p className="font-display text-sm text-secondary">No invoices found.</p>
+        </div>
+      )}
+      <div className="space-y-0">
         {filtered.map((inv) => {
           const balance = Number(inv.total) - Number(inv.paidAmount);
           return (
             <div
               key={inv.id}
-              className="p-4 rounded-lg border border-rule bg-surface hover:border-accent/30 transition-colors cursor-pointer"
+              className="flex items-start justify-between border-b border-rule px-4 py-4 cursor-pointer hover:bg-ink/5"
               onClick={() => setSelected(inv)}
             >
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-ink">{inv.invoiceNo}</span>
-                    <span className={`text-xs px-1.5 py-0.5 rounded ${statusColor(inv.status)}`}>
-                      {inv.status}
-                    </span>
-                  </div>
-                  <div className="text-sm text-secondary mt-1">
-                    {inv.customerName} · Due {new Date(inv.dueDate).toLocaleDateString()}
-                  </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-display text-sm font-black text-ink">{inv.invoiceNo}</span>
+                  {statusLabel(inv.status)}
                 </div>
-                <div className="text-right">
-                  <div className="font-mono font-semibold text-ink">
-                    {formatMoney(inv.total, business?.currency)}
-                  </div>
-                  {balance > 0 && (
-                    <div className="text-sm text-red-500 font-mono">
-                      {formatMoney(balance, business?.currency)} due
-                    </div>
-                  )}
+                <div className="font-display text-sm text-secondary mt-1">
+                  {inv.customerName} · Due {new Date(inv.dueDate).toLocaleDateString()}
                 </div>
+              </div>
+              <div className="text-right shrink-0 ml-4">
+                <div className="font-mono font-black text-ink">
+                  {formatMoney(inv.total, business?.currency)}
+                </div>
+                {balance > 0 && (
+                  <div className="font-mono text-sm text-accent">
+                    {formatMoney(balance, business?.currency)} due
+                  </div>
+                )}
               </div>
             </div>
           );
         })}
       </div>
 
+      {/* Invoice Detail Modal */}
       {selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-ground rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4">
+          <div className="bg-ground border border-ink w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-4 border-b border-rule">
-              <h2 className="text-lg font-bold text-ink">{selected.invoiceNo}</h2>
-              <button onClick={() => setSelected(null)} className="p-1 hover:bg-surface rounded">
-                <X className="w-5 h-5 text-secondary" />
+              <h2 className="font-display text-lg font-black text-ink">{selected.invoiceNo}</h2>
+              <button onClick={() => setSelected(null)} className="p-1 text-secondary hover:text-ink">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
-            <div className="p-4 space-y-3">
-              <span className={`text-xs px-2 py-0.5 rounded ${statusColor(selected.status)}`}>
-                {selected.status}
-              </span>
-              <div className="text-sm">
+            <div className="p-4 space-y-4">
+              {statusLabel(selected.status)}
+              <div className="font-display text-sm">
                 <span className="text-secondary">Customer:</span>{" "}
-                <span className="text-ink font-semibold">{selected.customerName}</span>
+                <span className="font-black text-ink">{selected.customerName}</span>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="grid grid-cols-2 gap-2 font-display text-sm">
                 <div><span className="text-secondary">Issue Date:</span> {new Date(selected.issueDate).toLocaleDateString()}</div>
                 <div><span className="text-secondary">Due Date:</span> {new Date(selected.dueDate).toLocaleDateString()}</div>
               </div>
-              <div className="border-t border-rule pt-3 space-y-1 text-sm">
+              <div className="border-t border-rule pt-3 space-y-1 font-display text-sm">
                 <div className="flex justify-between">
                   <span className="text-secondary">Subtotal:</span>
                   <span className="font-mono text-ink">{formatMoney(selected.subtotal, business?.currency)}</span>
@@ -165,23 +182,23 @@ export default function InvoicesPageInner() {
                   <span className="text-secondary">Tax:</span>
                   <span className="font-mono text-ink">{formatMoney(selected.tax, business?.currency)}</span>
                 </div>
-                <div className="flex justify-between font-bold">
+                <div className="flex justify-between font-black">
                   <span className="text-ink">Total:</span>
                   <span className="font-mono text-ink">{formatMoney(selected.total, business?.currency)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-secondary">Paid:</span>
-                  <span className="font-mono text-green-500">{formatMoney(selected.paidAmount, business?.currency)}</span>
+                  <span className="font-mono text-success">{formatMoney(selected.paidAmount, business?.currency)}</span>
                 </div>
-                <div className="flex justify-between font-bold">
+                <div className="border-t border-rule pt-1 flex justify-between font-black">
                   <span className="text-ink">Balance:</span>
-                  <span className="font-mono text-red-500">
+                  <span className="font-mono text-accent">
                     {formatMoney(Number(selected.total) - Number(selected.paidAmount), business?.currency)}
                   </span>
                 </div>
               </div>
               {selected.notes && (
-                <div className="text-sm text-secondary italic border-t border-rule pt-2">
+                <div className="font-display text-sm text-secondary italic border-t border-rule pt-2">
                   {selected.notes}
                 </div>
               )}

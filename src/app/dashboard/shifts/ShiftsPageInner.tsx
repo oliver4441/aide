@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from "react";
 import { formatMoney } from "@/lib/format";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 import { useSession } from "next-auth/react";
-import { Plus, X, Clock, CheckCircle, AlertCircle } from "lucide-react";
 
 interface Shift {
   id: string;
@@ -99,44 +98,59 @@ export default function ShiftsPageInner() {
   const openShifts = shifts.filter((s) => s.status === "OPEN");
   const closedShifts = shifts.filter((s) => s.status !== "OPEN");
 
-  if (loading) return <div className="text-secondary">Loading shifts...</div>;
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="h-8 w-64 border-b border-rule" />
+        <div className="space-y-2">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="h-20 border border-rule" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
+    <div className="space-y-8">
+      {/* Header — ruled */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-rule pb-6">
         <div>
-          <h1 className="text-2xl font-bold text-ink">Cashier Shifts</h1>
-          <p className="text-secondary text-sm mt-1">
+          <p className="np-kicker mb-1">Operations</p>
+          <h1 className="font-display text-2xl md:text-3xl font-black text-ink mb-1">
+            Cashier Shifts
+          </h1>
+          <p className="font-display text-sm text-secondary">
             Track cash drawer opening, closing, and reconciliation
           </p>
         </div>
         <button
           onClick={() => setShowOpenModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors"
+          className="np-btn"
         >
-          <Plus className="w-4 h-4" />
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
           Open Shift
         </button>
       </div>
 
       {/* Active Shift */}
       {openShifts.length > 0 && (
-        <div className="mb-6 p-4 rounded-lg border-2 border-accent/30 bg-accent/5">
-          <h2 className="font-semibold text-ink flex items-center gap-2 mb-3">
-            <Clock className="w-4 h-4 text-accent" />
+        <div className="border-2 border-accent p-4">
+          <h2 className="font-display text-xs font-black uppercase tracking-wider text-accent mb-3">
             Active Shift
           </h2>
           {openShifts.map((shift) => (
-            <div key={shift.id} className="flex items-center justify-between">
-              <div>
-                <span className="font-mono text-sm text-secondary">{shift.shiftNo}</span>
-                <span className="ml-2 text-sm text-secondary">
-                  Opened {new Date(shift.openedAt).toLocaleString()}
-                </span>
+            <div key={shift.id} className="flex items-center justify-between flex-wrap gap-2">
+              <div className="font-display text-sm text-secondary">
+                <span className="font-mono font-black text-ink">{shift.shiftNo}</span>
+                {" — Opened "}
+                {new Date(shift.openedAt).toLocaleString()}
               </div>
               <button
                 onClick={() => { setShowCloseModal(shift); setCashCount(""); }}
-                className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700"
+                className="np-btn np-btn--accent"
               >
                 Close Shift
               </button>
@@ -146,105 +160,110 @@ export default function ShiftsPageInner() {
       )}
 
       {/* Closed Shifts */}
-      <h2 className="font-semibold text-ink mb-3">Closed Shifts</h2>
-      <div className="space-y-3">
+      <div>
+        <h2 className="font-display text-xs font-black uppercase tracking-wider text-secondary mb-3">
+          Closed Shifts
+        </h2>
         {closedShifts.length === 0 && (
-          <div className="text-center py-12 text-secondary">
-            No closed shifts yet.
+          <div className="border border-rule p-8 text-center">
+            <p className="font-display text-sm text-secondary">No closed shifts yet.</p>
           </div>
         )}
-        {closedShifts.map((shift) => {
-          const diff = Number(shift.cashDifference);
-          return (
-            <div
-              key={shift.id}
-              className="p-4 rounded-lg border border-rule bg-surface"
-            >
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-ink">{shift.shiftNo}</span>
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                      Closed
-                    </span>
-                  </div>
-                  <div className="text-sm text-secondary mt-1">
-                    {shift.cashier?.name || "Cashier"} · Opened{" "}
-                    {new Date(shift.openedAt).toLocaleString()}
-                  </div>
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-1 mt-2 text-sm">
-                    <span className="text-secondary">Opening Cash:</span>
-                    <span className="text-ink font-mono">
-                      {formatMoney(shift.openingCash, business?.currency)}
-                    </span>
-                    <span className="text-secondary">Total Sales:</span>
-                    <span className="text-ink font-mono">
-                      {formatMoney(shift.totalSales, business?.currency)}
-                    </span>
-                    <span className="text-secondary">Tips:</span>
-                    <span className="text-ink font-mono">
-                      {formatMoney(shift.totalTips, business?.currency)}
-                    </span>
-                    {shift.expectedCash !== undefined && (
-                      <>
-                        <span className="text-secondary">Expected Cash:</span>
-                        <span className="text-ink font-mono">
-                          {formatMoney(shift.expectedCash, business?.currency)}
-                        </span>
-                      </>
-                    )}
-                    {shift.closingCash !== undefined && (
-                      <>
-                        <span className="text-secondary">Cash Count:</span>
-                        <span className="text-ink font-mono">
-                          {formatMoney(shift.closingCash, business?.currency)}
-                        </span>
-                      </>
-                    )}
-                    {diff !== 0 && (
-                      <>
-                        <span className="text-secondary">Difference:</span>
-                        <span className={`font-mono font-semibold ${diff < 0 ? "text-red-500" : "text-green-500"}`}>
-                          {formatMoney(diff, business?.currency)}
-                        </span>
-                      </>
-                    )}
+        <div className="space-y-0">
+          {closedShifts.map((shift) => {
+            const diff = Number(shift.cashDifference);
+            return (
+              <div
+                key={shift.id}
+                className="border-b border-rule px-4 py-4"
+              >
+                <div className="flex items-start justify-between flex-wrap gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-display text-sm font-black text-ink">{shift.shiftNo}</span>
+                      <span className="font-display text-xs font-black uppercase tracking-wider text-secondary">
+                        Closed
+                      </span>
+                    </div>
+                    <div className="font-display text-sm text-secondary mt-1">
+                      {shift.cashier?.name || "Cashier"} · Opened {new Date(shift.openedAt).toLocaleString()}
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-1 mt-2 font-display text-sm">
+                      <span className="text-secondary">Opening Cash:</span>
+                      <span className="text-ink font-mono">
+                        {formatMoney(shift.openingCash, business?.currency)}
+                      </span>
+                      <span className="text-secondary">Total Sales:</span>
+                      <span className="text-ink font-mono">
+                        {formatMoney(shift.totalSales, business?.currency)}
+                      </span>
+                      <span className="text-secondary">Tips:</span>
+                      <span className="text-ink font-mono">
+                        {formatMoney(shift.totalTips, business?.currency)}
+                      </span>
+                      {shift.expectedCash !== undefined && (
+                        <>
+                          <span className="text-secondary">Expected Cash:</span>
+                          <span className="text-ink font-mono">
+                            {formatMoney(shift.expectedCash, business?.currency)}
+                          </span>
+                        </>
+                      )}
+                      {shift.closingCash !== undefined && (
+                        <>
+                          <span className="text-secondary">Cash Count:</span>
+                          <span className="text-ink font-mono">
+                            {formatMoney(shift.closingCash, business?.currency)}
+                          </span>
+                        </>
+                      )}
+                      {diff !== 0 && (
+                        <>
+                          <span className="text-secondary">Difference:</span>
+                          <span className={`font-mono font-black ${diff < 0 ? "text-accent" : "text-success"}`}>
+                            {formatMoney(diff, business?.currency)}
+                          </span>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
       {/* Open Shift Modal */}
       {showOpenModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-ground rounded-xl shadow-xl w-full max-w-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4">
+          <div className="bg-ground border border-ink w-full max-w-sm">
             <div className="flex items-center justify-between p-4 border-b border-rule">
-              <h2 className="text-lg font-bold text-ink">Open Shift</h2>
-              <button onClick={() => setShowOpenModal(false)} className="p-1 hover:bg-surface rounded">
-                <X className="w-5 h-5 text-secondary" />
+              <h2 className="font-display text-lg font-black text-ink">Open Shift</h2>
+              <button onClick={() => setShowOpenModal(false)} className="p-1 text-secondary hover:text-ink">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
             <form onSubmit={openShift} className="p-4 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-ink mb-1">Opening Cash</label>
+                <label className="np-kicker">Opening Cash</label>
                 <input
                   type="number"
                   step="0.01"
                   min="0"
                   value={openingCash}
                   onChange={(e) => setOpeningCash(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-rule bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-accent/30"
+                  className="w-full px-3 py-2 border border-rule bg-ground text-ink font-display text-control focus:outline-none mt-1"
                   placeholder="0.00"
                 />
               </div>
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setShowOpenModal(false)} className="flex-1 px-4 py-2.5 rounded-lg border border-rule text-ink hover:bg-surface transition-colors">
+                <button type="button" onClick={() => setShowOpenModal(false)} className="np-btn flex-1">
                   Cancel
                 </button>
-                <button type="submit" className="flex-1 px-4 py-2.5 rounded-lg bg-accent text-white hover:bg-accent/90 transition-colors">
+                <button type="submit" className="np-btn flex-1 np-btn--accent">
                   Open Shift
                 </button>
               </div>
@@ -255,21 +274,23 @@ export default function ShiftsPageInner() {
 
       {/* Close Shift Modal */}
       {showCloseModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-ground rounded-xl shadow-xl w-full max-w-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4">
+          <div className="bg-ground border border-ink w-full max-w-sm">
             <div className="flex items-center justify-between p-4 border-b border-rule">
-              <h2 className="text-lg font-bold text-ink">Close Shift</h2>
-              <button onClick={() => setShowCloseModal(null)} className="p-1 hover:bg-surface rounded">
-                <X className="w-5 h-5 text-secondary" />
+              <h2 className="font-display text-lg font-black text-ink">Close Shift</h2>
+              <button onClick={() => setShowCloseModal(null)} className="p-1 text-secondary hover:text-ink">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
             <form onSubmit={closeShift} className="p-4 space-y-4">
-              <div className="text-sm text-secondary">
-                <span className="font-semibold text-ink">{showCloseModal.shiftNo}</span>
+              <div className="font-display text-sm text-secondary border-b border-rule pb-3">
+                <span className="font-black text-ink">{showCloseModal.shiftNo}</span>
               </div>
               <div>
-                <label className="block text-sm font-medium text-ink mb-1">
-                  Cash Count <span className="text-secondary font-normal">(optional)</span>
+                <label className="np-kicker">
+                  Cash Count <span className="font-normal">(optional)</span>
                 </label>
                 <input
                   type="number"
@@ -277,18 +298,18 @@ export default function ShiftsPageInner() {
                   min="0"
                   value={cashCount}
                   onChange={(e) => setCashCount(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-rule bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-accent/30"
+                  className="w-full px-3 py-2 border border-rule bg-ground text-ink font-display text-control focus:outline-none mt-1"
                   placeholder="Count the cash in the drawer"
                 />
-                <p className="text-xs text-secondary mt-1">
+                <p className="font-display text-xs text-secondary mt-1">
                   Leave empty to close without reconciliation
                 </p>
               </div>
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setShowCloseModal(null)} className="flex-1 px-4 py-2.5 rounded-lg border border-rule text-ink hover:bg-surface transition-colors">
+                <button type="button" onClick={() => setShowCloseModal(null)} className="np-btn flex-1">
                   Cancel
                 </button>
-                <button type="submit" className="flex-1 px-4 py-2.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors">
+                <button type="submit" className="np-btn flex-1 np-btn--accent">
                   Close Shift
                 </button>
               </div>

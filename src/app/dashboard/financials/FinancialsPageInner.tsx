@@ -37,7 +37,6 @@ export default function FinancialsPageInner() {
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
-        // Data shape: { rows: [{ label, amount }], total }
         if (Array.isArray(data)) {
           setRows(data.map((r: any) => ({ label: r.name || r.code || r.accountCode || "", amount: Number(r.amount || r.balance || 0) })));
           setTotal(data.reduce((s: number, r: any) => s + Number(r.amount || r.balance || 0), 0));
@@ -70,47 +69,58 @@ export default function FinancialsPageInner() {
   ];
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-ink mb-6">Financial Statements</h1>
-
-      {/* Date Range */}
-      <div className="flex items-center gap-4 mb-4 flex-wrap">
+    <div className="space-y-8">
+      {/* Header — ruled */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-rule pb-6">
         <div>
-          <label className="block text-xs text-secondary mb-1">From</label>
+          <p className="np-kicker mb-1">Accounting</p>
+          <h1 className="font-display text-2xl md:text-3xl font-black text-ink mb-1">
+            Financial Statements
+          </h1>
+          <p className="font-display text-sm text-secondary">
+            Profit & Loss, Balance Sheet, Cash Flow, and Trial Balance
+          </p>
+        </div>
+      </div>
+
+      {/* Date Range — inline */}
+      <div className="flex items-end gap-6 flex-wrap border-b border-rule pb-4">
+        <div>
+          <label className="np-kicker">From</label>
           <input
             type="date"
             value={fromDate}
             onChange={(e) => setFromDate(e.target.value)}
-            className="px-3 py-1.5 rounded-lg border border-rule bg-surface text-ink text-sm"
+            className="px-3 py-1.5 border border-rule bg-ground text-ink font-display text-control focus:outline-none mt-1"
           />
         </div>
         <div>
-          <label className="block text-xs text-secondary mb-1">To</label>
+          <label className="np-kicker">To</label>
           <input
             type="date"
             value={toDate}
             onChange={(e) => setToDate(e.target.value)}
-            className="px-3 py-1.5 rounded-lg border border-rule bg-surface text-ink text-sm"
+            className="px-3 py-1.5 border border-rule bg-ground text-ink font-display text-control focus:outline-none mt-1"
           />
         </div>
         <button
           onClick={fetchStatement}
           disabled={loading}
-          className="mt-3 px-4 py-1.5 bg-accent text-white rounded-lg text-sm hover:bg-accent/90 disabled:opacity-50"
+          className="np-btn"
         >
-          {loading ? "Loading..." : "Refresh"}
+          {loading ? "Loading…" : "Refresh"}
         </button>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 mb-6 border-b border-rule">
+      {/* Tabs — ruled */}
+      <div className="flex gap-0 border-b border-rule">
         {tabs.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
+            className={`px-4 py-2 font-display text-sm font-black ${
               tab === t.key
-                ? "text-accent border-b-2 border-accent"
+                ? "text-ink border-b-2 border-ink -mb-px"
                 : "text-secondary hover:text-ink"
             }`}
           >
@@ -119,13 +129,13 @@ export default function FinancialsPageInner() {
         ))}
       </div>
 
-      {/* Statement Table */}
-      <div className="rounded-lg border border-rule overflow-hidden">
-        <table className="w-full text-sm">
+      {/* Statement Table — ruled */}
+      <div className="border border-rule overflow-hidden">
+        <table className="w-full font-display text-sm">
           <thead>
-            <tr className="bg-surface border-b border-rule">
-              <th className="text-left p-3 text-ink font-semibold">Account</th>
-              <th className="text-right p-3 text-ink font-semibold">Amount</th>
+            <tr className="border-b border-rule">
+              <th className="text-left p-3 text-ink font-black uppercase tracking-wider text-xs">Account</th>
+              <th className="text-right p-3 text-ink font-black uppercase tracking-wider text-xs">Amount</th>
             </tr>
           </thead>
           <tbody>
@@ -137,17 +147,17 @@ export default function FinancialsPageInner() {
               </tr>
             )}
             {rows.map((row, i) => (
-              <tr key={i} className="border-b border-rule/50 hover:bg-surface/50">
+              <tr key={i} className="border-b border-rule/50">
                 <td className="p-3 text-ink">{row.label}</td>
-                <td className={`p-3 text-right font-mono ${row.amount < 0 ? "text-red-500" : "text-ink"}`}>
+                <td className={`p-3 text-right font-mono ${row.amount < 0 ? "text-accent" : "text-ink"}`}>
                   {formatMoney(row.amount, business?.currency)}
                 </td>
               </tr>
             ))}
             {rows.length > 0 && (
-              <tr className="bg-surface font-bold">
-                <td className="p-3 text-ink">Total</td>
-                <td className="p-3 text-right font-mono text-accent">
+              <tr className="border-t-2 border-ink">
+                <td className="p-3 text-ink font-black">Total</td>
+                <td className="p-3 text-right font-mono font-black text-accent">
                   {formatMoney(total, business?.currency)}
                 </td>
               </tr>
