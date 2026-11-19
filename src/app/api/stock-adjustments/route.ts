@@ -95,6 +95,7 @@ export async function POST(request: NextRequest) {
       resourceType: "StockAdjustment",
       amount,
       payload: { reason, notes: body?.notes, lines },
+      skip: Boolean(request.headers.get("x-aide-replay")),
     });
     if (approval) {
       return NextResponse.json(

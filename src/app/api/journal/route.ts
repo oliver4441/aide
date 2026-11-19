@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireBusiness, toAuthError } from "@/lib/apiAuth";
+import { gateRequest, approvalResponse } from "@/lib/approvalReplay";
 import { postEntry, getAccountBalance } from "@/lib/accounting/post";
 
 export const dynamic = "force-dynamic";
@@ -65,9 +66,17 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const { businessId } = await requireBusiness(null, request);
+    const { user, businessId } = await requireBusiness(null, request);
 
     const body = await request.json();
+
+    const approval = await gateRequest(request, body, {
+      businessId,
+      userId: user.id,
+      actionType: "JOURNAL",
+      resourceType: "JournalEntry",
+    });
+    if (approval) return approvalResponse(approval);
 
     const result = await postEntry({
       businessId,

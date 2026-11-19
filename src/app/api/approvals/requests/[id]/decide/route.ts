@@ -5,6 +5,7 @@ import { requireBusiness, toAuthError } from "@/lib/apiAuth";
 import { getActiveDelegations, getEligibleApproverIds } from "@/lib/approvalAccess";
 import { canActorDecide, evaluateRequest } from "@/lib/approvalEngine.mjs";
 import { executeApproval } from "@/lib/approvalExecutors";
+import { notifyRequester } from "@/lib/approvalNotifications";
 
 export const dynamic = "force-dynamic";
 
@@ -67,6 +68,9 @@ export async function POST(
 
     if (result.status === "APPROVED") {
       await executeApproval(approval.id);
+    }
+    if (result.status === "APPROVED" || result.status === "REJECTED") {
+      await notifyRequester(approval, result.status);
     }
     return NextResponse.json(result);
   } catch (err) {

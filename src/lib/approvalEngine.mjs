@@ -76,5 +76,7 @@ export function snapshotPolicy(policy) {
     minApprovals: policy.minApprovals,
     requireSeparation: policy.requireSeparation,
     approverGroupId: policy.approverGroupId ?? null,
+    escalationGroupId: policy.escalationGroupId ?? null,
+    escalationHours: policy.escalationHours ?? null,
   };
 }

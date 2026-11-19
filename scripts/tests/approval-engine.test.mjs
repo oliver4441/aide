@@ -85,6 +85,12 @@ test("policy snapshot is detached from later policy edits", () => {
   assert.equal(snapshot.minApprovals, 2);
 });
 
+test("policy snapshot carries escalation settings", () => {
+  const snapshot = snapshotPolicy({ ...basePolicy, escalationGroupId: "escalation-group", escalationHours: 24 });
+  assert.equal(snapshot.escalationGroupId, "escalation-group");
+  assert.equal(snapshot.escalationHours, 24);
+});
+
 test("schema enforces one decision per actor and records audit fields", () => {
   const schema = readFileSync(new URL("../../prisma/schema.prisma", import.meta.url), "utf8");
   assert.match(schema, /@@unique\(\[requestId, actorId\]\)/);

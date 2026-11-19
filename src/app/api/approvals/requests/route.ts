@@ -3,6 +3,8 @@ import { ApprovalActionType, ApprovalStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireBusiness, toAuthError } from "@/lib/apiAuth";
 import { selectPolicy, snapshotPolicy } from "@/lib/approvalEngine.mjs";
+import { getEligibleApproverIds } from "@/lib/approvalAccess";
+import { notifyApprovers } from "@/lib/approvalNotifications";
 
 export const dynamic = "force-dynamic";
 
@@ -79,6 +81,8 @@ export async function POST(request: NextRequest) {
         ...snapshot,
       },
     });
+    const eligible = await getEligibleApproverIds(approval);
+    await notifyApprovers(approval, eligible.filter((id) => id !== user.id), "requested");
     return NextResponse.json({ approvalRequired: true, request: approval }, { status: 202 });
   } catch (err) {
     return toAuthError(err);

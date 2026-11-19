@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser, toAuthError } from "@/lib/apiAuth";
+import { gateRequest, approvalResponse } from "@/lib/approvalReplay";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +43,18 @@ export async function PATCH(
     // Only OWNER or MANAGER can close/lock periods
     if (status === "LOCKED" && membership.role !== "OWNER" && membership.role !== "MANAGER") {
       return NextResponse.json({ error: "Only owner or manager can lock periods" }, { status: 403 });
+    }
+
+    if (status !== "OPEN") {
+      const approval = await gateRequest(request, body, {
+        businessId: period.businessId,
+        userId: user.id,
+        actionType: "PERIOD_CLOSE",
+        resourceType: "AccountingPeriod",
+        resourceId: id,
+        params: { id },
+      });
+      if (approval) return approvalResponse(approval);
     }
 
     const updated = await prisma.accountingPeriod.update({

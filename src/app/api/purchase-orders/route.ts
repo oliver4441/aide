@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireBusiness, toAuthError } from "@/lib/apiAuth";
+import { gateRequest, approvalResponse } from "@/lib/approvalReplay";
 import { hasPermission, Permission } from "@/lib/rbac";
 import { PurchaseOrderStatus } from "@prisma/client";
 
@@ -55,8 +56,18 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
+
+    const approval = await gateRequest(request, body, {
+      businessId,
+      userId: user.id,
+      actionType: "PURCHASE_ORDER",
+      resourceType: "PurchaseOrder",
+      amount: Number(body.total) || 0,
+    });
+    if (approval) return approvalResponse(approval);
+
     const supplierId = body?.supplierId;
-    if (!supplierId) {
+    if (!body?.supplierId) {
       return NextResponse.json({ error: "supplierId is required" }, { status: 400 });
     }
 

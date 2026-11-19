@@ -5,9 +5,18 @@ First delivery slice. Status: **partial** — issue #51 stays open.
 ## What is implemented
 
 - Versioned `ApprovalPolicy` records per business and action type, with amount
-  thresholds, quorum (`minApprovals`), approver groups and a separation-of-duties
-  flag. Creating a new version deactivates the previous one inside a transaction;
-  old versions are never edited.
+  thresholds, quorum (`minApprovals`), approver groups, escalation groups and a
+  separation-of-duties flag. Creating a new version deactivates the previous
+  one inside a transaction; old versions are never edited.
+- Server-side gates plus HTTP replay executors cover eight action types:
+  `STOCK_ADJUSTMENT`, `PURCHASE_ORDER`, `SUPPLIER_PAYMENT`, `REFUND`, `JOURNAL`,
+  `PRICE_CHANGE`, `DISCOUNT` and `PERIOD_CLOSE`. An approved request replays the
+  original route with a signed, short-lived internal token so the route's own
+  validation, RBAC and tenant checks still run. `executedAt` makes replay
+  one-shot.
+- Time-boxed escalation: `escalationHours` and `escalationGroupId` are snapshotted
+  onto each request; `POST /api/approvals/escalate` (cron secret) moves overdue
+  requests to the escalation group without editing the frozen policy snapshot.
 - `ApprovalRequest` snapshots the policy id, version, name, quorum, separation
   flag and approver group at creation time. Later policy changes cannot rewrite
   historical requests.
@@ -32,17 +41,15 @@ First delivery slice. Status: **partial** — issue #51 stays open.
 | Criterion | Status |
 |---|---|
 | Decisions record actor, timestamp, comments, policy version | Done |
-| Approval cannot be bypassed through direct API calls | Done for `STOCK_ADJUSTMENT` only |
+| Approval cannot be bypassed through direct API calls | Done for all eight gated write routes |
 | Concurrent approval attempts handled safely | Done (unique vote + transaction) |
 | Policy changes do not rewrite historical records | Done |
 
 ## Remaining work on #51
 
-- Gate purchase orders, bills/payments, expenses, discounts, price changes,
-  refunds, journals and period close with `gateAction()` plus executors.
-- Sequential approval chains and escalation job (`escalationHours` is stored but
-  not yet scheduled).
-- Approval notifications (inbox exists, delivery does not).
+- `EXPENSE` has no web write route (Android is local-only), so it stays declarative.
+- Configure a cron caller for `POST /api/approvals/escalate` with
+  `APPROVAL_CRON_SECRET`.
 - Apply the migration to Neon after review; this slice ships schema + migration
   file but does not mutate the production database.
 

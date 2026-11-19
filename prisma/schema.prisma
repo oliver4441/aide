@@ -1304,6 +1304,10 @@ model ApprovalRequest {
   minApprovals      Int
   requireSeparation Boolean
   approverGroupId   String?
+  escalationGroupId String?
+  escalationHours   Int?
+  activeGroupId     String?
+  escalatedAt       DateTime?
   createdAt         DateTime              @default(now())
   resolvedAt        DateTime?
   executedAt        DateTime?

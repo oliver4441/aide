@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { authOptions } from "./auth";
 import { verifyToken } from "./mobileAuth";
+import { verifyReplayToken } from "./internalAuth";
 import { prisma } from "./prisma";
 import { selectAccessible } from "./accessSelect.mjs";
 
@@ -46,6 +47,24 @@ export async function resolveUser(request?: NextRequest): Promise<SessionUser | 
         };
       } catch {
         return null;
+      }
+    }
+  }
+
+  // Server-side approval replay only. This header is never set by the browser
+  // client and is verified against NEXTAUTH_SECRET.
+  if (request) {
+    const replay = request.headers.get("x-aide-replay");
+    if (replay) {
+      const claims = await verifyReplayToken(replay);
+      if (claims) {
+        return {
+          id: claims.userId,
+          email: "",
+          name: "Approval engine",
+          role: "user",
+          businessId: claims.businessId,
+        };
       }
     }
   }

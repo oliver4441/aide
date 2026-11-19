@@ -1,5 +1,7 @@
+import { NextRequest } from "next/server";
 import { StockAdjustmentReason } from "@prisma/client";
 import { prisma } from "./prisma";
+import { makeReplayToken } from "./internalAuth";
 
 /**
  * Executes an approved request exactly once. Only STOCK_ADJUSTMENT has an
@@ -9,13 +11,47 @@ import { prisma } from "./prisma";
 export async function executeApproval(requestId: string): Promise<void> {
   const approval = await prisma.approvalRequest.findUnique({ where: { id: requestId } });
   if (!approval || approval.status !== "APPROVED" || approval.executedAt) return;
-  if (approval.actionType !== "STOCK_ADJUSTMENT") return;
 
-  const payload = approval.payload as {
-    reason?: string;
-    notes?: string;
-    lines?: Array<{ productId: string; quantityDelta: number; unitCost?: number }>;
-  } | null;
+  const rawPayload = approval.payload as Record<string, unknown> | null;
+
+  // Generic replay: the original route handler performs the write after
+  // approval, so its validation, RBAC and tenant checks are never bypassed.
+  const replay = rawPayload?.__replay as
+    | { method: string; path: string; body: unknown; params?: Record<string, string> }
+    | undefined;
+  if (replay) {
+    const claimed = await prisma.approvalRequest.updateMany({
+      where: { id: requestId, executedAt: null, status: "APPROVED" },
+      data: { executedAt: new Date() },
+    });
+    if (claimed.count === 0) return;
+
+    const token = await makeReplayToken(approval.requesterId, approval.businessId, approval.id);
+    const handler = await replayHandler(replay.path, replay.method);
+    const req = new NextRequest(new URL(replay.path, "http://localhost:3000"), {
+      method: replay.method,
+      headers: {
+        "content-type": "application/json",
+        "x-aide-replay": token,
+      },
+      body: replay.method === "GET" || replay.method === "HEAD" ? undefined : JSON.stringify(replay.body ?? {}),
+    });
+    const response = await handler(req, { params: replay.params ?? {} });
+    if (!response.ok) {
+      throw new Error(`Approved action replay failed with ${response.status}`);
+    }
+    return;
+  }
+
+  // Legacy stock-adjustment executor (payload written before replay support).
+  if (approval.actionType !== "STOCK_ADJUSTMENT") return;
+  const payload = rawPayload as
+    | {
+        reason?: string;
+        notes?: string;
+        lines?: Array<{ productId: string; quantityDelta: number; unitCost?: number }>;
+      }
+    | null;
   const lines = Array.isArray(payload?.lines) ? payload.lines : [];
   const reasons: string[] = Object.values(StockAdjustmentReason);
   if (!payload?.reason || !reasons.includes(payload.reason) || lines.length === 0) return;
@@ -69,4 +105,34 @@ export async function executeApproval(requestId: string): Promise<void> {
       await tx.product.update({ where: { id: line.productId }, data: { quantity: newQty } });
     }
   });
+}
+
+type RouteHandler = (request: NextRequest, context: { params: Record<string, string> }) => Promise<Response>;
+
+async function replayHandler(path: string, method: string): Promise<RouteHandler> {
+  let routeModule: Record<string, unknown>;
+  if (path.startsWith("/api/purchase-orders")) {
+    routeModule = await import("@/app/api/purchase-orders/route");
+  } else if (path.startsWith("/api/supplier-payments")) {
+    routeModule = await import("@/app/api/supplier-payments/route");
+  } else if (path.startsWith("/api/refunds")) {
+    routeModule = await import("@/app/api/refunds/route");
+  } else if (path.startsWith("/api/journal")) {
+    routeModule = await import("@/app/api/journal/route");
+  } else if (path.startsWith("/api/periods")) {
+    routeModule = await import("@/app/api/periods/[id]/route");
+  } else if (path.startsWith("/api/products")) {
+    routeModule = await import("@/app/api/products/[id]/route");
+  } else if (path.startsWith("/api/sales")) {
+    routeModule = await import("@/app/api/sales/route");
+  } else if (path.startsWith("/api/stock-adjustments")) {
+    routeModule = await import("@/app/api/stock-adjustments/route");
+  } else {
+    throw new Error(`No approval replay handler for ${path}`);
+  }
+  const handler = routeModule[method];
+  if (typeof handler !== "function") {
+    throw new Error(`No ${method} handler for ${path}`);
+  }
+  return handler as RouteHandler;
 }

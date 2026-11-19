@@ -1,5 +1,7 @@
 import { prisma } from "./prisma";
 import { selectPolicy, snapshotPolicy } from "./approvalEngine.mjs";
+import { getEligibleApproverIds } from "./approvalAccess";
+import { notifyApprovers } from "./approvalNotifications";
 
 export type GateInput = {
   businessId: string;
@@ -9,6 +11,8 @@ export type GateInput = {
   resourceId?: string | null;
   amount?: number | null;
   payload?: unknown;
+  /** Replay calls carry this flag so the gate does not recreate itself. */
+  skip?: boolean;
 };
 
 /**
@@ -17,6 +21,7 @@ export type GateInput = {
  * Callers MUST return without performing the action when a request is returned.
  */
 export async function gateAction(input: GateInput) {
+  if (input.skip) return null;
   const policies = await prisma.approvalPolicy.findMany({
     where: { businessId: input.businessId, active: true },
   });
@@ -34,7 +39,7 @@ export async function gateAction(input: GateInput) {
   });
   if (existing) return existing;
 
-  return prisma.approvalRequest.create({
+  const created = await prisma.approvalRequest.create({
     data: {
       businessId: input.businessId,
       actionType: input.actionType,
@@ -47,6 +52,9 @@ export async function gateAction(input: GateInput) {
       ...snapshotPolicy(policy),
     },
   });
+  const eligible = await getEligibleApproverIds(created);
+  await notifyApprovers(created, eligible.filter((id) => id !== input.requesterId), "requested");
+  return created;
 }
 
 function selectPolicyForGate(policies: any[], actionType: string, amount: number) {

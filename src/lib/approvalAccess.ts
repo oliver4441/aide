@@ -4,11 +4,13 @@ import { prisma } from "./prisma";
 export async function getEligibleApproverIds(request: {
   businessId: string;
   approverGroupId: string | null;
+  activeGroupId?: string | null;
 }): Promise<string[]> {
-  if (request.approverGroupId) {
+  const groupId = request.activeGroupId ?? request.approverGroupId;
+  if (groupId) {
     const members = await prisma.approvalGroupMember.findMany({
       where: {
-        groupId: request.approverGroupId,
+        groupId,
         group: { businessId: request.businessId },
       },
       select: { userId: true },
