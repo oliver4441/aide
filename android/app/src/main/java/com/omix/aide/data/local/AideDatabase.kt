@@ -9,6 +9,18 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.omix.aide.data.local.dao.*
 import com.omix.aide.data.local.entities.*
 
+/** Idempotent column add: upgrading an already-migrated file must not fail. */
+private fun SupportSQLiteDatabase.addColumnIfMissing(table: String, column: String, definition: String) {
+    val cursor = query("PRAGMA table_info(`$table`)", null)
+    val exists = cursor.use { c ->
+        val nameIndex = c.getColumnIndex("name")
+        val found = mutableListOf<String>()
+        while (c.moveToNext()) found.add(c.getString(nameIndex))
+        column in found
+    }
+    if (!exists) execSQL("ALTER TABLE `$table` ADD COLUMN `$column` $definition")
+}
+
 @Database(
     entities = [
         OrganizationEntity::class,
@@ -174,8 +186,8 @@ abstract class AideDatabase : RoomDatabase() {
                 )
 
                 // Add FK columns to existing businesses table
-                db.execSQL("ALTER TABLE `businesses` ADD COLUMN `organizationId` TEXT")
-                db.execSQL("ALTER TABLE `businesses` ADD COLUMN `locationId` TEXT")
+                db.addColumnIfMissing("businesses", "organizationId", "TEXT")
+                db.addColumnIfMissing("businesses", "locationId", "TEXT")
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_businesses_organizationId` ON `businesses` (`organizationId`)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_businesses_locationId` ON `businesses` (`locationId`)")
 
