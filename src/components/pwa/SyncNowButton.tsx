@@ -12,17 +12,7 @@ export default function SyncNowButton() {
   const [syncing, setSyncing] = useState(false);
 
   const status = useSyncStatus();
-
-  const [pending, setPending] = useState(0);
-
-  useEffect(() => {
-    const fetchPending = async () => {
-      setPending(await db.syncQueue.count());
-    };
-    fetchPending();
-    const t = setInterval(fetchPending, 2000);
-    return () => clearInterval(t);
-  }, []);
+  const pending = useLiveQuery(() => db.syncQueue.count(), [], 0);
 
   useEffect(() => {
     setOnline(navigator.onLine);
@@ -59,6 +49,7 @@ export default function SyncNowButton() {
     setSyncing(false);
   };
 
+  // Show only when online with pending local changes
   if (!online || !pending || status.isSyncing) return null;
 
   return (

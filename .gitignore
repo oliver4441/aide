@@ -19,5 +19,3 @@ tsconfig.tsbuildinfo
 keystore.properties
 
 .kilo/
-# Local assistant worktrees are not deployable Git submodules.
-.claude/worktrees/

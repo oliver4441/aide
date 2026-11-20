@@ -194,7 +194,6 @@ class MainActivity : ComponentActivity() {
         setContent {
             CompositionLocalProvider(LocalAideSettings provides settings.value) {
                 AideTheme {
-                    UpdateHost(updater, onCloseApp = { finish() }) {
                     DatabaseProblemScreen(
                         errorMessage = DatabaseHealth.errorMessage(applicationContext),
                         onRetry = {

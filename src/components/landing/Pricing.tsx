@@ -65,25 +65,29 @@ export default function Pricing() {
   return (
     <section id="pricing" className="border-t border-rule border-b border-rule py-16">
       <Container wide>
-        <div className="text-center max-w-2xl mx-auto mb-4">
-          <h2 className="font-display text-3xl md:text-4xl font-black text-ink mb-4">
-            Choose how you run Aide
-          </h2>
-          <p className="font-reading text-secondary text-lg">
-            Use Aide in your browser on any device, or install the Android app for native notifications and reminders.
-          </p>
-        </div>
+        <ScrollFadeIn>
+          <div className="text-center max-w-2xl mx-auto mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-on-surface mb-4 font-headline">
+              Choose how you run Aide
+            </h2>
+            <p className="text-on-surface-variant text-lg">
+              Use Aide in your browser on any device, or install the Android app for native notifications and reminders.
+            </p>
+          </div>
+        </ScrollFadeIn>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-          {variants.map((v) => (
-            <div key={v.key} className="border border-rule p-6 h-full flex flex-col">
-              <div className="mb-4 flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center border border-rule text-accent">
-                  <v.icon className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="font-display text-sm font-black text-ink leading-tight">{v.name}</div>
-                  <div className="text-[11px] text-accent">{v.tag}</div>
+          {variants.map((v, i) => (
+            <ScrollFadeIn key={v.key} delay={i * 100}>
+              <div className={`bg-surface-container-lowest border rounded-2xl p-6 h-full flex flex-col relative ${v.accent}`}>
+                <div className="mb-4 flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/15 text-primary">
+                    <v.icon className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-on-surface font-headline leading-tight">{v.name}</div>
+                    <div className="text-[11px] font-medium text-primary">{v.tag}</div>
+                  </div>
                 </div>
               </div>
 

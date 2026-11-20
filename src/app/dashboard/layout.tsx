@@ -13,10 +13,12 @@ import NotificationBell from "@/components/notifications/NotificationBell";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import NotificationPermissionPrompt from "@/components/notifications/NotificationPermissionPrompt";
 import Link from "next/link";
+import DashboardWallpaper from "@/components/dashboard/DashboardWallpaper";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-ground">
+    <div className="min-h-screen bg-transparent">
+      <DashboardWallpaper />
       <DashboardInit />
       <OnboardingFlow />
       <BusinessGate />

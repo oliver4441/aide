@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 import db from "@/lib/db";
+import { getSyncStatus } from "@/lib/sync";
 import { liveQuery } from "dexie";
 import {
   isNotificationsEnabled,
@@ -13,6 +14,8 @@ import {
   NOTIFICATION_CATEGORIES,
   type NotificationType,
 } from "@/lib/notifications";
+import { ACCENTS, useTheme, type Accent } from "@/components/ThemeProvider";
+import WallpaperPicker from "@/components/dashboard/WallpaperPicker";
 
 function ToggleRow({
   label,
@@ -49,6 +52,7 @@ function ToggleRow({
 export default function SettingsPage() {
   const { data: session } = useSession();
   const { data: business, mutate: mutateBusiness } = useBusinessSettings();
+  const sync = getSyncStatus();
   const [conflicts, setConflicts] = useState<any[]>([]);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [newCategory, setNewCategory] = useState("");
@@ -357,7 +361,13 @@ export default function SettingsPage() {
                 </p>
               )}
             </div>
-          )}
+            <p className="text-xs text-on-surface-variant mt-1.5">
+              Changes the highlight colour across the app. Saved on this device.
+            </p>
+          </div>
+          <div className="border-t border-outline-variant pt-5">
+            <WallpaperPicker />
+          </div>
         </div>
       </div>
 

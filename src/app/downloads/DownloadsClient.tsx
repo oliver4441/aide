@@ -11,9 +11,9 @@ import {
   Smartphone,
   Package,
   Apple,
+  Loader2,
 } from "lucide-react";
 import UiButton from "@/components/ui/UiButton";
-import UiLoader from "@/components/ui/UiLoader";
 import { fetchLatestRelease, getDeviceLabel, type ReleaseInfo } from "@/lib/device";
 
 
@@ -252,7 +252,7 @@ export default function DownloadsClient() {
               <UiLoader size={24} className="text-secondary" />
             </div>
           ) : androidReleases.length === 0 ? (
-            <p className="border border-rule bg-ground p-6 text-sm text-secondary">
+            <p className="rounded-xl border border-outline-variant bg-surface-container-low p-6 text-sm text-on-surface-variant">
               No releases published yet.
             </p>
           ) : (
@@ -290,7 +290,7 @@ export default function DownloadsClient() {
                             <p className="truncate text-sm font-medium text-ink">
                               {a.name}
                             </p>
-                            <p className="text-[11px] text-secondary">
+                            <p className="text-[11px] text-on-surface-variant">
                               {formatBytes(a.sizeBytes)} · APK
                             </p>
                           </div>
@@ -314,7 +314,7 @@ export default function DownloadsClient() {
             </div>
           )}
 
-          <p className="mt-4 text-xs text-secondary/70">
+          <p className="mt-4 text-xs text-on-surface-variant/70">
             Checksums are SHA-256 of the exact APK bytes that were published. Verify
             the file with <span className="font-mono">sha256sum aide-release.apk</span> on Linux/macOS or
             <span className="font-mono"> certutil -hashfile aide-release.apk SHA256</span> on Windows, then compare with the value above.
