@@ -61,6 +61,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.core.content.ContextCompat
 import com.omix.aide.BuildConfig
 import com.omix.aide.data.local.BusinessSettings
+import com.omix.aide.data.local.ThemeMode
 import com.omix.aide.data.local.SettingsStore
 import com.omix.aide.data.local.ThemeMode
 import com.omix.aide.notifications.AideChannel
@@ -377,6 +378,30 @@ fun SettingsScreen(
                             Icon(Icons.Rounded.WarningAmber, null, Modifier.size(18.dp))
                         }
                     )
+                }
+            }
+
+            Spacer(Modifier.height(20.dp))
+
+            Text("Sounds", style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.height(8.dp))
+            AideCard {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.VolumeUp,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("App sounds", style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            text = "Chime when a sale completes",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(checked = soundsOn, onCheckedChange = { soundsOn = it; saved = false })
                 }
             }
 

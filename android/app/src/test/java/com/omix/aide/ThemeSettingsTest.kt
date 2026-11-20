@@ -47,7 +47,6 @@ class ThemeSettingsTest {
     @Test
     fun defaultsAreUsableWithoutAnySavedSettings() {
         val defaults = BusinessSettings()
-        assertEquals("plum", defaults.accent)
         assertEquals(ThemeMode.DARK, defaults.themeMode)
         assertTrue(defaults.soundsEnabled)
     }

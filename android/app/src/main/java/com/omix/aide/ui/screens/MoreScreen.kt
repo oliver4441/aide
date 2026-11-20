@@ -1,4 +1,6 @@
 package com.omix.aide.ui.screens
+import android.content.Context
+import android.content.Intent
 
 import android.content.Context
 import android.content.Intent
@@ -11,13 +13,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.omix.aide.ui.components.AideBadge
@@ -187,6 +190,31 @@ fun MoreScreen(
                 }
             }
         }
+
+        item {
+            // Omix Systems credit, and a route to the company's site.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { openCompanyWebsite(context) }
+                    .padding(vertical = 16.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Made by Omix Systems",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Icon(
+                    imageVector = Icons.Default.OpenInNew,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(14.dp)
+                )
+            }
+        }
     }
 }
 
@@ -284,6 +312,12 @@ fun MoreMenuItem(
     }
 }
 
+/**
+ * Opens the Omix Systems website.
+ *
+ * Takes a Context rather than reading LocalContext itself, because the call
+ * site is inside a `clickable` lambda, which is not a composable scope.
+ */
 fun openCompanyWebsite(context: Context) {
     val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(COMPANY_URL))
     runCatching { context.startActivity(intent) }
