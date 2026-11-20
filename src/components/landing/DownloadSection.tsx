@@ -10,13 +10,13 @@ export default function DownloadSection() {
       <Container wide>
         <div className="grid items-center gap-10 lg:grid-cols-[1fr_0.7fr]">
           <div>
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-outline-variant bg-surface px-3 py-1.5 text-xs font-semibold text-on-surface-variant">
+            <div className="mb-5 inline-flex items-center gap-2 border border-rule px-3 py-1.5 text-xs font-display font-black text-secondary">
               Android app
             </div>
-            <h2 className="mb-4 font-headline text-3xl font-bold tracking-tight text-on-surface md:text-4xl">
+            <h2 className="mb-4 font-display text-3xl font-black tracking-tight text-ink md:text-4xl">
               Take Aide with you on Android.
             </h2>
-            <p className="mb-6 max-w-xl leading-relaxed text-on-surface-variant">
+            <p className="mb-6 max-w-xl leading-relaxed text-secondary font-reading">
               Keep using the full Aide PWA in your browser, or download the Android APK for native notifications and background reminders. Both are designed for offline work.
             </p>
             <div className="mb-7 grid gap-3 sm:grid-cols-2">
@@ -32,18 +32,20 @@ export default function DownloadSection() {
                 </div>
               ))}
             </div>
-            <a
-              href="#product"
-              className="inline-flex items-center justify-center rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-on-primary transition-colors hover:bg-primary-light"
-            >
-              Use Aide on the web
-            </a>
-            <a
-              href="/downloads"
-              className="ml-3 inline-flex items-center justify-center rounded-xl border border-outline-variant px-6 py-3 text-sm font-semibold text-on-surface transition-colors hover:bg-surface-container"
-            >
-              Get the Android APK
-            </a>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Link
+                href="#product"
+                className="np-btn inline-flex items-center justify-center"
+              >
+                Use Aide on the web
+              </Link>
+              <Link
+                href="/downloads"
+                className="np-btn inline-flex items-center justify-center"
+              >
+                Get the Android APK
+              </Link>
+            </div>
           </div>
 
           <div className="relative mx-auto w-full max-w-sm">
@@ -52,11 +54,11 @@ export default function DownloadSection() {
                 <div className="flex h-8 items-center justify-center">
                   <div className="h-1.5 w-16 border border-rule" />
                 </div>
-                <div className="px-4 pt-4">
-                  <div className="text-[9px] text-on-surface-variant">Aide mobile</div>
-                  <div className="font-headline text-base font-bold text-on-surface">KSh 45,230</div>
+                <div className="px-4 pt-4 font-reading">
+                  <div className="text-[9px] text-secondary">Aide mobile</div>
+                  <div className="font-display text-base font-black text-ink">KSh 45,230</div>
                   <div className="mt-1 text-[8px] text-success">Offline ready</div>
-                  <div className="mt-5 flex h-24 items-end gap-1 rounded-xl border border-outline-variant bg-surface-container p-3">
+                  <div className="mt-5 flex h-24 items-end gap-1 border border-rule bg-ground p-3">
                     {[30, 45, 38, 60, 52, 75, 63, 86].map((height, index) => (
                       <div key={index} className="flex-1 border-l border-accent" style={{ height: `${height}%` }} />
                     ))}

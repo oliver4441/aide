@@ -218,7 +218,7 @@ export default function LoginForm() {
         </div>
 
         <p className="text-center text-xs text-secondary mt-6">
-          Your data stays on this device and syncs when you&apos;re online.
+          Your data stays on this device and syncs when you're online.
         </p>
       </div>
     </div>

@@ -342,7 +342,7 @@ export default function POSPage() {
               />
             </div>
 
-            {Number(paid) >= Number(total) && (
+            {paid >= total && (
               <div className="text-center text-sm font-display">
                 <span className="text-secondary">Change: </span>
                 <span className="text-success font-black">{formatMoney(change)}</span>
@@ -358,7 +358,7 @@ export default function POSPage() {
               </button>
               <button
                 onClick={checkout}
-                disabled={Number(paid) < Number(total) || processing}
+                disabled={paid < total || processing}
                 className="flex-1 px-4 py-3 border border-accent bg-accent text-ground font-display text-sm font-black hover:bg-ground hover:text-accent disabled:opacity-40"
               >
                 {processing ? "Processing…" : "Complete Sale"}

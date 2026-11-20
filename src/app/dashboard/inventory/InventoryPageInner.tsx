@@ -304,7 +304,7 @@ export default function InventoryPage() {
                       </div>
                     </td>
                     <td className="px-5 py-3 text-sm text-secondary hidden md:table-cell">
-                      {(p.categoryId && categoryMap.get(p.categoryId)) || "—"}
+                      {allCategories.find((c) => c.id === p.categoryId)?.name || "—"}
                     </td>
                     <td className="px-5 py-3 text-sm text-secondary text-right whitespace-nowrap">
                       {formatMoney(p.buyingPrice)}

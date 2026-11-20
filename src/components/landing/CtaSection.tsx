@@ -6,7 +6,7 @@ import Container from "@/components/ui/Container";
 export default function CtaSection() {
   return (
     <section className="border-t border-rule border-b border-rule py-16">
-      <Container wide>
+      <Container>
         <div className="border border-rule p-8 md:p-16 text-center">
           <img
             src="/logo.jpg"
@@ -17,7 +17,7 @@ export default function CtaSection() {
             Ready to take control?
           </h2>
           <p className="font-reading text-secondary text-lg mb-8 max-w-xl mx-auto">
-            Set up your business, load your stock and start selling. Aide runs in your browser and keeps working when the connection drops.
+            Join hundreds of businesses streamlining their operations with Aide. No credit card required.
           </p>
           <Link
             href="/login"
@@ -28,7 +28,7 @@ export default function CtaSection() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
             </svg>
           </Link>
-          <p className="font-reading text-xs text-secondary mt-4">Free while in beta &bull; No card required</p>
+          <p className="font-reading text-xs text-secondary mt-4">14-day free trial &bull; Cancel anytime</p>
         </div>
       </Container>
     </section>

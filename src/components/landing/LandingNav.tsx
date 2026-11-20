@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import ThemeToggle from "@/components/ui/ThemeToggle";
 
 export default function LandingNav() {
   const [scrolled, setScrolled] = useState(false);
@@ -18,8 +17,8 @@ export default function LandingNav() {
 
   return (
     <nav
-      className={`fixed inset-x-0 top-0 z-50 bg-ground ${
-        scrolled ? "border-b border-rule" : "border-b border-transparent"
+      className={`fixed inset-x-0 top-0 z-50 ${
+        scrolled ? "border-b border-rule" : ""
       }`}
     >
       <div className="mx-auto flex h-[68px] max-w-[1440px] items-center justify-between px-4 md:px-8">
@@ -37,7 +36,6 @@ export default function LandingNav() {
         </div>
 
         <div className="hidden items-center gap-3 md:flex">
-          <ThemeToggle />
           <Link href="/login" className="np-btn">Sign in</Link>
           <Link href="/login" className="np-btn np-btn--accent">Open Aide</Link>
         </div>
@@ -69,7 +67,6 @@ export default function LandingNav() {
             <Link href="/help" onClick={close} className="block border-b border-rule/60 py-2.5 text-secondary">Help</Link>
           </div>
           <div className="mt-4 flex items-center gap-3">
-            <ThemeToggle />
             <Link href="/login" onClick={close} className="np-btn">Sign in</Link>
             <Link href="/login" onClick={close} className="np-btn np-btn--accent ml-auto">Open Aide</Link>
           </div>

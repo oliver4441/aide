@@ -123,11 +123,11 @@ export default function ReceiptDocument({
                     {item.name}
                   </span>
                 </div>
-                <span className="text-secondary flex-shrink-0">{item.quantity} × {formatMoney(Number(item.price), currency)}</span>
+                <span className="text-secondary flex-shrink-0">{item.quantity} × {formatMoney(item.price, currency)}</span>
               </div>
               <div className="flex justify-between text-right">
                 <span></span>
-                <span className="font-black text-ink">{formatMoney(Number(item.price) * item.quantity, currency)}</span>
+                <span className="font-black text-ink">{formatMoney(item.price * item.quantity, currency)}</span>
               </div>
             </div>
           ))}
@@ -154,12 +154,12 @@ export default function ReceiptDocument({
       <div className="border-t border-rule pt-2 mt-2 space-y-0.5 text-[10px]">
         <div className="flex justify-between">
           <span className="text-secondary">Paid ({sale.paymentMethod})</span>
-          <span className="text-ink">{formatMoney(Number(sale.paid), currency)}</span>
+          <span className="text-ink">{formatMoney(sale.paid, currency)}</span>
         </div>
         {Number(sale.change) > 0 && (
           <div className="flex justify-between">
             <span className="text-secondary">Change</span>
-            <span className="font-black text-ink">{formatMoney(Number(sale.change), currency)}</span>
+            <span className="font-black text-ink">{formatMoney(sale.change, currency)}</span>
           </div>
         )}
       </div>

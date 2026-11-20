@@ -23,7 +23,7 @@ export default function FaqSection() {
 
   return (
     <section id="faq" className="border-t border-rule border-b border-rule">
-      <Container wide>
+      <Container>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
@@ -44,7 +44,7 @@ export default function FaqSection() {
             return (
               <details key={faq.question} className="np-disclosure" open={isOpen}>
                 <summary onClick={() => toggle(i)}>{faq.question}</summary>
-                <div className="font-reading text-reading-compact text-secondary">
+                <div className="font-reading text-secondary">
                   {faq.answer}
                 </div>
               </details>

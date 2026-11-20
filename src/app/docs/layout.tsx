@@ -75,8 +75,7 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
             </a>
           </nav>
 
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
+    <div className="flex items-center gap-2">
             <Link
               href="/login"
               className="np-btn np-btn--accent"

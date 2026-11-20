@@ -247,17 +247,17 @@ export default function SalesLog({ sales, loading, onPrint }: SalesLogProps) {
                     </div>
                     <div>
                       <div className="text-[10px] font-display font-black uppercase tracking-wider text-secondary mb-0.5">Paid</div>
-                      <div className="text-xs font-display font-black text-ink">{formatMoney(Number(sale.paid))}</div>
+                      <div className="text-xs font-display font-black text-ink">{formatMoney(sale.paid)}</div>
                     </div>
                     <div>
                       <div className="text-[10px] font-display font-black uppercase tracking-wider text-secondary mb-0.5">Profit</div>
-                      <div className="text-xs font-display font-black text-success">{formatMoney(Number(sale.profit))}</div>
+                      <div className="text-xs font-display font-black text-success">{formatMoney(sale.profit)}</div>
                     </div>
                   </div>
-                  {Number(sale.change) > 0 && (
+                  {sale.change > 0 && (
                     <div className="mb-3 border-t border-rule pt-2">
                       <div className="text-[10px] font-display font-black uppercase tracking-wider text-secondary mb-0.5">Change Given</div>
-                      <div className="text-xs font-display font-black text-success">{formatMoney(Number(sale.change))}</div>
+                      <div className="text-xs font-display font-black text-success">{formatMoney(sale.change)}</div>
                     </div>
                   )}
                   {items.length > 0 && (
@@ -270,7 +270,7 @@ export default function SalesLog({ sales, loading, onPrint }: SalesLogProps) {
                               {item.name}
                             </span>
                             <span className="text-secondary">
-                              {item.quantity} × {formatMoney(Number(item.price))}
+                              {item.quantity} × {formatMoney(item.price)}
                             </span>
                           </div>
                         ))}

@@ -27,7 +27,7 @@ function StarRating({
         <button
           key={n}
           onClick={() => onRate(n)}
-          className={`${size} ${
+          className={`${size} transition-colors ${
             n <= rating ? "text-warning" : "text-secondary hover:text-warning/50"
           }`}
           aria-label={`${n} star${n > 1 ? "s" : ""}`}

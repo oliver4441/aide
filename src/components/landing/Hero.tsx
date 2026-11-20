@@ -24,20 +24,25 @@ export default function Hero() {
         style={{ objectPosition: PHOTO_FOCUS }}
       />
 
-      {/* Cream scrim over the photo: open at the top so the image actually
-          reads, solid by the section's foot so the product mock-up sits on
-          clean ground. Tune the values in --dp-photo-* (globals.css). */}
-      <div aria-hidden="true" className="np-photo-wash absolute inset-0 -z-10" />
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 -z-10 bg-ground"
+      />
 
-      <Container wide className="relative z-10 text-center">
+      <Container className="relative z-10 text-center">
+        <div className="mx-auto mb-6 inline-flex items-center gap-2 border border-accent bg-accent/10 px-3.5 py-1.5 text-xs font-display font-black text-accent">
+          <span className="h-1.5 w-1.5 border border-accent text-accent" />
+          Offline-first business workspace
+        </div>
+
         <h1 className="mx-auto max-w-5xl font-display text-5xl font-black tracking-[-0.04em] text-ink sm:text-6xl md:text-7xl lg:text-[84px] lg:leading-[0.98]">
           Run your business.
           <br />
           <span className="text-accent">Even offline.</span>
         </h1>
 
-        <p className="mx-auto mt-7 max-w-2xl text-lg leading-relaxed text-secondary md:text-xl font-reading">
-          Aide brings sales, inventory, receipts and reports into one simple PWA built for small businesses. Record a cash, M-Pesa or card sale, open it in your browser, install it on your device, and keep working when the connection drops.
+        <p className="mx-auto mt-7 max-w-2xl text-base leading-7 text-secondary md:text-lg font-reading">
+          Aide brings sales, inventory, receipts, payments and reports into one simple PWA built for small businesses. Open it in your browser, install it on your device, and keep working when the connection drops.
         </p>
 
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
