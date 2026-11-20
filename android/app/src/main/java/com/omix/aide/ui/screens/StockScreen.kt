@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.omix.aide.ui.components.*
+import com.omix.aide.ui.money
 import com.omix.aide.ui.viewmodel.StockViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -69,7 +70,7 @@ fun StockScreen(
                         AideProductRow(
                             name = product.name,
                             stock = product.quantity,
-                            price = "KSh ${product.sellingPrice}",
+                            price = money(product.sellingPrice),
                             sku = product.sku,
                             lowStockThreshold = product.lowStock,
                             imagePath = product.imageUrl

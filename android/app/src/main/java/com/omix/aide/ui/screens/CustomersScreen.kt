@@ -34,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.omix.aide.ui.money
 import com.omix.aide.ui.components.AideCard
 import com.omix.aide.ui.components.AideEmptyState
 import com.omix.aide.ui.components.AideSearchBar
@@ -86,7 +87,7 @@ fun CustomersScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 AideStatCard(
                     title = "Total owed",
-                    value = "KSh ${"%.2f".format(uiState.totalOwed)}",
+                    value = money(uiState.totalOwed),
                     modifier = Modifier.weight(1f),
                     valueColor = if (uiState.totalOwed > 0.0) DangerRed
                     else MaterialTheme.colorScheme.onSurface

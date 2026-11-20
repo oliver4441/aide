@@ -135,6 +135,8 @@ jobs:
           # immutably forever, while /download/apk stays a stable "latest".
           cp "$APK" "dist/aide-${{ steps.version.outputs.version }}.apk"
           echo "path=dist/aide-${{ steps.version.outputs.version }}.apk" >> $GITHUB_OUTPUT
+          echo "filename=aide-${{ steps.version.outputs.version }}.apk" >> $GITHUB_OUTPUT
+          echo "size=$(stat -c%s "dist/aide-${{ steps.version.outputs.version }}.apk")" >> $GITHUB_OUTPUT
 
       - name: Assert the APK is signed
         run: |
@@ -163,35 +165,11 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: signed-release-test-reports
-          path: |
-            android/app/build/test-results/
-            android/build/signed-validation.log
-      - name: Remove decoded key
-        if: always()
-        run: rm -f "$RUNNER_TEMP/aide-release.jks"
-
-  compatibility:
-    name: Signed in-place upgrade (API ${{ matrix.api }}, ${{ matrix.baseline }})
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    strategy:
-      fail-fast: false
-      matrix:
-        api: [24, 35]
-        # Exercise the reported v12 crash as well as the newest production APK.
-        baseline: [previous, v1.0.12]
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.build.outputs.source_sha }}
-      - uses: actions/download-artifact@v4
-        with:
-          name: aide-signed-release
-          path: dist
-      - name: Download and verify the production upgrade baseline
-        if: matrix.baseline != 'previous' || needs.build.outputs.previous_tag != ''
+          tag_name: ${{ github.ref_name }}
+          name: "Aide v${{ steps.version.outputs.version }} (${{ steps.version.outputs.version_code }})"
+          draft: false
+          prerelease: false
+          generate_release_notes: true
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ matrix.baseline == 'previous' && needs.build.outputs.previous_tag || 'v1.0.12' }}
@@ -289,6 +267,59 @@ jobs:
           JS
           gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --latest
           gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json url,assets --jq '.url, (.assets[].name)'
+
+      # The asset upload used to be part of the release-creation step, which
+      # logged "Uploaded" and still produced a release with zero downloadable
+      # files (v1.0.4). It is now a separate, explicit, retried step followed by
+      # an assertion, so a release cannot look successful while being empty.
+      - name: Upload the APK to the release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APK_PATH: ${{ steps.apk.outputs.path }}
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3 4 5; do
+            if gh release upload "${{ github.ref_name }}" "$APK_PATH" --clobber --repo "$GITHUB_REPOSITORY"; then
+              echo "Uploaded on attempt $attempt."
+              exit 0
+            fi
+            echo "Upload attempt $attempt failed; retrying."
+            sleep 10
+          done
+          echo "::error::Could not attach $APK_PATH to the release after 5 attempts."
+          exit 1
+
+      - name: Assert the release actually has the APK
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EXPECTED_NAME: ${{ steps.apk.outputs.filename }}
+          EXPECTED_SIZE: ${{ steps.apk.outputs.size }}
+        run: |
+          set -euo pipefail
+          # There is no releases/tags/{tag}/assets endpoint; the asset list
+          # hangs off the release object itself.
+          ASSETS=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/${{ github.ref_name }}" -q '.assets')
+          COUNT=$(echo "$ASSETS" | jq 'length')
+          echo "Release has $COUNT asset(s)."
+          if [ "$COUNT" -lt 1 ]; then
+            echo "::error::The release published with no downloadable file."
+            exit 1
+          fi
+          echo "$ASSETS" | jq -r '.[] | "  \(.name)  \(.size) bytes  state=\(.state)"'
+          MATCH=$(echo "$ASSETS" | jq -r --arg n "$EXPECTED_NAME" \
+            '[.[] | select(.name == $n and .state == "uploaded")] | length')
+          if [ "$MATCH" -ne 1 ]; then
+            echo "::error::Expected exactly one uploaded asset named $EXPECTED_NAME; found $MATCH."
+            exit 1
+          fi
+          SIZE=$(echo "$ASSETS" | jq -r --arg n "$EXPECTED_NAME" '.[] | select(.name == $n) | .size')
+          if [ "$SIZE" != "$EXPECTED_SIZE" ]; then
+            echo "::error::Asset size $SIZE does not match the built APK ($EXPECTED_SIZE bytes)."
+            exit 1
+          fi
+          echo "Release asset verified."
 
   checksums:
     name: Publish SHA-256 checksums

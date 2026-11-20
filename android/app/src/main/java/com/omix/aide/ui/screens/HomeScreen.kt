@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.omix.aide.ui.money
 import com.omix.aide.ui.components.*
 import com.omix.aide.ui.theme.WarningAmber
 import com.omix.aide.ui.viewmodel.HomeViewModel
@@ -44,14 +45,14 @@ fun HomeScreen(
                 ) {
                     AideStatCard(
                         title = "Sales",
-                        value = "KSh ${"%.2f".format(uiState.todaySalesTotal)}",
+                        value = money(uiState.todaySalesTotal),
                         subtitle = "${uiState.todaySalesCount} sales",
                         modifier = Modifier.weight(1f),
                         valueColor = MaterialTheme.colorScheme.primary
                     )
                     AideStatCard(
                         title = "Profit",
-                        value = "KSh ${"%.2f".format(uiState.todayProfitTotal)}",
+                        value = money(uiState.todayProfitTotal),
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -129,7 +130,7 @@ fun HomeScreen(
                                 )
                             }
                             Text(
-                                text = "KSh ${"%.2f".format(saleWithItems.sale.total)}",
+                                text = money(saleWithItems.sale.total),
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary

@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.omix.aide.ui.money
 import com.omix.aide.ui.components.AideCard
 import com.omix.aide.ui.components.AideEmptyState
 import com.omix.aide.ui.components.AideStatCard
@@ -100,13 +101,13 @@ fun ReportsScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 AideStatCard(
                     title = "Revenue",
-                    value = "KSh ${"%.2f".format(report.totals.revenue)}",
+                    value = money(report.totals.revenue),
                     subtitle = "${report.totals.count} sale(s)",
                     modifier = Modifier.weight(1f)
                 )
                 AideStatCard(
                     title = "Gross profit",
-                    value = "KSh ${"%.2f".format(report.totals.profit)}",
+                    value = money(report.totals.profit),
                     modifier = Modifier.weight(1f),
                     valueColor = WarningAmber
                 )
@@ -117,13 +118,13 @@ fun ReportsScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 AideStatCard(
                     title = "Overheads",
-                    value = "KSh ${"%.2f".format(report.overheads)}",
+                    value = money(report.overheads),
                     modifier = Modifier.weight(1f),
                     valueColor = DangerRed
                 )
                 AideStatCard(
                     title = "Net profit",
-                    value = "KSh ${"%.2f".format(report.netProfit)}",
+                    value = money(report.netProfit),
                     subtitle = "${"%.1f".format(report.marginPercent)}% margin",
                     modifier = Modifier.weight(1f),
                     valueColor = if (report.netProfit >= 0) {
@@ -188,7 +189,7 @@ fun ReportsScreen(
                             }
                             Spacer(Modifier.width(12.dp))
                             Text(
-                                text = "KSh ${"%.2f".format(product.revenue)}",
+                                text = money(product.revenue),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
@@ -247,7 +248,7 @@ fun ReportsScreen(
                                 modifier = Modifier.weight(1f)
                             )
                             Text(
-                                text = "KSh ${"%.2f".format(row.total)}",
+                                text = money(row.total),
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.SemiBold,
                                 color = DangerRed
