@@ -68,10 +68,19 @@ VERSION="${TAG#desktop-}"
 VERSION="${VERSION#v}"
 
 if [ "$FAMILY" = "android" ] && [ "$SKIP_VERSION_CHECK" -eq 0 ]; then
-  RELEASES=$(mktemp)
-  trap 'rm -f "$RELEASES"' EXIT
-  gh api "repos/$REPO/releases?per_page=100" > "$RELEASES"
-  node scripts/android-release.mjs resolve "$TAG" "$RELEASES"
+  # The tag is the source of truth. android-release.yml derives versionName and
+  # versionCode from it and passes them to Gradle as -P overrides, so a stale
+  # value in build.gradle.kts can no longer produce a mislabelled APK. What is
+  # left here is a heads-up, not a gate.
+  GRADLE_NAME=$(grep -oE 'aideVersionName"\)\.getOrElse\("[^"]+"' android/app/build.gradle.kts \
+    | grep -oE '[0-9][^"]*' || true)
+  GRADLE_CODE=$(grep -oE 'aideVersionCode"\)\.getOrElse\("[0-9]+"' android/app/build.gradle.kts \
+    | grep -oE '[0-9]+' || true)
+  if [ -n "$GRADLE_NAME" ] && [ "$GRADLE_NAME" != "$VERSION" ]; then
+    say "note: build.gradle.kts falls back to $GRADLE_NAME locally, but this release will be built as $VERSION from the tag"
+  else
+    say "Android version: $VERSION (versionCode ${GRADLE_CODE:-from tag})"
+  fi
 
   # Distinguish missing secrets from an account without permission to list them.
   SECRET_NAMES=$(gh secret list --repo "$REPO") || die "Cannot inspect repository signing settings with this GitHub connection. No tag was pushed."

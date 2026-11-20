@@ -15,9 +15,6 @@ sealed class Screen(val route: String) {
         fun createRoute(saleId: String) = "receipt/$saleId"
     }
 
-    /** First run only: what Aide is, before the theme picker. */
-    object Welcome : Screen("welcome")
-
     /** The themed theme-selection screen, shown to first-time Android users. */
     object ThemePicker : Screen("theme-picker")
 }

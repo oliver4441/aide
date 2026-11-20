@@ -5,7 +5,6 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.omix.aide.data.local.AideDatabase
 import com.omix.aide.data.local.LocalBusinessStore
-import com.omix.aide.data.local.SettingsStore
 import com.omix.aide.notifications.AideChannel
 import com.omix.aide.notifications.AideRoute
 import com.omix.aide.notifications.NotificationEngine

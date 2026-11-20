@@ -5,9 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.omix.aide.data.local.entities.ProductEntity
 import com.omix.aide.data.local.entities.SaleItemEntity
 import com.omix.aide.data.repository.ProductRepository
-import com.omix.aide.data.local.BusinessSettings
 import com.omix.aide.data.repository.SaleRepository
-import com.omix.aide.ui.vatOn
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 

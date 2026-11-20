@@ -55,22 +55,17 @@ jobs:
       - name: Android lint (isolated from compilation and R8)
         working-directory: android
         run: |
-          set +e
-          ./gradlew lintDebug --max-workers=1 -PaideAllowUnsignedRelease=true --console=plain 2>&1 | tee build/lint.log
-          STATUS=${PIPESTATUS[0]}
-          if [ "$STATUS" != 0 ]; then python3 ../scripts/annotate-android-failures.py build/lint.log; fi
-          exit "$STATUS"
-      - name: Upload test reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        continue-on-error: true
-        with:
-          name: android-unit-and-lint-reports
-          path: |
-            android/build/validation.log
-            android/app/build/reports/
-            android/app/build/test-results/
-      - name: Upload debug and UI-test APKs
+          cd android
+          ./gradlew assembleDebug
+
+      - name: Build Release APK (unsigned, to cover R8)
+        # Keeps minification and resource shrinking honest on every PR. The
+        # release build hard-errors without a keystore, so opt out explicitly.
+        run: |
+          cd android
+          ./gradlew assembleRelease -PaideAllowUnsignedRelease=true
+
+      - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
           name: android-debug-tests

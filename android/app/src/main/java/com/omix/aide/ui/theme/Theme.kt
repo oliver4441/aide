@@ -7,11 +7,9 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import com.omix.aide.theme.Palette
-import com.omix.aide.ui.LocalAideSettings
 
 private val DarkColorScheme = darkColorScheme(
     primary = PrimaryGreen,
@@ -47,17 +45,10 @@ private val LightColorScheme = lightColorScheme(
 
 @Composable
 fun AideTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    accent: String = "plum",
     content: @Composable () -> Unit
 ) {
-    // Follows the saved preference, defaulting to the system setting. There was
-    // no override at all before: the app had no way to be dark on a light phone
-    // or light on a dark one.
-    val darkTheme = LocalAideSettings.current.themeMode.resolve(isSystemInDarkTheme())
-
-    // Read reactively: the accent comes from the settings the user can change
-    // in-app, so picking Plum has to re-theme the running composition rather
-    // than only the next launch.
-    val accent = LocalAideSettings.current.accent
     // The accent the user picked on the theme picker drives primary/onPrimary;
     // everything else falls back to the default slate palette.
     val context = LocalContext.current
@@ -71,27 +62,7 @@ fun AideTheme(
     }
 
     val base = if (darkTheme) DarkColorScheme else LightColorScheme
-
-    // The container roles were never defined, so every card tint, badge and
-    // selected rail pill fell back to Material 3's baseline purple and ignored
-    // the accent entirely. They are now mixed from the accent over the surface,
-    // which means picking Plum, Teal or Amber re-tints all of them at once.
-    val primaryContainer = lerp(accentColor, base.surface, if (darkTheme) 0.74f else 0.86f)
-    val onPrimaryContainer = lerp(accentColor, if (darkTheme) Color.White else Color.Black, if (darkTheme) 0.62f else 0.32f)
-    val secondaryContainer = lerp(SecondaryTeal, base.surface, if (darkTheme) 0.80f else 0.88f)
-    val onSecondaryContainer = lerp(SecondaryTeal, if (darkTheme) Color.White else Color.Black, if (darkTheme) 0.60f else 0.38f)
-
-    val colorScheme = base.copy(
-        primary = accentColor,
-        onPrimary = onAccent,
-        primaryContainer = primaryContainer,
-        onPrimaryContainer = onPrimaryContainer,
-        secondaryContainer = secondaryContainer,
-        onSecondaryContainer = onSecondaryContainer,
-        // The rail's hairline and the card strokes read better when the rule
-        // borrows the muted text colour instead of Material's grey-violet.
-        outlineVariant = base.onSurfaceVariant.copy(alpha = 0.30f)
-    )
+    val colorScheme = base.copy(primary = accentColor, onPrimary = onAccent)
 
     MaterialTheme(
         colorScheme = colorScheme,

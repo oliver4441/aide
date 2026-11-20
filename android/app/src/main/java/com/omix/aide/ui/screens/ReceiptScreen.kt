@@ -1,23 +1,17 @@
 package com.omix.aide.ui.screens
 
-import android.content.Intent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.omix.aide.data.local.dao.SaleWithItems
 import com.omix.aide.data.repository.SaleRepository
-import com.omix.aide.ui.LocalAideSettings
-import com.omix.aide.ui.money
+import com.omix.aide.ui.components.AideButton
 import com.omix.aide.ui.components.AideCard
 
 @Composable
@@ -26,7 +20,6 @@ fun ReceiptScreen(
     saleRepository: SaleRepository,
     onDone: () -> Unit
 ) {
-    val context = LocalContext.current
     var saleWithItems by remember { mutableStateOf<SaleWithItems?>(null) }
 
     LaunchedEffect(saleId) {
@@ -34,70 +27,11 @@ fun ReceiptScreen(
     }
 
     val saleData = saleWithItems
-    val settings = LocalAideSettings.current
-
-    // Built in the composable body, not inside shareReceipt(): money() reads the
-    // shop's currency from a CompositionLocal, so it may only be called from a
-    // composable — a plain local function is neither. Doing it here also means
-    // the text is produced once per sale rather than rebuilt on every tap.
-    val receiptText: String = if (saleData == null) {
-        ""
-    } else {
-        buildString {
-            appendLine("===============================")
-            appendLine(settings.businessName.ifBlank { "Aide Business Register" })
-            appendLine("Receipt #${saleData.sale.id.takeLast(8)}")
-            appendLine("Date: ${saleData.sale.createdAt}")
-            appendLine("-------------------------------")
-            saleData.items.forEach { item ->
-                appendLine("${item.name} x${item.quantity}  ${money(item.price * item.quantity)}")
-            }
-            appendLine("-------------------------------")
-            appendLine("TOTAL PAID: ${money(saleData.sale.total)}")
-            appendLine("Payment Method: ${saleData.sale.paymentMethod}")
-            if (saleData.sale.change > 0) {
-                appendLine("Change: ${money(saleData.sale.change)}")
-            }
-            if (saleData.sale.tax > 0.0) {
-                appendLine(
-                    "VAT (${"%.0f".format(saleData.sale.taxRate)}%): ${money(saleData.sale.tax)}"
-                )
-            }
-            if (settings.receiptFooter.isNotBlank()) {
-                appendLine("-------------------------------")
-                appendLine(settings.receiptFooter)
-            }
-            appendLine("===============================")
-        }
-    }
-
-    fun shareReceipt() {
-        if (receiptText.isEmpty()) return
-
-        val sendIntent = Intent().apply {
-            action = Intent.ACTION_SEND
-            putExtra(Intent.EXTRA_TEXT, receiptText)
-            type = "text/plain"
-        }
-        val shareIntent = Intent.createChooser(sendIntent, "Share Receipt")
-        context.startActivity(shareIntent)
-    }
 
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // The business name and footer come from Settings. Both used to be
-        // hardcoded, so a shop that set them still got "Aide Business Register"
-        // on every receipt.
-        if (settings.businessName.isNotBlank()) {
-            Text(
-                text = settings.businessName,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-        }
         Text(
             text = "RECEIPT",
             style = MaterialTheme.typography.headlineMedium,
@@ -112,7 +46,7 @@ fun ReceiptScreen(
             AideCard(modifier = Modifier.weight(1f)) {
                 Column(modifier = Modifier.padding(20.dp).fillMaxWidth()) {
                     Text(
-                        text = settings.businessName.ifBlank { "Aide Business Register" },
+                        text = "Aide Business Register",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
@@ -136,7 +70,7 @@ fun ReceiptScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(text = "${item.name} x${item.quantity}")
-                                Text(text = money(item.price * item.quantity))
+                                Text(text = "KSh ${"%.2f".format(item.price * item.quantity)}")
                             }
                         }
                     }
@@ -149,7 +83,7 @@ fun ReceiptScreen(
                     ) {
                         Text(text = "Total Paid:", fontWeight = FontWeight.Bold)
                         Text(
-                            text = money(saleData.sale.total),
+                            text = "KSh ${"%.2f".format(saleData.sale.total)}",
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -168,68 +102,17 @@ fun ReceiptScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(text = "Change:", style = MaterialTheme.typography.labelMedium)
-                        Text(text = money(saleData.sale.change), style = MaterialTheme.typography.labelMedium)
-                    }
-
-                    // Only shown when the sale actually carried VAT, so a shop
-                    // with no tax configured never sees a zero-tax line.
-                    if (saleData.sale.tax > 0.0) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = "VAT (${"%.0f".format(saleData.sale.taxRate)}%):",
-                                style = MaterialTheme.typography.labelMedium
-                            )
-                            Text(
-                                text = money(saleData.sale.tax),
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
+                        Text(text = "KSh ${"%.2f".format(saleData.sale.change)}", style = MaterialTheme.typography.labelMedium)
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            if (settings.receiptFooter.isNotBlank()) {
-                Text(
-                    text = settings.receiptFooter,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                OutlinedButton(
-                    onClick = { shareReceipt() },
-                    modifier = Modifier.weight(1f).height(50.dp),
-                    shape = RoundedCornerShape(14.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Share,
-                        contentDescription = "Share",
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Share")
-                }
-                Button(
-                    onClick = onDone,
-                    modifier = Modifier.weight(1f).height(50.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                ) {
-                    Text("Done", fontWeight = FontWeight.Bold)
-                }
-            }
+            AideButton(
+                text = "Done",
+                onClick = onDone
+            )
         }
     }
 }
