@@ -2,43 +2,12 @@ package com.omix.aide.data.local
 
 import android.content.Context
 
-/** How the app resolves light versus dark. */
-enum class ThemeMode {
-    /** Follow the phone's system setting. */
-    SYSTEM,
-    LIGHT,
-    DARK;
-
-    /** Applies this mode against the system preference. */
-    fun resolve(systemDark: Boolean): Boolean = when (this) {
-        SYSTEM -> systemDark
-        LIGHT -> false
-        DARK -> true
-    }
-
-    companion object {
-        /**
-         * Dark unless the shop deliberately chose otherwise.
-         *
-         * This used to fall back to [SYSTEM], so a phone in light mode opened a
-         * light app on first launch and the theme picker came second. The app is
-         * designed dark-first; light is the opt-in.
-         */
-        fun from(raw: String?): ThemeMode =
-            entries.firstOrNull { it.name.equals(raw, ignoreCase = true) } ?: DARK
-    }
-}
-
 /**
- * Business profile, receipt and appearance settings.
+ * Business profile and receipt settings.
  *
  * Deliberately SharedPreferences rather than a Room table: these are a handful
- * of scalars that the receipt and every screen read synchronously, and putting
+ * of scalars that the receipt and every report read synchronously, and putting
  * them in Room would mean another schema migration for no query benefit.
- *
- * This is the single source of truth for the accent. It used to be duplicated
- * into a second SharedPreferences file owned by `Palette`, which meant the
- * splash and the rest of the app could disagree about the theme.
  */
 data class BusinessSettings(
     val businessName: String = "",
@@ -46,22 +15,12 @@ data class BusinessSettings(
     /** VAT rate as a percentage, e.g. 16.0 for 16%. */
     val taxRate: Double = 0.0,
     val receiptFooter: String = "Thank you for your business",
-    val accent: String = "plum",
-    val themeMode: ThemeMode = ThemeMode.DARK,
-    val soundsEnabled: Boolean = true,
-    /** Local hour the daily summary notification fires at (24h clock). */
-    val summaryHour: Int = 18,
-    /** Minutes past [summaryHour]; 0 means exactly on the hour. */
-    val summaryMinute: Int = 0
+    val accent: String = "plum"
 )
 
 object SettingsStore {
 
     private const val PREFS = "aide_settings"
-
-    /** Where the accent used to live, before SettingsStore took ownership. */
-    private const val LEGACY_PREFS = "aide_preferences"
-    private const val LEGACY_KEY_ACCENT = "aide_accent"
 
     private fun prefs(context: Context) =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -73,11 +32,7 @@ object SettingsStore {
             taxRate = getFloat(KEY_TAX, 0f).toDouble(),
             receiptFooter = getString(KEY_FOOTER, "Thank you for your business")
                 ?: "Thank you for your business",
-            accent = getString(KEY_ACCENT, "plum") ?: "plum",
-            themeMode = ThemeMode.from(getString(KEY_THEME_MODE, null)),
-            soundsEnabled = getBoolean(KEY_SOUNDS, true),
-            summaryHour = getInt(KEY_SUMMARY_HOUR, 18).coerceIn(0, 23),
-            summaryMinute = getInt(KEY_SUMMARY_MINUTE, 0).coerceIn(0, 59)
+            accent = getString(KEY_ACCENT, "plum") ?: "plum"
         )
     }
 
@@ -88,41 +43,7 @@ object SettingsStore {
             .putFloat(KEY_TAX, settings.taxRate.toFloat())
             .putString(KEY_FOOTER, settings.receiptFooter)
             .putString(KEY_ACCENT, settings.accent)
-            .putString(KEY_THEME_MODE, settings.themeMode.name)
-            .putBoolean(KEY_SOUNDS, settings.soundsEnabled)
-            .putInt(KEY_SUMMARY_HOUR, settings.summaryHour)
-            .putInt(KEY_SUMMARY_MINUTE, settings.summaryMinute)
             .apply()
-    }
-
-    /**
-     * Adopts an accent chosen before this store existed.
-     *
-     * The first-run theme picker wrote straight to the legacy file and never
-     * touched `aide_settings`, so anyone who picked a colour during onboarding
-     * had it silently ignored by the rest of the app. This copies that choice
-     * across so nobody loses the theme they already selected.
-     *
-     * The legacy key is **removed** afterwards, which is what makes this
-     * genuinely one-time. Leaving it in place meant every later launch saw the
-     * stale value and reverted whatever the user had since chosen in Settings.
-     *
-     * Returns true when a legacy value was adopted.
-     */
-    fun migrateLegacyAccent(context: Context): Boolean {
-        val legacy = context.getSharedPreferences(LEGACY_PREFS, Context.MODE_PRIVATE)
-        val saved = legacy.getString(LEGACY_KEY_ACCENT, null)
-
-        // Nothing to adopt, or already in step: clear the key either way so it
-        // can never be adopted again after the user changes their mind.
-        if (saved == null || saved == read(context).accent) {
-            if (saved != null) legacy.edit().remove(LEGACY_KEY_ACCENT).apply()
-            return false
-        }
-
-        write(context, read(context).copy(accent = saved))
-        legacy.edit().remove(LEGACY_KEY_ACCENT).apply()
-        return true
     }
 
     private const val KEY_NAME = "business_name"
@@ -130,8 +51,4 @@ object SettingsStore {
     private const val KEY_TAX = "tax_rate"
     private const val KEY_FOOTER = "receipt_footer"
     private const val KEY_ACCENT = "accent"
-    private const val KEY_THEME_MODE = "theme_mode"
-    private const val KEY_SOUNDS = "sounds_enabled"
-    private const val KEY_SUMMARY_HOUR = "summary_hour"
-    private const val KEY_SUMMARY_MINUTE = "summary_minute"
 }

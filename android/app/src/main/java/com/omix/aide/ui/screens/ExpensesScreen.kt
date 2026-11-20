@@ -37,7 +37,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.omix.aide.ui.money
 import com.omix.aide.ui.components.AideButton
 import com.omix.aide.ui.components.AideCard
 import com.omix.aide.ui.components.AideEmptyState
@@ -98,7 +97,7 @@ fun ExpensesScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     AideStatCard(
                         title = "Total spend",
-                        value = money(uiState.total),
+                        value = "KSh ${"%.2f".format(uiState.total)}",
                         modifier = Modifier.weight(1f)
                     )
                     AideStatCard(
@@ -144,7 +143,7 @@ fun ExpensesScreen(
                             }
                             Column(horizontalAlignment = Alignment.End) {
                                 Text(
-                                    text = money(expense.amount),
+                                    text = "KSh ${"%.2f".format(expense.amount)}",
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.Bold,
                                     color = DangerRed

@@ -38,21 +38,33 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.omix.aide.data.local.AideDatabase
 import com.omix.aide.data.local.LocalBusinessStore
+import com.omix.aide.data.local.SettingsStore
+import com.omix.aide.data.repository.CustomerRepository
+import com.omix.aide.data.repository.ExpenseRepository
 import com.omix.aide.data.repository.ProductRepository
+import com.omix.aide.data.repository.ReportRepository
 import com.omix.aide.data.repository.SaleRepository
 import com.omix.aide.notifications.AideNotifications
 import com.omix.aide.notifications.AideRoute
 import com.omix.aide.theme.Palette
 import com.omix.aide.ui.navigation.Screen
+import com.omix.aide.ui.screens.CalculatorScreen
+import com.omix.aide.ui.screens.CustomersScreen
+import com.omix.aide.ui.screens.ExpensesScreen
 import com.omix.aide.ui.screens.HomeScreen
 import com.omix.aide.ui.screens.MoreScreen
 import com.omix.aide.ui.screens.ReceiptScreen
+import com.omix.aide.ui.screens.ReportsScreen
+import com.omix.aide.ui.screens.SettingsScreen
 import com.omix.aide.ui.screens.SellScreen
 import com.omix.aide.ui.screens.StockScreen
 import com.omix.aide.ui.screens.showSplash
 import com.omix.aide.ui.theme.AideTheme
 import com.omix.aide.ui.theme.ThemePickerScreen
+import com.omix.aide.ui.viewmodel.CustomerViewModel
+import com.omix.aide.ui.viewmodel.ExpenseViewModel
 import com.omix.aide.ui.viewmodel.HomeViewModel
+import com.omix.aide.ui.viewmodel.ReportViewModel
 import com.omix.aide.ui.viewmodel.SellViewModel
 import com.omix.aide.ui.viewmodel.StockViewModel
 import com.omix.aide.work.AideWorkScheduler
@@ -70,6 +82,9 @@ class MainActivity : ComponentActivity() {
     private lateinit var homeViewModel: HomeViewModel
     private lateinit var sellViewModel: SellViewModel
     private lateinit var stockViewModel: StockViewModel
+    private lateinit var expenseViewModel: ExpenseViewModel
+    private lateinit var customerViewModel: CustomerViewModel
+    private lateinit var reportViewModel: ReportViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -94,6 +109,19 @@ class MainActivity : ComponentActivity() {
         homeViewModel = HomeViewModel(productRepository, saleRepository, businessId)
         sellViewModel = SellViewModel(productRepository, saleRepository, businessId)
         stockViewModel = StockViewModel(productRepository, businessId)
+
+        expenseViewModel = ExpenseViewModel(
+            ExpenseRepository(database.expenseDao()),
+            businessId
+        )
+        customerViewModel = CustomerViewModel(
+            CustomerRepository(database.customerDao()),
+            businessId
+        )
+        reportViewModel = ReportViewModel(
+            ReportRepository(database.saleDao(), ExpenseRepository(database.expenseDao())),
+            businessId
+        )
 
         // The branded View-based splash owns the content view until the local
         // database is ready; setupContent then replaces it with the Compose UI.
@@ -248,7 +276,22 @@ class MainActivity : ComponentActivity() {
 
                         composable(Screen.More.route) {
                             MoreScreen(
-                                businessName = businessStore.getBusinessName()
+                                businessName = businessStore.getBusinessName(),
+                                onNavigateToCustomers = {
+                                    navController.navigate(Screen.Customers.route)
+                                },
+                                onNavigateToExpenses = {
+                                    navController.navigate(Screen.Expenses.route)
+                                },
+                                onNavigateToReports = {
+                                    navController.navigate(Screen.Reports.route)
+                                },
+                                onNavigateToSettings = {
+                                    navController.navigate(Screen.Settings.route)
+                                },
+                                onNavigateToCalculator = {
+                                    navController.navigate(Screen.Calculator.route)
+                                }
                             )
                         }
 
@@ -268,6 +311,41 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             )
+                        }
+
+                        // These four were menu rows with empty onClick lambdas,
+                        // so tapping them did nothing.
+                        composable(Screen.Customers.route) {
+                            CustomersScreen(
+                                customerViewModel = customerViewModel,
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+
+                        composable(Screen.Expenses.route) {
+                            ExpensesScreen(
+                                expenseViewModel = expenseViewModel,
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+
+                        composable(Screen.Reports.route) {
+                            ReportsScreen(
+                                reportViewModel = reportViewModel,
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+
+                        composable(Screen.Settings.route) {
+                            SettingsScreen(
+                                database = database,
+                                businessId = businessId,
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+
+                        composable(Screen.Calculator.route) {
+                            CalculatorScreen(onBack = { navController.popBackStack() })
                         }
 
                         // First-time Android users pick a theme here instead of

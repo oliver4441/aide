@@ -86,6 +86,7 @@ fun AideProductRow(
     price: String,
     sku: String? = null,
     lowStockThreshold: Int = 5,
+    imagePath: String? = null,
     onAddClick: (() -> Unit)? = null
 ) {
     AideCard(modifier = Modifier.padding(vertical = 4.dp)) {
@@ -94,6 +95,12 @@ fun AideProductRow(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Thumbnail first so a photo-led catalogue reads as a catalogue
+            // rather than a wall of text.
+            if (!imagePath.isNullOrBlank()) {
+                ProductThumbnail(path = imagePath, size = 56)
+                Spacer(modifier = Modifier.width(12.dp))
+            }
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
                 if (!sku.isNull_or_blank_check()) {

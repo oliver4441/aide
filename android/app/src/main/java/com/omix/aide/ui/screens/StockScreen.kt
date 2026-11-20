@@ -27,6 +27,7 @@ fun StockScreen(
     var sellingPrice by remember { mutableStateOf("") }
     var quantity by remember { mutableStateOf("") }
     var sku by remember { mutableStateOf("") }
+    var imagePath by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
         floatingActionButton = {
@@ -70,7 +71,8 @@ fun StockScreen(
                             stock = product.quantity,
                             price = "KSh ${product.sellingPrice}",
                             sku = product.sku,
-                            lowStockThreshold = product.lowStock
+                            lowStockThreshold = product.lowStock,
+                            imagePath = product.imageUrl
                         )
                     }
                 }
@@ -97,6 +99,10 @@ fun StockScreen(
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
+
+                Spacer(modifier = Modifier.height(16.dp))
+                ProductImagePicker(imagePath = imagePath, onImagePicked = { imagePath = it })
+                Spacer(modifier = Modifier.height(16.dp))
 
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(
@@ -144,7 +150,8 @@ fun StockScreen(
                                 buyingPrice = bp,
                                 sellingPrice = sp,
                                 quantity = qty,
-                                sku = sku.ifBlank { null }
+                                sku = sku.ifBlank { null },
+                                imagePath = imagePath
                             )
                         }
                     }
