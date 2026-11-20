@@ -60,6 +60,23 @@ export async function PATCH(
 
   const body = await request.json();
 
+  const existingProduct = await prisma.product.findUnique({
+    where: { id: params.id },
+  });
+
+  if (!existingProduct) {
+    return NextResponse.json({ error: "Product not found" }, { status: 404 });
+  }
+
+  // Security: Prevent cross-tenant authorization bypass
+  const userBusinessId = (session.user as any).businessId;
+  const userRole = (session.user as any).role;
+  if (userRole !== "admin" && existingProduct.businessId !== userBusinessId) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const body = await request.json();
+
     const existingProduct = await prisma.product.findUnique({
       where: { id: params.id },
     });
