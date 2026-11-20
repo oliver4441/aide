@@ -5,6 +5,8 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.omix.aide.data.local.AideDatabase
 import com.omix.aide.data.local.LocalBusinessStore
+import com.omix.aide.data.local.SettingsStore
+import com.omix.aide.data.local.converters.asMoney
 import com.omix.aide.notifications.AideChannel
 import com.omix.aide.notifications.AideRoute
 import com.omix.aide.notifications.NotificationEngine
@@ -51,10 +53,10 @@ class DailySummaryWorker(
             return Result.success()
         }
 
-        val total = today.sumOf { it.total }
-        val profit = today.sumOf { it.profit }
+        val total = today.sumOf { it.total.asMoney() }
+        val profit = today.sumOf { it.profit.asMoney() }
         val byMethod = today.groupBy { it.paymentMethod }
-            .mapValues { (_, sales) -> sales.sumOf { it.total } }
+            .mapValues { (_, sales) -> sales.sumOf { it.total.asMoney() } }
 
         val lines = buildList {
             add("Revenue  $currency ${formatAmount(total)}")

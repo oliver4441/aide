@@ -1,5 +1,12 @@
 package com.omix.aide.ui.screens
 
+import com.omix.aide.data.local.converters.asMoney
+
+import androidx.compose.animation.*
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -119,7 +126,7 @@ fun HomeScreen(
                         ) {
                             Column {
                                 Text(
-                                    text = "Sale #${saleWithItems.sale.id.takeLast(6)}",
+                                    text = money(saleWithItems.sale.total.asMoney()),
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.SemiBold
                                 )

@@ -3,6 +3,7 @@ package com.omix.aide.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.omix.aide.data.local.entities.CustomerEntity
+import com.omix.aide.data.local.converters.asMoney
 import com.omix.aide.data.repository.CustomerRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -18,8 +19,8 @@ data class CustomerUiState(
     val isAddOpen: Boolean = false
 ) {
     /** Total outstanding across every customer who owes the business. */
-    val totalOwed: Double get() = customers.sumOf { it.balance }
-    val owingCount: Int get() = customers.count { it.balance > 0.0 }
+    val totalOwed: Double get() = customers.sumOf { it.balance.asMoney() }
+    val owingCount: Int get() = customers.count { it.balance > 0L }
 }
 
 class CustomerViewModel(

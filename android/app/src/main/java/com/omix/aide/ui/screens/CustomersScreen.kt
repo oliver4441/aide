@@ -1,5 +1,7 @@
 package com.omix.aide.ui.screens
 
+import com.omix.aide.data.local.converters.asMoney
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -149,12 +151,12 @@ fun CustomersScreen(
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
-                                    if (customer.balance != 0.0) {
+                                    if (customer.balance != 0L) {
                                         Text(
                                             text = if (customer.balance > 0) {
-                                                "Owes KSh ${"%.2f".format(customer.balance)}"
+                                                "Owes KSh ${"%.2f".format(customer.balance.asMoney())}"
                                             } else {
-                                                "Credit KSh ${"%.2f".format(-customer.balance)}"
+                                                "Credit KSh ${"%.2f".format((-customer.balance).asMoney())}"
                                             },
                                             style = MaterialTheme.typography.labelMedium,
                                             fontWeight = FontWeight.SemiBold,

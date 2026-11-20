@@ -6,6 +6,8 @@ import com.omix.aide.data.local.AideDatabase
 import com.omix.aide.data.local.entities.ProductEntity
 import com.omix.aide.data.local.entities.SaleEntity
 import com.omix.aide.data.local.entities.SaleItemEntity
+import com.omix.aide.data.local.converters.asMoney
+import com.omix.aide.data.local.converters.toScaledMoney
 import java.util.UUID
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -16,11 +18,27 @@ import org.junit.Test
 class DatabaseUpgradeTest {
     private val context get() = InstrumentationRegistry.getInstrumentation().targetContext
     private val databases = mutableListOf<String>()
-    private val product = ProductEntity("saved-product", "saved-shop", name = "Milk", buyingPrice = 50.0,
-        sellingPrice = 65.0, quantity = 24, createdAt = "2026-11-01T12:00:00Z", updatedAt = "2026-11-01T12:00:00Z")
-    private val sale = SaleEntity("saved-sale", "saved-shop", total = 130.0, cost = 100.0, profit = 30.0,
-        paid = 130.0, change = 0.0, createdAt = "2026-11-01T12:00:00Z")
-    private val item = SaleItemEntity("saved-item", sale.id, product.id, product.name, 2, 65.0, 50.0)
+    private val product = ProductEntity("saved-product", "saved-shop", name = "Milk", buyingPrice = 50.0.toScaledMoney(),
+        sellingPrice = 65.0.toScaledMoney(), quantity = 24, createdAt = "2026-11-01T12:00:00Z", updatedAt = "2026-11-01T12:00:00Z")
+    private val sale = SaleEntity("saved-sale", "saved-shop", total = 130.0.toScaledMoney(), cost = 100.0.toScaledMoney(), profit = 30.0.toScaledMoney(),
+        paid = 130.0.toScaledMoney(), change = 0L, createdAt = "2026-11-01T12:00:00Z")
+    private val item = SaleItemEntity("saved-item", sale.id, product.id, product.name, 2, 65.0.toScaledMoney(), 50.0.toScaledMoney())
+
+    // The fixture is written in the current (already scaled) schema, then the
+    // file version is rewound. Applying MIGRATION_5_6 scales it once more.
+    private val scale = 10_000L
+    private val migratedProduct get() = product.copy(
+        buyingPrice = product.buyingPrice * scale,
+        sellingPrice = product.sellingPrice * scale
+    )
+    private val migratedSale get() = sale.copy(
+        total = sale.total * scale,
+        cost = sale.cost * scale,
+        profit = sale.profit * scale,
+        paid = sale.paid * scale,
+        change = sale.change * scale
+    )
+    private val migratedItem get() = item.copy(price = item.price * scale, cost = item.cost * scale)
 
     @After fun cleanUp() {
         databases.forEach { context.deleteDatabase(it) }
@@ -51,19 +69,19 @@ class DatabaseUpgradeTest {
             val database = AideDatabase.buildDatabase(context, seed(version))
             try {
                 runBlocking {
-                    assertEquals(product, database.productDao().getProductById(product.id))
+                    assertEquals(migratedProduct, database.productDao().getProductById(product.id))
                     val saved = database.saleDao().getSaleWithItemsById(sale.id)
                     assertNotNull(saved)
-                    assertEquals(sale, saved!!.sale)
-                    assertEquals(listOf(item), saved.items)
+                    assertEquals(migratedSale, saved!!.sale)
+                    assertEquals(listOf(migratedItem), saved.items)
                 }
-                assertEquals(4, database.openHelper.writableDatabase.version)
+                assertEquals(6, database.openHelper.writableDatabase.version)
             } finally { database.close() }
         }
     }
 
     @Test fun missingMigrationAndDowngradeFailWithoutDeletingData() {
-        for (version in listOf(1, 5)) {
+        for (version in listOf(1, 7)) {
             val name = seed(version)
             val database = AideDatabase.buildDatabase(context, name)
             try {
@@ -71,7 +89,9 @@ class DatabaseUpgradeTest {
                     database.openHelper.writableDatabase
                     fail("An unknown schema must require recovery, not a destructive reset")
                 } catch (error: IllegalStateException) {
-                    assertTrue(error.message.orEmpty().contains("migration", ignoreCase = true))
+                    assertTrue(error.message.orEmpty().let {
+                        it.contains("migration", ignoreCase = true) || it.contains("downgrade", ignoreCase = true)
+                    })
                 }
             } finally { database.close() }
             SQLiteDatabase.openDatabase(context.getDatabasePath(name).path, null, SQLiteDatabase.OPEN_READONLY).use { raw ->
@@ -83,7 +103,7 @@ class DatabaseUpgradeTest {
                 }
                 raw.rawQuery("SELECT profit FROM sales WHERE id = ?", arrayOf(sale.id)).use { cursor ->
                     assertTrue(cursor.moveToFirst())
-                    assertEquals(sale.profit, cursor.getDouble(0), 0.0)
+                    assertEquals(sale.profit.toDouble(), cursor.getDouble(0), 0.0)
                 }
             }
         }

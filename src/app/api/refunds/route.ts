@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireBusiness, toAuthError } from "@/lib/apiAuth";
+import { gateRequest, approvalResponse } from "@/lib/approvalReplay";
 import { hasPermission, Permission } from "@/lib/rbac";
 
 /**
@@ -72,6 +73,16 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const saleId = body?.saleId;
+
+    const approval = await gateRequest(request, body, {
+      businessId,
+      userId: user.id,
+      actionType: "REFUND",
+      resourceType: "Refund",
+      amount: Number(body.total) || 0,
+    });
+    if (approval) return approvalResponse(approval);
+
     if (!saleId) {
       return NextResponse.json({ error: "saleId is required" }, { status: 400 });
     }

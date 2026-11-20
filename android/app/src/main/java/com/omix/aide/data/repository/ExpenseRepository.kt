@@ -9,6 +9,8 @@ import com.omix.aide.data.local.dao.SalesTotalsRow
 import com.omix.aide.data.local.dao.TopProductRow
 import com.omix.aide.data.local.entities.CustomerEntity
 import com.omix.aide.data.local.entities.ExpenseEntity
+import com.omix.aide.data.local.converters.asMoney
+import com.omix.aide.data.local.converters.toScaledMoney
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -42,7 +44,7 @@ class ExpenseRepository(
                 businessId = businessId,
                 category = category.ifBlank { "Other" },
                 description = description?.takeIf { it.isNotBlank() },
-                amount = amount,
+                amount = amount.toScaledMoney(),
                 isCogs = isCogs,
                 notes = notes?.takeIf { it.isNotBlank() },
                 createdAt = nowIso()
@@ -56,7 +58,7 @@ class ExpenseRepository(
         expenseDao.getExpensesSince(businessId, sinceIso)
 
     suspend fun getOverheadsSince(businessId: String, sinceIso: String): Double =
-        expenseDao.getOverheadsSince(businessId, sinceIso)
+        expenseDao.getOverheadsSince(businessId, sinceIso).asMoney()
 
     suspend fun getCategoryTotalsSince(
         businessId: String,
@@ -90,7 +92,7 @@ class CustomerRepository(
                 phone = phone?.takeIf { it.isNotBlank() },
                 email = email?.takeIf { it.isNotBlank() },
                 notes = notes?.takeIf { it.isNotBlank() },
-                balance = 0.0,
+                balance = 0L,
                 isActive = true,
                 createdAt = timestamp,
                 updatedAt = timestamp
@@ -101,14 +103,14 @@ class CustomerRepository(
     suspend fun updateBalance(customerId: String, delta: Double) {
         val existing = customerDao.getById(customerId) ?: return
         customerDao.insertOrUpdate(
-            existing.copy(balance = existing.balance + delta, updatedAt = nowIso())
+            existing.copy(balance = existing.balance + delta.toScaledMoney(), updatedAt = nowIso())
         )
     }
 
     suspend fun deleteCustomer(id: String) = customerDao.deleteById(id)
 
     suspend fun getTotalOwed(businessId: String): Double =
-        customerDao.getTotalOwed(businessId)
+        customerDao.getTotalOwed(businessId).asMoney()
 }
 
 /**

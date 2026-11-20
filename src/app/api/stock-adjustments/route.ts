@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireBusiness, toAuthError } from "@/lib/apiAuth";
 import { hasPermission, Permission } from "@/lib/rbac";
+import { gateAction } from "@/lib/approvalGate";
 
 /**
  * AIDE-10: Stock adjustment management API.
@@ -78,6 +79,29 @@ export async function POST(request: NextRequest) {
     const lines = Array.isArray(body?.lines) ? body.lines : [];
     if (lines.length === 0) {
       return NextResponse.json({ error: "At least one line item is required" }, { status: 400 });
+    }
+
+    // AIDE-12: an active policy gates the write on the server. Direct API
+    // calls cannot skip approval; the action is executed only after a quorum.
+    const amount = lines.reduce(
+      (sum: number, line: any) =>
+        sum + Math.abs(Number(line.quantityDelta) || 0) * (Number(line.unitCost) || 0),
+      0
+    );
+    const approval = await gateAction({
+      businessId,
+      requesterId: user.id,
+      actionType: "STOCK_ADJUSTMENT",
+      resourceType: "StockAdjustment",
+      amount,
+      payload: { reason, notes: body?.notes, lines },
+      skip: Boolean(request.headers.get("x-aide-replay")),
+    });
+    if (approval) {
+      return NextResponse.json(
+        { approvalRequired: true, requestId: approval.id, status: approval.status },
+        { status: 202 }
+      );
     }
 
     // Validate all products exist and belong to the business

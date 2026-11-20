@@ -3,6 +3,7 @@ package com.omix.aide.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.omix.aide.data.local.entities.ExpenseEntity
+import com.omix.aide.data.local.converters.asMoney
 import com.omix.aide.data.repository.ExpenseRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -16,7 +17,7 @@ data class ExpenseUiState(
     val isLoading: Boolean = true,
     val isAddOpen: Boolean = false
 ) {
-    val total: Double get() = expenses.sumOf { it.amount }
+    val total: Double get() = expenses.sumOf { it.amount.asMoney() }
 }
 
 class ExpenseViewModel(

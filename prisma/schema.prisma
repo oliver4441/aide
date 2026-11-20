@@ -46,6 +46,12 @@ model User {
   
   // AIDE-11: POS advanced
   shifts CashierShift[] @relation("ShiftCashier")
+
+  // AIDE-12: approval workflows
+  requestedApprovals ApprovalRequest[] @relation("ApprovalRequester")
+  approvalDecisions  ApprovalDecision[] @relation("ApprovalActor")
+  delegationsFrom    ApprovalDelegation[] @relation("DelegationFrom")
+  delegationsTo      ApprovalDelegation[] @relation("DelegationTo")
 }
 
 // A business (shop, salon, store, etc.)
@@ -71,6 +77,12 @@ model Business {
   reviews       Review[]
   notifications Notification[]
   notificationPrefs NotificationPreference[]
+
+  // AIDE-12: approval workflows
+  approvalPolicies   ApprovalPolicy[]
+  approvalGroups     ApprovalGroup[]
+  approvalDelegations ApprovalDelegation[]
+  approvalRequests   ApprovalRequest[]
 
   // Top-level tenant (legal entity / company). A Business is the operational
   // unit (branch / store) that belongs to an Organization. Required: every
@@ -1175,4 +1187,147 @@ model SplitPayment {
 
   @@index([saleId])
   @@index([businessId])
+}
+
+// ---- AIDE-12: approval workflows and separation of duties ----
+
+enum ApprovalActionType {
+  STOCK_ADJUSTMENT
+  PURCHASE_ORDER
+  SUPPLIER_PAYMENT
+  REFUND
+  JOURNAL
+  PRICE_CHANGE
+  DISCOUNT
+  EXPENSE
+  PERIOD_CLOSE
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum ApprovalDecisionType {
+  APPROVE
+  REJECT
+}
+
+/// A versioned approval rule. Historical requests snapshot the version they
+/// were created under, so editing or superseding a policy never rewrites them.
+model ApprovalPolicy {
+  id                  String              @id @default(cuid())
+  businessId          String
+  business            Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  name                String
+  actionType          ApprovalActionType
+  /// Null means the policy applies to every amount for this action.
+  threshold           Decimal?            @db.Decimal(19, 4)
+  minApprovals        Int                 @default(1)
+  requireSeparation   Boolean             @default(true)
+  escalationHours     Int?
+  escalationGroup     ApprovalGroup?      @relation("EscalationGroup", fields: [escalationGroupId], references: [id], onDelete: SetNull)
+  escalationGroupId   String?
+  approverGroup       ApprovalGroup?      @relation("ApproverGroup", fields: [approverGroupId], references: [id], onDelete: SetNull)
+  approverGroupId     String?
+  version             Int                 @default(1)
+  active              Boolean             @default(true)
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  @@unique([businessId, actionType, version])
+  @@index([businessId, actionType])
+}
+
+model ApprovalGroup {
+  id          String                 @id @default(cuid())
+  businessId  String
+  business    Business               @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  name        String
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  members     ApprovalGroupMember[]
+  escalatedPolicies ApprovalPolicy[] @relation("EscalationGroup")
+  policies          ApprovalPolicy[] @relation("ApproverGroup")
+
+  @@unique([businessId, name])
+  @@index([businessId])
+}
+
+model ApprovalGroupMember {
+  id        String        @id @default(cuid())
+  groupId   String
+  group     ApprovalGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId    String
+  createdAt DateTime      @default(now())
+
+  @@unique([groupId, userId])
+  @@index([userId])
+}
+
+/// Time-boxed delegation: `toUser` may decide on behalf of `fromUser`
+/// while active and before expiresAt.
+model ApprovalDelegation {
+  id          String   @id @default(cuid())
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  fromUser    User     @relation("DelegationFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  fromUserId  String
+  toUser      User     @relation("DelegationTo", fields: [toUserId], references: [id], onDelete: Cascade)
+  toUserId    String
+  expiresAt   DateTime
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@index([businessId, fromUserId])
+  @@index([businessId, toUserId])
+}
+
+model ApprovalRequest {
+  id                String                @id @default(cuid())
+  businessId        String
+  business          Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  actionType        ApprovalActionType
+  resourceType      String
+  resourceId        String?
+  amount            Decimal?              @db.Decimal(19, 4)
+  payload           Json?
+  requester         User                  @relation("ApprovalRequester", fields: [requesterId], references: [id], onDelete: Restrict)
+  requesterId       String
+  status            ApprovalStatus        @default(PENDING)
+  /// Immutable snapshot of the policy used at creation time.
+  policyId          String
+  policyVersion     Int
+  policyName        String
+  minApprovals      Int
+  requireSeparation Boolean
+  approverGroupId   String?
+  escalationGroupId String?
+  escalationHours   Int?
+  activeGroupId     String?
+  escalatedAt       DateTime?
+  createdAt         DateTime              @default(now())
+  resolvedAt        DateTime?
+  executedAt        DateTime?
+  decisions         ApprovalDecision[]
+
+  @@index([businessId, status])
+  @@index([resourceType, resourceId])
+}
+
+model ApprovalDecision {
+  id            String                @id @default(cuid())
+  request       ApprovalRequest       @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  requestId     String
+  actor         User                  @relation("ApprovalActor", fields: [actorId], references: [id], onDelete: Restrict)
+  actorId       String
+  decision      ApprovalDecisionType
+  comments      String?
+  policyVersion Int
+  decidedAt     DateTime              @default(now())
+
+  @@unique([requestId, actorId])
+  @@index([requestId])
 }

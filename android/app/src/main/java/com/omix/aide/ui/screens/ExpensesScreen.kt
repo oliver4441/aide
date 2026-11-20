@@ -1,5 +1,7 @@
 package com.omix.aide.ui.screens
 
+import com.omix.aide.data.local.converters.asMoney
+
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -144,7 +146,7 @@ fun ExpensesScreen(
                             }
                             Column(horizontalAlignment = Alignment.End) {
                                 Text(
-                                    text = money(expense.amount),
+                                    text = money(expense.amount.asMoney()),
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.Bold,
                                     color = DangerRed

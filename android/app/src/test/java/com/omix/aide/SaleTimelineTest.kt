@@ -2,6 +2,7 @@ package com.omix.aide
 
 import com.omix.aide.data.local.dao.SaleWithItems
 import com.omix.aide.data.local.entities.SaleEntity
+import com.omix.aide.data.local.converters.toScaledMoney
 import com.omix.aide.ui.viewmodel.SaleTimeline
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -40,11 +41,11 @@ class SaleTimelineTest {
         sale = SaleEntity(
             id = id,
             businessId = "bus-1",
-            total = total,
-            cost = total - profit,
-            profit = profit,
-            paid = total,
-            change = 0.0,
+            total = total.toScaledMoney(),
+            cost = (total - profit).toScaledMoney(),
+            profit = profit.toScaledMoney(),
+            paid = total.toScaledMoney(),
+            change = 0L,
             createdAt = createdAt
         ),
         items = emptyList()

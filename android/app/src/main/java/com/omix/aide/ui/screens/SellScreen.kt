@@ -1,5 +1,13 @@
 package com.omix.aide.ui.screens
 
+import com.omix.aide.data.local.converters.asMoney
+
+import androidx.compose.animation.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -61,8 +69,54 @@ fun SellScreen(
 
         if (uiState.cart.isNotEmpty()) {
             Spacer(modifier = Modifier.height(12.dp))
-            AideCard {
-                Column(modifier = Modifier.padding(16.dp)) {
+
+            // Catalog Grid or List
+            Box(modifier = Modifier.weight(1f)) {
+                if (uiState.products.isEmpty()) {
+                    AideEmptyState(message = "No matching products in catalog.")
+                } else if (isGridView) {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        items(uiState.products) { product ->
+                            val cartItem = uiState.cart.find { it.product.id == product.id }
+                            SellProductGridCard(
+                                product = product,
+                                cartQuantity = cartItem?.quantity ?: 0,
+                                onAdd = { sellViewModel.addToCart(product) },
+                                onIncrement = { sellViewModel.updateQuantity(product.id, 1) },
+                                onDecrement = { sellViewModel.updateQuantity(product.id, -1) }
+                            )
+                        }
+                    }
+                } else {
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(uiState.products) { product ->
+                            AideProductRow(
+                                name = product.name,
+                                stock = product.quantity,
+                                price = money(product.sellingPrice.asMoney()),
+                                sku = product.sku,
+                                lowStockThreshold = product.lowStock,
+                                imagePath = product.imageUrl,
+                                onAddClick = { sellViewModel.addToCart(product) }
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Cart Summary Banner at Bottom
+            if (uiState.cart.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                AideCard(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                    onClick = { showCheckoutSheet = true }
+                ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -167,13 +221,119 @@ fun SellScreen(
     }
 
     if (showCheckoutSheet) {
-        ModalBottomSheet(onDismissRequest = { showCheckoutSheet = false }) {
-            Column(modifier = Modifier.padding(24.dp).fillMaxWidth()) {
-                Text(
-                    text = "Payment",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
-                )
+        ModalBottomSheet(
+            onDismissRequest = { showCheckoutSheet = false },
+            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(horizontal = 24.dp, vertical = 16.dp)
+                    .fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Current Order",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    AideBadge(
+                        text = "${uiState.cart.sumOf { it.quantity }} items",
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Cart Line Items List
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 200.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                ) {
+                    LazyColumn(modifier = Modifier.padding(8.dp)) {
+                        items(uiState.cart) { item ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = item.product.name,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    Text(
+                                        text = "${moneyBare(item.product.sellingPrice.asMoney())} each",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    IconButton(
+                                        onClick = { sellViewModel.updateQuantity(item.product.id, -1) },
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.RemoveCircleOutline,
+                                            contentDescription = "Decrease",
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                    Text(
+                                        text = "${item.quantity}",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.widthIn(min = 20.dp),
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                    )
+                                    IconButton(
+                                        onClick = { sellViewModel.updateQuantity(item.product.id, 1) },
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.AddCircleOutline,
+                                            contentDescription = "Increase",
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                    IconButton(
+                                        onClick = { sellViewModel.removeFromCart(item.product.id) },
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.DeleteOutline,
+                                            contentDescription = "Remove",
+                                            tint = MaterialTheme.colorScheme.error,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.width(8.dp))
+
+                                Text(
+                                    text = money(item.product.sellingPrice.asMoney() * item.quantity),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -274,3 +434,139 @@ fun SellScreen(
         }
     }
 }
+
+/**
+ * Grid View Card Item for POS Catalog
+ */
+@Composable
+fun SellProductGridCard(
+    product: ProductEntity,
+    cartQuantity: Int,
+    onAdd: () -> Unit,
+    onIncrement: () -> Unit,
+    onDecrement: () -> Unit
+) {
+    AideCard {
+        Column(
+            modifier = Modifier
+                .padding(12.dp)
+                .fillMaxWidth(),
+            horizontalAlignment = Alignment.Start
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                if (!product.imageUrl.isNullOrBlank()) {
+                    ProductThumbnail(path = product.imageUrl, size = 44)
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.primaryContainer),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Category,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                }
+                if (cartQuantity > 0) {
+                    AideBadge(
+                        text = "$cartQuantity",
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Text(
+                text = product.name,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                maxLines = 2,
+                minLines = 2
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = money(product.sellingPrice.asMoney()),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.primary
+            )
+
+            Text(
+                text = "Stock: ${product.quantity}",
+                style = MaterialTheme.typography.labelSmall,
+                color = if (product.quantity <= product.lowStock) WarningAmber else MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            if (cartQuantity == 0) {
+                Button(
+                    onClick = onAdd,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(38.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Add", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = onDecrement,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        Icon(Icons.Default.Remove, contentDescription = "Decrease", modifier = Modifier.size(18.dp))
+                    }
+
+                    Text(
+                        text = "$cartQuantity",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    IconButton(
+                        onClick = onIncrement,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary)
+                    ) {
+                        Icon(
+                            Icons.Default.Add,
+                            contentDescription = "Increase",
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** Rounds [amount] up to the next multiple of [step], for the quick-cash chips. */
+private fun roundUpTo(amount: Double, step: Double): Double =
+    if (amount <= 0.0) 0.0 else kotlin.math.ceil(amount / step) * step

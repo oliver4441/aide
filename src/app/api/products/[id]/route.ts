@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
-import { authOptions } from "@/lib/auth";
+import { requireUser, canAccessBusiness, toAuthError } from "@/lib/apiAuth";
+import { gateRequest, approvalResponse } from "@/lib/approvalReplay";
 
 export const dynamic = "force-dynamic";
 
@@ -92,6 +93,19 @@ export async function PATCH(
     }
 
     const body = await request.json();
+
+    if (body.sellingPrice !== undefined || body.buyingPrice !== undefined) {
+      const approval = await gateRequest(request, body, {
+        businessId: existingProduct.businessId,
+        userId: user.id,
+        actionType: "PRICE_CHANGE",
+        resourceType: "Product",
+        resourceId: existingProduct.id,
+        amount: Number(body.sellingPrice ?? body.buyingPrice) || 0,
+        params: { id: existingProduct.id },
+      });
+      if (approval) return approvalResponse(approval);
+    }
 
     const data: any = {};
     if (body.name !== undefined) data.name = body.name;
