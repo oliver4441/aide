@@ -43,8 +43,6 @@ export function useDashboard(businessId?: string): DashboardData {
   // ⚡ Bolt Optimization: Memoize metrics computation and collapse multiple array
   // traversals into a single pass to eliminate redundant computations and object
   // allocations on component re-renders when underlying IndexedDB data hasn't changed.
-  const status = useSyncStatus();
-
   return useMemo(() => {
     const loading = todaySales === undefined || products === undefined;
 
@@ -69,9 +67,9 @@ export function useDashboard(businessId?: string): DashboardData {
 
     for (let i = 0; i < salesList.length; i++) {
       const s = salesList[i];
-      todayRevenue += Number(s.total) || 0;
-      todayProfit += Number(s.profit) || 0;
-      todayCost += Number(s.cost) || 0;
+      todayRevenue += s.total || 0;
+      todayProfit += s.profit || 0;
+      todayCost += s.cost || 0;
     }
 
     return {
@@ -83,8 +81,6 @@ export function useDashboard(businessId?: string): DashboardData {
       totalProducts: activeCount,
       recentSales: salesList.slice(-10).reverse(),
       loading,
-      syncStatus: status.isOnline ? 'online' : 'offline',
-      syncError: null,
     };
-  }, [todaySales, products, status.isOnline]);
+  }, [todaySales, products]);
 }
