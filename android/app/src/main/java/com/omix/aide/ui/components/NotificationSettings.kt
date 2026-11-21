@@ -11,6 +11,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.omix.aide.notifications.AideChannel
+import com.omix.aide.notifications.AideNotifications
 import com.omix.aide.notifications.NotificationEngine
 import com.omix.aide.notifications.NotificationPrefs
 import com.omix.aide.work.AideWorkScheduler

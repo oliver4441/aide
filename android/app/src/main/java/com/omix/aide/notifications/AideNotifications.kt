@@ -118,10 +118,10 @@ object AideNotifications {
         )
 
         val style: NotificationCompat.Style = if (detailLines.isNotEmpty()) {
-            NotificationCompat.InboxStyle().apply {
-                detailLines.take(7).forEach { addLine(it) }
-                if (!summaryLine.isNullOrBlank()) setSummaryText(summaryLine)
-            }
+            val inbox = NotificationCompat.InboxStyle()
+            detailLines.take(7).forEach { inbox.addLine(it) }
+            if (!summaryLine.isNullOrBlank()) inbox.setSummaryText(summaryLine)
+            inbox
         } else {
             NotificationCompat.BigTextStyle().bigText(message)
         }

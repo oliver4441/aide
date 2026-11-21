@@ -50,6 +50,14 @@ android {
             providers.gradleProperty("aideLatestVersionCode").getOrElse("0")
         )
 
+        // Pinned SHA-256 certificate fingerprint of the official release signer,
+        // verified by UpdateManager and ApkDownloadWorker before installing updates.
+        buildConfigField(
+            "String",
+            "UPDATE_CERT_SHA256",
+            "\"$releaseCertificate\""
+        )
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
