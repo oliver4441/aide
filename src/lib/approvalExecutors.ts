@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { StockAdjustmentReason } from "@prisma/client";
 import { prisma } from "./prisma";
 import { makeReplayToken } from "./internalAuth";
+import { resolveReplayBaseUrl } from "./replayUrl.mjs";
 
 /**
  * Executes an approved request exactly once. Only STOCK_ADJUSTMENT has an
@@ -20,27 +21,42 @@ export async function executeApproval(requestId: string): Promise<void> {
     | { method: string; path: string; body: unknown; params?: Record<string, string> }
     | undefined;
   if (replay) {
+    const claimedAt = new Date();
     const claimed = await prisma.approvalRequest.updateMany({
       where: { id: requestId, executedAt: null, status: "APPROVED" },
-      data: { executedAt: new Date() },
+      data: { executedAt: claimedAt },
     });
     if (claimed.count === 0) return;
 
-    const token = await makeReplayToken(approval.requesterId, approval.businessId, approval.id);
-    const handler = await replayHandler(replay.path, replay.method);
-    const req = new NextRequest(new URL(replay.path, "http://localhost:3000"), {
-      method: replay.method,
-      headers: {
-        "content-type": "application/json",
-        "x-aide-replay": token,
-      },
-      body: replay.method === "GET" || replay.method === "HEAD" ? undefined : JSON.stringify(replay.body ?? {}),
-    });
-    const response = await handler(req, { params: replay.params ?? {} });
-    if (!response.ok) {
-      throw new Error(`Approved action replay failed with ${response.status}`);
+    try {
+      const token = await makeReplayToken(approval.requesterId, approval.businessId, approval.id);
+      const handler = await replayHandler(replay.path, replay.method);
+      const req = new NextRequest(new URL(replay.path, resolveReplayBaseUrl()), {
+        method: replay.method,
+        headers: {
+          "content-type": "application/json",
+          "x-aide-replay": token,
+        },
+        body: replay.method === "GET" || replay.method === "HEAD" ? undefined : JSON.stringify(replay.body ?? {}),
+      });
+      const response = await handler(req, { params: replay.params ?? {} });
+      if (!response.ok) {
+        throw new Error(`Approved action replay failed with ${response.status}`);
+      }
+      return;
+    } catch (err) {
+      // Release only our claim so the approval can be retried. Without this a
+      // failed replay leaves executedAt set and the action can never run.
+      try {
+        await prisma.approvalRequest.updateMany({
+          where: { id: requestId, executedAt: claimedAt },
+          data: { executedAt: null },
+        });
+      } catch (releaseErr) {
+        console.error("Failed to release approval execution claim", releaseErr);
+      }
+      throw err;
     }
-    return;
   }
 
   // Legacy stock-adjustment executor (payload written before replay support).
