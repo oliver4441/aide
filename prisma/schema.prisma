@@ -129,6 +129,9 @@ model Business {
   // AIDE-22: Data import
   importBatches     ImportBatch[]
 
+  // AIDE-07 / ACC-11: fixed asset register
+  fixedAssets       FixedAsset[]
+
   @@index([organizationId])
 }
 
@@ -1380,4 +1383,63 @@ enum ImportBatchStatus {
 enum ImportDuplicateStrategy {
   SKIP
   MERGE
+}
+
+// ============================================================================
+// AIDE-07 / ACC-11: Fixed assets & depreciation
+// ============================================================================
+
+enum DepreciationMethod {
+  STRAIGHT_LINE
+}
+
+enum FixedAssetStatus {
+  ACTIVE
+  DISPOSED
+}
+
+/// A capitalised fixed asset with a straight-line depreciation schedule.
+model FixedAsset {
+  id               String             @id @default(cuid())
+  assetCode        String             // e.g. "FA-0001"
+  name             String
+  category         String?
+  description      String?
+  acquisitionDate  DateTime
+  cost             Decimal            @db.Decimal(19, 4)
+  salvageValue     Decimal            @default(0) @db.Decimal(19, 4)
+  usefulLifeMonths Int
+  method           DepreciationMethod @default(STRAIGHT_LINE)
+  status           FixedAssetStatus   @default(ACTIVE)
+  disposedAt       DateTime?
+  disposalProceeds Decimal?           @db.Decimal(19, 4)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  business         Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId       String
+
+  depreciation     DepreciationEntry[]
+
+  @@unique([businessId, assetCode])
+  @@index([businessId])
+  @@index([businessId, status])
+}
+
+/// One month of depreciation for an asset; unique per asset and period.
+model DepreciationEntry {
+  id             String      @id @default(cuid())
+  periodYear     Int
+  periodMonth    Int         // 1-12
+  amount         Decimal     @db.Decimal(19, 4)
+  accumulated    Decimal     @db.Decimal(19, 4) // accumulated after this entry
+  journalEntryId String?
+  createdAt      DateTime    @default(now())
+
+  asset          FixedAsset  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  assetId        String
+
+  @@unique([assetId, periodYear, periodMonth])
+  @@index([assetId])
+  @@index([periodYear, periodMonth])
 }

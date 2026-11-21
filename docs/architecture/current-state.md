@@ -78,8 +78,8 @@
 
 ### Schema Gaps Identified
 1. **No organization/branch hierarchy** — `Business` is flat; multi-location not modeled (tracked in AIDE-02, now merged via PR #66)
+2. **Double-entry accounting** — General ledger, chart of accounts, posting engine, period controls, year-end closing, and fixed-asset depreciation are implemented on web (AIDE-05, AIDE-07)
 
-2. **Double-entry accounting** — General ledger, chart of accounts, posting engine, period controls, and year-end closing are implemented on web (AIDE-05, AIDE-07)
 3. **Monetary precision** — Web uses `Decimal(19,4)` throughout (AIDE-04 done); the Android local store still uses `Double`
 4. **Audit trail** — Append-only `AuditEvent` records credential logins, role changes, and access revocation (AIDE-19); broader financial posting events are still being wired
 

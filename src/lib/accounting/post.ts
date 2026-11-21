@@ -390,6 +390,7 @@ export async function seedChartOfAccounts(businessId: string): Promise<number> {
     { code: "1100", name: "Inventory", type: "ASSET", subType: "CURRENT_ASSET", isSystem: true, description: "Stock on hand at cost" },
     { code: "1200", name: "Accounts Receivable", type: "ASSET", subType: "ACCOUNTS_RECEIVABLE", isSystem: true, description: "Amounts owed by customers" },
     { code: "1500", name: "Fixed Assets", type: "ASSET", subType: "FIXED_ASSET", isSystem: true, description: "Equipment, furniture, vehicles" },
+    { code: "1510", name: "Accumulated Depreciation", type: "ASSET", subType: "FIXED_ASSET", isSystem: true, description: "Contra-asset: accumulated depreciation" },
 
     { code: "2000", name: "Accounts Payable", type: "LIABILITY", subType: "ACCOUNTS_PAYABLE", isSystem: true, description: "Amounts owed to suppliers" },
     { code: "2010", name: "VAT Payable", type: "LIABILITY", subType: "CURRENT_LIABILITY", isSystem: true, description: "VAT owed to KRA" },

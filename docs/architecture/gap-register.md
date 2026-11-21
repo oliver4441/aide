@@ -161,7 +161,7 @@
 | ACC-08 | Cash Flow Statement | ✅ | ❌ | 🟡 | AIDE-07 | Operating, investing, financing activities |
 | ACC-09 | Accounting periods (open/close) | ✅ | ❌ | 🟡 | AIDE-07 | Period CRUD, close/lock controls, role-gated |
 | ACC-10 | Year-end closing | ✅ | ❌ | 🟡 | AIDE-07 | `POST /api/periods/year-end`; zeroes P&L, transfers net to Retained Earnings |
-| ACC-11 | Fixed assets / depreciation | ❌ | ❌ | ❌ | AIDE-07 | |
+| ACC-11 | Fixed assets / depreciation | ✅ | ❌ | 🟡 | AIDE-07 | Asset register; monthly straight-line run posts Dr 5500 / Cr 1510 (`POST /api/fixed-assets/depreciation`) |
 | ACC-12 | Bank reconciliation | ❌ | ❌ | ❌ | AIDE-16 | |
 | ACC-13 | Multi-currency | ❌ | ❌ | ❌ | AIDE-14 | |
 | ACC-14 | Consolidated accounts (multi-entity) | ❌ | ❌ | ❌ | AIDE-14 | |
