@@ -31,6 +31,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -242,7 +243,10 @@ class MainActivity : ComponentActivity() {
                 if (granted) AideWorkScheduler.scheduleAll(applicationContext)
             }
 
-            LaunchedEffect(Unit) {
+            var askedForNotifications by rememberSaveable { mutableStateOf(false) }
+            LaunchedEffect(currentRoute) {
+                if (currentRoute != Screen.Home.route || askedForNotifications) return@LaunchedEffect
+                askedForNotifications = true
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     val granted = ContextCompat.checkSelfPermission(
                         applicationContext,
