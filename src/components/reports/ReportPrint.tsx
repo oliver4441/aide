@@ -113,7 +113,7 @@ function ReportDocument({ data, businessName }: { data: ReportData; businessName
         <div className="np-report-card">
           <div className="np-report-label">Profit Margin</div>
           <div className="np-report-value">
-            {data.totalRevenue > 0 ? Math.round((data.totalProfit / data.totalRevenue) * 100) : 0}%
+            {Number(data.totalRevenue) > 0 ? Math.round((Number(data.totalProfit) / Number(data.totalRevenue)) * 100) : 0}%
           </div>
         </div>
       </div>
@@ -165,7 +165,7 @@ function ReportDocument({ data, businessName }: { data: ReportData; businessName
                   <td style={{ textAlign: "center" }}>{p.count}</td>
                   <td style={{ textAlign: "right", fontWeight: 700 }}>{formatMoney(p.total)}</td>
                   <td style={{ textAlign: "right" }}>
-                    {data.totalRevenue > 0 ? Math.round((p.total / data.totalRevenue) * 100) : 0}%
+                    {Number(data.totalRevenue) > 0 ? Math.round((Number(p.total) / Number(data.totalRevenue)) * 100) : 0}%
                   </td>
                 </tr>
               ))}

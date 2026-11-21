@@ -254,7 +254,7 @@ export default function SalesLog({ sales, loading, onPrint }: SalesLogProps) {
                       <div className="text-xs font-display font-black text-success">{formatMoney(sale.profit)}</div>
                     </div>
                   </div>
-                  {sale.change > 0 && (
+                  {Number(sale.change) > 0 && (
                     <div className="mb-3 border-t border-rule pt-2">
                       <div className="text-[10px] font-display font-black uppercase tracking-wider text-secondary mb-0.5">Change Given</div>
                       <div className="text-xs font-display font-black text-success">{formatMoney(sale.change)}</div>
