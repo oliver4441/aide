@@ -30,7 +30,7 @@
 | AUTH-08 | Role-based access (Owner/Manager/Staff) | ✅ | N/A | ✅ | AIDE-03 | Permission-based enforcement on all employee/invitation routes |
 | AUTH-09 | Employee invitation flow | ✅ | N/A | ✅ | AIDE-03 | POST /api/invitations creates invite; PATCH accepts |
 | AUTH-10 | Access revocation / deprovisioning | ✅ | N/A | ✅ | AIDE-03 | DELETE /api/employees/[id] removes membership |
-| AUTH-11 | Audit log of auth events | ❌ | N/A | ❌ | AIDE-19 | Login, role change, revoke |
+| AUTH-11 | Audit log of auth events | ✅ | N/A | ✅ | AIDE-19 | Append-only `AuditEvent`; login, role change, revoke; `GET /api/audit-events` |
 
 ---
 

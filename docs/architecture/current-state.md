@@ -83,6 +83,9 @@
 3. **Monetary precision** — Web uses `Decimal(19,4)` throughout (AIDE-04 done); the Android local store still uses `Double`
 4. **Audit trail** — Append-only `AuditEvent` records credential logins, role changes, and access revocation (AIDE-19); broader financial posting events are still being wired
 
+2. **No double-entry accounting** — `Sale` has `cost`/`profit` but no general ledger, chart of accounts, or journal entries (AIDE-04, AIDE-05)
+3. **Monetary fields use `Float`** — Prisma `Float` maps to PostgreSQL `double precision`; precision issues for financial data (AIDE-04)
+4. **Audit trail** — Append-only `AuditEvent` records credential logins, role changes, and access revocation (AIDE-19); broader financial posting events are still being wired
 5. **No supplier/purchase order models** — Only `Product` has `buyingPrice`; no purchasing workflow (AIDE-09)
 6. **No customer credit/AR** — `CustomerEntity` exists in Android Room with `balance`, but no server-side counterpart
 7. **No expense categories chart** — `ExpenseEntity` has free-text `category`; no standardized CoA
@@ -342,7 +345,7 @@ LowStockWorker / DailySummaryWorker may trigger notifications
 | **Deployment** | Android AAB / Play Store | ❌ Missing | AIDE-18 |
 | **Deployment** | Automated rollback | ❌ Missing | AIDE-19 |
 | **Observability** | Error tracking (Sentry) | ❌ Missing | AIDE-19 |
-| **Observability** | Audit logging | ❌ Missing | AIDE-19 |
+| **Observability** | Audit logging | ✅ Implemented | `AuditEvent` trail + `GET /api/audit-events` (AIDE-19) |
 | **Observability** | Metrics / dashboards | ❌ Missing | AIDE-19 |
 
 ---
