@@ -16,13 +16,14 @@ export function useProducts(businessId?: string) {
   const loading = data === undefined;
 
   const mutate = useCallback(async (product: ProductRecord) => {
+    const existing = product.id ? await db.products.get(product.id) : undefined;
     const record = {
       ...product,
       syncStatus: 'pending' as const,
       updatedAt: new Date().toISOString(),
     };
     await db.products.put(record);
-    await syncEngine.enqueue('products', product.id ? 'update' : 'create', product.id, record);
+    await syncEngine.enqueue('products', existing ? 'update' : 'create', product.id, record);
   }, []);
 
   const remove = useCallback(async (id: string) => {

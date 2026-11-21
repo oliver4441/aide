@@ -1,24 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireBusiness, toAuthError } from "@/lib/apiAuth";
-import { hasPermission, Permission } from "@/lib/rbac";
-import { PurchaseOrderStatus } from "@prisma/client";
+import { hasPermission, hasAnyPermission, Permission } from "@/lib/rbac";
+import { PurchaseOrderStatus, Prisma } from "@prisma/client";
 
 /**
  * AIDE-09: Goods Received Note (GRN) API.
  *
  * POST   /api/goods-received — Create a GRN against a purchase order
- * GET    /api/goods-received   — List GRNs
+ * GET    /api/goods-received — List GRNs
  */
 
 export const dynamic = "force-dynamic";
 
-/**
- * GET — List GRNs with optional filters.
- */
 export async function GET(request: NextRequest) {
   try {
-    const { businessId } = await requireBusiness(null, request);
+    const { user, businessId } = await requireBusiness(null, request);
+
+    const membership = await prisma.businessMembership.findUnique({
+      where: { userId_businessId: { userId: user.id, businessId } },
+      select: { role: true },
+    });
+    if (
+      !membership ||
+      !hasAnyPermission(membership.role, [Permission.GOODS_RECEIVE, Permission.PURCHASE_ORDER_READ])
+    ) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     const { searchParams } = new URL(request.url);
     const purchaseOrderId = searchParams.get("purchaseOrderId");
@@ -48,17 +56,6 @@ export async function GET(request: NextRequest) {
   }
 }
 
-/**
- * POST — Create a GRN against a purchase order.
- *
- * Body: {
- *   purchaseOrderId: string,
- *   lines: [{ description, quantity, unitCost, productMatch? }],
- *   notes?: string
- * }
- *
- * On receive, updates the PO status based on total received vs ordered quantity.
- */
 export async function POST(request: NextRequest) {
   try {
     const { user, businessId } = await requireBusiness(null, request);
@@ -93,55 +90,73 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "At least one line item is required" }, { status: 400 });
     }
 
-    const grnLines = lines.map((line: any, i: number) => ({
-      lineOrder: i + 1,
-      description: line.description || "",
-      quantity: Number(line.quantity) || 0,
-      unitCost: Number(line.unitCost) || 0,
-      amount: (Number(line.quantity) || 0) * (Number(line.unitCost) || 0),
-      productMatch: line?.productMatch?.trim() || null,
-    }));
-
-    const year = new Date().getFullYear();
-    const count = await prisma.goodsReceivedNote.count({ where: { businessId } });
-    const grnNumber = `GRN-${year}-${(count + 1).toString().padStart(4, "0")}`;
-
-    const grn = await prisma.goodsReceivedNote.create({
-      data: {
-        businessId,
-        grnNumber,
-        purchaseOrderId,
-        supplierId: po.supplierId,
-        notes: body?.notes?.trim() || null,
-        lines: {
-          create: grnLines,
-        },
-      },
-      include: {
-        lines: true,
-        purchaseOrder: {
-          select: { id: true, poNumber: true },
-        },
-        supplier: {
-          select: { id: true, name: true },
-        },
-      },
+    const grnLines = lines.map((line: any) => {
+      const quantity = Number(line?.quantity);
+      const unitCost = Number(line?.unitCost);
+      if (!Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(unitCost) || unitCost < 0) {
+        throw new Error("Invalid line item quantity or unitCost");
+      }
+      return {
+        description: String(line.description || "").trim(),
+        quantity,
+        unitCost,
+        amount: quantity * unitCost,
+        productMatch: line?.productMatch?.trim() || null,
+      };
     });
 
-    // Update PO status based on received vs ordered quantity
-    await updatePurchaseOrderStatus(purchaseOrderId);
+    const year = new Date().getFullYear();
+
+    const grn = await prisma.$transaction(async (tx) => {
+      const latest = await tx.goodsReceivedNote.findFirst({
+        where: { businessId, grnNumber: { startsWith: `GRN-${year}-` } },
+        orderBy: { grnNumber: "desc" },
+        select: { grnNumber: true },
+      });
+      const match = latest?.grnNumber.match(/GRN-\d{4}-(\d+)/);
+      const seq = match ? parseInt(match[1], 10) + 1 : 1;
+      const grnNumber = `GRN-${year}-${seq.toString().padStart(4, "0")}`;
+
+      const created = await tx.goodsReceivedNote.create({
+        data: {
+          businessId,
+          grnNumber,
+          purchaseOrderId,
+          supplierId: po.supplierId,
+          notes: body?.notes?.trim() || null,
+          lines: {
+            create: grnLines,
+          },
+        },
+        include: {
+          lines: true,
+          purchaseOrder: {
+            select: { id: true, poNumber: true },
+          },
+          supplier: {
+            select: { id: true, name: true },
+          },
+        },
+      });
+
+      await updatePurchaseOrderStatus(tx, purchaseOrderId);
+      return created;
+    });
 
     return NextResponse.json(grn, { status: 201 });
-  } catch (err) {
+  } catch (err: any) {
+    if (err?.message?.includes("Invalid line item")) {
+      return NextResponse.json({ error: err.message }, { status: 400 });
+    }
     return toAuthError(err);
   }
 }
 
-/**
- * Update PO status based on total received quantity across all GRNs.
- */
-async function updatePurchaseOrderStatus(purchaseOrderId: string) {
-  const po = await prisma.purchaseOrder.findUnique({
+async function updatePurchaseOrderStatus(
+  tx: Prisma.TransactionClient,
+  purchaseOrderId: string
+) {
+  const po = await tx.purchaseOrder.findUnique({
     where: { id: purchaseOrderId },
     include: {
       lines: true,
@@ -152,14 +167,12 @@ async function updatePurchaseOrderStatus(purchaseOrderId: string) {
   });
   if (!po) return;
 
-  // Build a map of ordered quantity by description
   const orderedQty: Map<string, number> = new Map();
   for (const line of po.lines) {
     const key = line.description;
     orderedQty.set(key, (orderedQty.get(key) || 0) + Number(line.quantity));
   }
 
-  // Build a map of received quantity by description
   const receivedQty: Map<string, number> = new Map();
   for (const grn of po.goodsReceived) {
     for (const line of grn.lines) {
@@ -168,20 +181,20 @@ async function updatePurchaseOrderStatus(purchaseOrderId: string) {
     }
   }
 
-  // Determine status
-  let allReceived = true;
+  let allReceived = orderedQty.size > 0;
   let anyReceived = false;
   for (const [key, ordered] of Array.from(orderedQty.entries())) {
     const received = receivedQty.get(key) || 0;
-    if (received >= ordered) {
+    if (received > 0) {
       anyReceived = true;
-    } else {
+    }
+    if (received < ordered) {
       allReceived = false;
     }
   }
 
   let newStatus: PurchaseOrderStatus;
-  if (allReceived && orderedQty.size > 0) {
+  if (allReceived) {
     newStatus = "RECEIVED";
   } else if (anyReceived) {
     newStatus = "PARTIALLY_RECEIVED";
@@ -190,7 +203,7 @@ async function updatePurchaseOrderStatus(purchaseOrderId: string) {
   }
 
   if (newStatus !== po.status) {
-    await prisma.purchaseOrder.update({
+    await tx.purchaseOrder.update({
       where: { id: purchaseOrderId },
       data: { status: newStatus },
     });

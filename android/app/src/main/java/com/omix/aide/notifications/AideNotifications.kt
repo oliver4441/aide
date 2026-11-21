@@ -2,9 +2,9 @@ package com.omix.aide.notifications
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.app.PendingIntent
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -18,13 +18,14 @@ import com.omix.aide.R
 enum class AideChannel(
     val id: String,
     val title: String,
-    val description: String
+    val description: String,
+    val onDevice: Boolean = false
 ) {
     ORDERS("aide_orders", "Orders", "Completed sales and refunds"),
-    INVENTORY("aide_inventory", "Inventory", "Low stock, out of stock and stock adjustments"),
+    INVENTORY("aide_inventory", "Inventory", "Low stock alerts when items are running out", onDevice = true),
     PAYMENTS("aide_payments", "Payments", "Payments received"),
     CUSTOMERS("aide_customers", "Customers", "New customers and customer activity"),
-    REPORTS("aide_reports", "Reports", "Daily and weekly business summaries"),
+    REPORTS("aide_reports", "Reports", "Daily closing-time sales summary", onDevice = true),
     SYSTEM("aide_system", "System", "Backups, sync and account alerts");
 
     /** Channel key used in the notification log and in preferences. */
@@ -56,8 +57,7 @@ enum class AideRoute(val route: String, val screen: String) {
  *
  * Delivery is deliberately channel-independent: these are created on the device
  * from local data, so they work with no internet connection and do not depend
- * on FCM. When remote delivery is added later, the same [post] entry point can
- * be called from an FCM service.
+ * on FCM.
  */
 object AideNotifications {
 
@@ -98,7 +98,9 @@ object AideNotifications {
         title: String,
         message: String,
         route: AideRoute? = null,
-        eventId: String
+        eventId: String,
+        detailLines: List<String> = emptyList(),
+        summaryLine: String? = null
     ) {
         if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) return
 
@@ -115,11 +117,20 @@ object AideNotifications {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val style: NotificationCompat.Style = if (detailLines.isNotEmpty()) {
+            NotificationCompat.InboxStyle().apply {
+                detailLines.take(7).forEach { addLine(it) }
+                if (!summaryLine.isNullOrBlank()) setSummaryText(summaryLine)
+            }
+        } else {
+            NotificationCompat.BigTextStyle().bigText(message)
+        }
+
         val notification = NotificationCompat.Builder(context, channel.id)
             .setSmallIcon(R.drawable.ic_stat_aide)
             .setContentTitle(title)
             .setContentText(message)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
+            .setStyle(style)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)

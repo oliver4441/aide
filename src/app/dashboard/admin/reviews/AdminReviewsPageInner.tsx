@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import UiSpinner from "@/components/ui/UiSpinner";
@@ -24,6 +24,23 @@ export default function AdminReviewsPage() {
   const [filterRating, setFilterRating] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const fetchReviews = useCallback(async () => {
+    setLoading(true);
+    try {
+      const url = filterRating ? `/api/reviews?rating=${filterRating}` : "/api/reviews";
+      const res = await fetch(url);
+      if (!res.ok) return;
+      const data = await res.json();
+      setReviews(Array.isArray(data.reviews) ? data.reviews : []);
+      setAverageRating(Number(data.averageRating) || 0);
+      setTotal(Number(data.total) || 0);
+    } catch {
+      // silent
+    } finally {
+      setLoading(false);
+    }
+  }, [filterRating]);
+
   useEffect(() => {
     if (status === "loading") return;
     const role = (session?.user as any)?.role;
@@ -31,24 +48,8 @@ export default function AdminReviewsPage() {
       router.replace("/dashboard");
       return;
     }
-    fetchReviews();
-  }, [status, filterRating]);
-
-  const fetchReviews = async () => {
-    setLoading(true);
-    try {
-      const url = filterRating ? `/api/reviews?rating=${filterRating}` : "/api/reviews";
-      const res = await fetch(url);
-      const data = await res.json();
-      setReviews(data.reviews);
-      setAverageRating(data.averageRating);
-      setTotal(data.total);
-    } catch {
-      // silent
-    } finally {
-      setLoading(false);
-    }
-  };
+    void fetchReviews();
+  }, [status, session, router, fetchReviews]);
 
   const renderStars = (rating: number) =>
     Array.from({ length: 5 }, (_, i) => (

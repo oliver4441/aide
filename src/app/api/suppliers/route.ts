@@ -17,7 +17,15 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: NextRequest) {
   try {
-    const { businessId } = await requireBusiness(null, request);
+    const { user, businessId } = await requireBusiness(null, request);
+
+    const membership = await prisma.businessMembership.findUnique({
+      where: { userId_businessId: { userId: user.id, businessId } },
+      select: { role: true },
+    });
+    if (!membership || !hasPermission(membership.role, Permission.SUPPLIER_READ)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     const { searchParams } = new URL(request.url);
     const active = searchParams.get("active");
@@ -70,23 +78,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
 
-    const supplierCount = await prisma.supplier.count({ where: { businessId } });
-    const supplierCode = `SUP-${(supplierCount + 1).toString().padStart(3, "0")}`;
+    const supplier = await prisma.$transaction(async (tx) => {
+      const latest = await tx.supplier.findFirst({
+        where: { businessId, supplierCode: { startsWith: "SUP-" } },
+        orderBy: { supplierCode: "desc" },
+        select: { supplierCode: true },
+      });
+      const match = latest?.supplierCode.match(/SUP-(\d+)/);
+      const seq = match ? parseInt(match[1], 10) + 1 : 1;
+      const supplierCode = `SUP-${seq.toString().padStart(3, "0")}`;
 
-    const supplier = await prisma.supplier.create({
-      data: {
-        businessId,
-        supplierCode,
-        name,
-        contactName: body?.contactName?.trim() || null,
-        email: body?.email?.trim() || null,
-        phone: body?.phone?.trim() || null,
-        address: body?.address?.trim() || null,
-        city: body?.city?.trim() || null,
-        taxId: body?.taxId?.trim() || null,
-        notes: body?.notes?.trim() || null,
-        paymentTerms: body?.paymentTerms ? Number(body.paymentTerms) : 30,
-      },
+      return tx.supplier.create({
+        data: {
+          businessId,
+          supplierCode,
+          name,
+          contactName: body?.contactName?.trim() || null,
+          email: body?.email?.trim() || null,
+          phone: body?.phone?.trim() || null,
+          address: body?.address?.trim() || null,
+          city: body?.city?.trim() || null,
+          taxId: body?.taxId?.trim() || null,
+          notes: body?.notes?.trim() || null,
+          paymentTerms: body?.paymentTerms ? Number(body.paymentTerms) : 30,
+        },
+      });
     });
 
     return NextResponse.json(supplier, { status: 201 });

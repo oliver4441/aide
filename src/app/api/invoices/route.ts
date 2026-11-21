@@ -18,7 +18,15 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: NextRequest) {
   try {
-    const { businessId } = await requireBusiness(null, request);
+    const { user, businessId } = await requireBusiness(null, request);
+
+    const membership = await prisma.businessMembership.findUnique({
+      where: { userId_businessId: { userId: user.id, businessId } },
+      select: { role: true },
+    });
+    if (!membership || !hasPermission(membership.role, Permission.CUSTOMER_READ)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
@@ -102,56 +110,70 @@ export async function POST(request: NextRequest) {
       select: { taxRate: true },
     });
     const taxRate = body?.taxRate !== undefined ? Number(body.taxRate) : Number(business?.taxRate || 0);
+    if (!Number.isFinite(taxRate) || taxRate < 0) {
+      return NextResponse.json({ error: "Invalid taxRate" }, { status: 400 });
+    }
 
-    // Calculate totals
+    // Validate & calculate totals
     let subtotal = 0;
-    const lineData = lines.map((line: any, index: number) => {
-      const quantity = Number(line?.quantity || 1);
-      const unitPrice = Number(line?.unitPrice || 0);
+    const lineData: Array<{ description: string; quantity: number; unitPrice: number; amount: number }> = [];
+    for (const line of lines) {
+      const description = typeof line?.description === "string" ? line.description.trim() : "";
+      const quantity = Number(line?.quantity ?? 1);
+      const unitPrice = Number(line?.unitPrice ?? 0);
+      if (!description || !Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(unitPrice) || unitPrice < 0) {
+        return NextResponse.json({ error: "Invalid invoice line item" }, { status: 400 });
+      }
       const amount = quantity * unitPrice;
       subtotal += amount;
-      return {
-        description: line?.description || "",
-        quantity,
-        unitPrice,
-        amount,
-      };
-    });
+      lineData.push({ description, quantity, unitPrice, amount });
+    }
 
     const tax = subtotal * (taxRate / 100);
     const total = subtotal + tax;
-
-    // Generate invoice number
-    const year = new Date().getFullYear();
-    const invoiceCount = await prisma.invoice.count({
-      where: { businessId, issueDate: { gte: new Date(year, 0, 1) } },
-    });
-    const invoiceNumber = `INV-${year}-${(invoiceCount + 1).toString().padStart(4, "0")}`;
+    if (!Number.isFinite(total) || total <= 0) {
+      return NextResponse.json({ error: "Invoice total must be positive" }, { status: 400 });
+    }
 
     const dueDate = body?.dueDate ? new Date(body.dueDate) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    if (Number.isNaN(dueDate.getTime())) {
+      return NextResponse.json({ error: "Invalid dueDate" }, { status: 400 });
+    }
 
-    const invoice = await prisma.invoice.create({
-      data: {
-        businessId,
-        customerId,
-        invoiceNumber,
-        dueDate,
-        subtotal,
-        tax,
-        total,
-        balanceDue: total,
-        notes: body?.notes?.trim() || null,
-        status: InvoiceStatus.ISSUED,
-        lines: {
-          create: lineData,
+    const year = new Date().getFullYear();
+    const invoice = await prisma.$transaction(async (tx) => {
+      const latest = await tx.invoice.findFirst({
+        where: { businessId, invoiceNumber: { startsWith: `INV-${year}-` } },
+        orderBy: { invoiceNumber: "desc" },
+        select: { invoiceNumber: true },
+      });
+      const match = latest?.invoiceNumber.match(/INV-\d{4}-(\d+)/);
+      const seq = match ? parseInt(match[1], 10) + 1 : 1;
+      const invoiceNumber = `INV-${year}-${seq.toString().padStart(4, "0")}`;
+
+      return tx.invoice.create({
+        data: {
+          businessId,
+          customerId,
+          invoiceNumber,
+          dueDate,
+          subtotal,
+          tax,
+          total,
+          balanceDue: total,
+          notes: body?.notes?.trim() || null,
+          status: InvoiceStatus.ISSUED,
+          lines: {
+            create: lineData,
+          },
         },
-      },
-      include: {
-        lines: true,
-        customer: {
-          select: { id: true, name: true, phone: true, email: true },
+        include: {
+          lines: true,
+          customer: {
+            select: { id: true, name: true, phone: true, email: true },
+          },
         },
-      },
+      });
     });
 
     return NextResponse.json(invoice, { status: 201 });

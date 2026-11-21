@@ -18,7 +18,15 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { businessId } = await requireBusiness(null, request);
+    const { user, businessId } = await requireBusiness(null, request);
+
+    const membership = await prisma.businessMembership.findUnique({
+      where: { userId_businessId: { userId: user.id, businessId } },
+      select: { role: true },
+    });
+    if (!membership || !hasPermission(membership.role, Permission.CUSTOMER_READ)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     const customer = await prisma.customer.findUnique({
       where: { id: params.id },

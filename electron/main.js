@@ -31,16 +31,32 @@ function createWindow() {
     mainWindow.webContents.openDevTools();
   }
 
-  // Open external links (anything off the app origin) in the real browser.
+  // Open external links (anything off the app origin) safely in the system browser.
+  const appOrigin = new URL(APP_URL).origin;
+  const openSafeExternal = (targetUrl) => {
+    try {
+      const parsed = new URL(targetUrl);
+      if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
+        shell.openExternal(parsed.toString());
+      }
+    } catch {
+      // Ignore malformed URLs
+    }
+  };
+
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
+    openSafeExternal(url);
     return { action: 'deny' };
   });
 
   mainWindow.webContents.on('will-navigate', (event, url) => {
-    if (!url.startsWith(APP_URL)) {
+    try {
+      if (new URL(url).origin !== appOrigin) {
+        event.preventDefault();
+        openSafeExternal(url);
+      }
+    } catch {
       event.preventDefault();
-      shell.openExternal(url);
     }
   });
 

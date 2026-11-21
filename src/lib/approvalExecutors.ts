@@ -26,21 +26,29 @@ export async function executeApproval(requestId: string): Promise<void> {
     });
     if (claimed.count === 0) return;
 
-    const token = await makeReplayToken(approval.requesterId, approval.businessId, approval.id);
-    const handler = await replayHandler(replay.path, replay.method);
-    const req = new NextRequest(new URL(replay.path, "http://localhost:3000"), {
-      method: replay.method,
-      headers: {
-        "content-type": "application/json",
-        "x-aide-replay": token,
-      },
-      body: replay.method === "GET" || replay.method === "HEAD" ? undefined : JSON.stringify(replay.body ?? {}),
-    });
-    const response = await handler(req, { params: replay.params ?? {} });
-    if (!response.ok) {
-      throw new Error(`Approved action replay failed with ${response.status}`);
+    try {
+      const token = await makeReplayToken(approval.requesterId, approval.businessId, approval.id);
+      const handler = await replayHandler(replay.path, replay.method);
+      const req = new NextRequest(new URL(replay.path, "http://localhost:3000"), {
+        method: replay.method,
+        headers: {
+          "content-type": "application/json",
+          "x-aide-replay": token,
+        },
+        body: replay.method === "GET" || replay.method === "HEAD" ? undefined : JSON.stringify(replay.body ?? {}),
+      });
+      const response = await handler(req, { params: replay.params ?? {} });
+      if (!response.ok) {
+        throw new Error(`Approved action replay failed with ${response.status}`);
+      }
+      return;
+    } catch (err) {
+      await prisma.approvalRequest.updateMany({
+        where: { id: requestId },
+        data: { executedAt: null },
+      });
+      throw err;
     }
-    return;
   }
 
   // Legacy stock-adjustment executor (payload written before replay support).
@@ -110,27 +118,34 @@ export async function executeApproval(requestId: string): Promise<void> {
 type RouteHandler = (request: NextRequest, context: { params: Record<string, string> }) => Promise<Response>;
 
 async function replayHandler(path: string, method: string): Promise<RouteHandler> {
+  const pathname = new URL(path, "http://localhost:3000").pathname;
   let routeModule: Record<string, unknown>;
-  if (path.startsWith("/api/purchase-orders")) {
+  if (pathname === "/api/purchase-orders") {
     routeModule = await import("@/app/api/purchase-orders/route");
-  } else if (path.startsWith("/api/supplier-payments")) {
+  } else if (/^\/api\/purchase-orders\/[^/]+$/.test(pathname)) {
+    routeModule = await import("@/app/api/purchase-orders/[id]/route");
+  } else if (pathname === "/api/supplier-payments") {
     routeModule = await import("@/app/api/supplier-payments/route");
-  } else if (path.startsWith("/api/refunds")) {
+  } else if (/^\/api\/supplier-invoices\/[^/]+$/.test(pathname)) {
+    routeModule = await import("@/app/api/supplier-invoices/[id]/route");
+  } else if (pathname === "/api/refunds") {
     routeModule = await import("@/app/api/refunds/route");
-  } else if (path.startsWith("/api/journal")) {
+  } else if (/^\/api\/refunds\/[^/]+$/.test(pathname)) {
+    routeModule = await import("@/app/api/refunds/[id]/route");
+  } else if (pathname === "/api/journal") {
     routeModule = await import("@/app/api/journal/route");
-  } else if (path.startsWith("/api/periods")) {
+  } else if (/^\/api\/periods\/[^/]+$/.test(pathname)) {
     routeModule = await import("@/app/api/periods/[id]/route");
-  } else if (path.startsWith("/api/products")) {
+  } else if (/^\/api\/products\/[^/]+$/.test(pathname)) {
     routeModule = await import("@/app/api/products/[id]/route");
-  } else if (path.startsWith("/api/stock-adjustments")) {
+  } else if (pathname === "/api/stock-adjustments") {
     routeModule = await import("@/app/api/stock-adjustments/route");
   } else {
-    throw new Error(`No approval replay handler for ${path}`);
+    throw new Error(`No approval replay handler for ${pathname}`);
   }
   const handler = routeModule[method];
   if (typeof handler !== "function") {
-    throw new Error(`No ${method} handler for ${path}`);
+    throw new Error(`No ${method} handler for ${pathname}`);
   }
   return handler as RouteHandler;
 }

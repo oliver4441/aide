@@ -17,7 +17,15 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: NextRequest) {
   try {
-    const { businessId } = await requireBusiness(null, request);
+    const { user, businessId } = await requireBusiness(null, request);
+
+    const membership = await prisma.businessMembership.findUnique({
+      where: { userId_businessId: { userId: user.id, businessId } },
+      select: { role: true },
+    });
+    if (!membership || !hasPermission(membership.role, Permission.CUSTOMER_READ)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     const { searchParams } = new URL(request.url);
     const active = searchParams.get("active");
@@ -70,22 +78,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
 
-    // Count existing customers for sequential code
-    const customerCount = await prisma.customer.count({ where: { businessId } });
-    const customerCode = `CUST-${(customerCount + 1).toString().padStart(3, "0")}`;
+    const customer = await prisma.$transaction(async (tx) => {
+      const latest = await tx.customer.findFirst({
+        where: { businessId, customerCode: { startsWith: "CUST-" } },
+        orderBy: { customerCode: "desc" },
+        select: { customerCode: true },
+      });
+      const match = latest?.customerCode.match(/CUST-(\d+)/);
+      const seq = match ? parseInt(match[1], 10) + 1 : 1;
+      const customerCode = `CUST-${seq.toString().padStart(3, "0")}`;
 
-    const customer = await prisma.customer.create({
-      data: {
-        businessId,
-        customerCode,
-        name,
-        email: body?.email?.trim() || null,
-        phone: body?.phone?.trim() || null,
-        address: body?.address?.trim() || null,
-        city: body?.city?.trim() || null,
-        notes: body?.notes?.trim() || null,
-        creditLimit: body?.creditLimit ? Number(body.creditLimit) : 0,
-      },
+      return tx.customer.create({
+        data: {
+          businessId,
+          customerCode,
+          name,
+          email: body?.email?.trim() || null,
+          phone: body?.phone?.trim() || null,
+          address: body?.address?.trim() || null,
+          city: body?.city?.trim() || null,
+          notes: body?.notes?.trim() || null,
+          creditLimit: body?.creditLimit ? Number(body.creditLimit) : 0,
+        },
+      });
     });
 
     return NextResponse.json(customer, { status: 201 });

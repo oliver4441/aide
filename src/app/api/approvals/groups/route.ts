@@ -36,7 +36,21 @@ export async function POST(request: NextRequest) {
     if (!body?.name?.trim()) {
       return NextResponse.json({ error: "name is required" }, { status: 400 });
     }
-    const memberIds: string[] = Array.isArray(body?.memberIds) ? body.memberIds.filter(Boolean) : [];
+    const memberIds: string[] = Array.isArray(body?.memberIds)
+      ? Array.from(new Set(body.memberIds.filter((id: unknown): id is string => typeof id === "string" && id.length > 0)))
+      : [];
+    if (memberIds.length > 0) {
+      const validMembers = await prisma.businessMembership.findMany({
+        where: { businessId, userId: { in: memberIds } },
+        select: { userId: true },
+      });
+      if (validMembers.length !== memberIds.length) {
+        return NextResponse.json(
+          { error: "All group members must belong to this business" },
+          { status: 400 }
+        );
+      }
+    }
     const group = await prisma.approvalGroup.create({
       data: {
         businessId,

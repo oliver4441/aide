@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useProducts } from "@/hooks/useProducts";
 import { useSales } from "@/hooks/useSales";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
@@ -53,8 +53,8 @@ export default function POSPage() {
         {
           productId: product.id,
           name: product.name,
-          price: product.sellingPrice,
-          cost: product.buyingPrice,
+          price: Number(product.sellingPrice) || 0,
+          cost: Number(product.buyingPrice) || 0,
           quantity: 1,
           isService: product.isService,
         },
@@ -93,6 +93,8 @@ export default function POSPage() {
 
   const total = totalNum.toFixed(4);
   const cost = costNum.toFixed(4);
+  const taxRateNum = Number(business?.taxRate) || 0;
+  const taxNum = taxRateNum > 0 ? totalNum - totalNum / (1 + taxRateNum / 100) : 0;
 
   const checkout = async () => {
     if (totalNum === 0 || paid < totalNum) return;
@@ -114,8 +116,8 @@ export default function POSPage() {
         profit: (totalNum - costNum).toFixed(4),
         paid: paid.toFixed(4),
         change: Math.max(0, change).toFixed(4),
-        tax: "0.0000",
-        taxRate: (Number(business?.taxRate) || 0).toFixed(4),
+        tax: taxNum.toFixed(4),
+        taxRate: taxRateNum.toFixed(4),
         paymentMethod,
         deviceId,
         syncStatus: "pending",
@@ -273,7 +275,7 @@ export default function POSPage() {
                       </button>
                     </div>
                     <div className="ml-3 text-sm font-black text-ink whitespace-nowrap">
-                      {formatMoney(item.price * item.quantity)}
+                      {formatMoney(Number(item.price) * item.quantity)}
                     </div>
                   </div>
                 ))}
@@ -303,7 +305,7 @@ export default function POSPage() {
 
                 <button
                   onClick={() => {
-                    setPaidAmount(String(total));
+                    setPaidAmount(totalNum.toFixed(2));
                     setShowCheckout(true);
                   }}
                   disabled={cart.length === 0}
@@ -342,7 +344,7 @@ export default function POSPage() {
               />
             </div>
 
-            {paid >= total && (
+            {paid >= totalNum && (
               <div className="text-center text-sm font-display">
                 <span className="text-secondary">Change: </span>
                 <span className="text-success font-black">{formatMoney(change)}</span>
@@ -358,7 +360,7 @@ export default function POSPage() {
               </button>
               <button
                 onClick={checkout}
-                disabled={paid < total || processing}
+                disabled={paid < totalNum || processing}
                 className="flex-1 px-4 py-3 border border-accent bg-accent text-ground font-display text-sm font-black hover:bg-ground hover:text-accent disabled:opacity-40"
               >
                 {processing ? "Processing…" : "Complete Sale"}

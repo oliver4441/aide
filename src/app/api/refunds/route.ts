@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { RefundReason } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireBusiness, toAuthError } from "@/lib/apiAuth";
 import { gateRequest, approvalResponse } from "@/lib/approvalReplay";
 import { hasPermission, Permission } from "@/lib/rbac";
+import { postEntry } from "@/lib/accounting/post";
 
 /**
  * AIDE-11: Refund management API (POS-10).
@@ -13,12 +15,17 @@ import { hasPermission, Permission } from "@/lib/rbac";
 
 export const dynamic = "force-dynamic";
 
-/**
- * GET — List all refunds for the business.
- */
 export async function GET(request: NextRequest) {
   try {
-    const { businessId } = await requireBusiness(null, request);
+    const { user, businessId } = await requireBusiness(null, request);
+
+    const membership = await prisma.businessMembership.findUnique({
+      where: { userId_businessId: { userId: user.id, businessId } },
+      select: { role: true },
+    });
+    if (!membership || !hasPermission(membership.role, Permission.REFUND_READ)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
@@ -50,15 +57,6 @@ export async function GET(request: NextRequest) {
   }
 }
 
-/**
- * POST — Create a new refund.
- *
- * Body: { saleId, reason, notes?, lines: [{saleItemId, quantity, price, cost?}] }
- *
- * On approval (OWNER/MANAGER), this automatically:
- * - Restocks refunded items
- * - Creates a reversing GL entry
- */
 export async function POST(request: NextRequest) {
   try {
     const { user, businessId } = await requireBusiness(null, request);
@@ -73,23 +71,13 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const saleId = body?.saleId;
-
-    const approval = await gateRequest(request, body, {
-      businessId,
-      userId: user.id,
-      actionType: "REFUND",
-      resourceType: "Refund",
-      amount: Number(body.total) || 0,
-    });
-    if (approval) return approvalResponse(approval);
-
     if (!saleId) {
       return NextResponse.json({ error: "saleId is required" }, { status: 400 });
     }
 
-    const reason = body?.reason;
-    if (!reason) {
-      return NextResponse.json({ error: "reason is required" }, { status: 400 });
+    const reason = body?.reason as RefundReason;
+    if (!reason || !Object.values(RefundReason).includes(reason)) {
+      return NextResponse.json({ error: "Valid refund reason is required" }, { status: 400 });
     }
 
     const lines = Array.isArray(body?.lines) ? body.lines : [];
@@ -97,12 +85,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "At least one line item is required" }, { status: 400 });
     }
 
-    // Validate sale exists and belongs to the business
     const sale = await prisma.sale.findUnique({
       where: { id: saleId },
-      include: {
-        items: true,
-      },
+      include: { items: true },
     });
 
     if (!sale) {
@@ -112,135 +97,146 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Validate refund doesn't exceed original sale
     const existingRefunds = await prisma.refund.findMany({
-      where: { saleId, status: { in: ["APPROVED", "COMPLETED"] } },
-      select: { refundedTotal: true },
+      where: { saleId, status: { in: ["PENDING", "APPROVED", "COMPLETED"] } },
+      include: { lines: true },
     });
     const alreadyRefunded = existingRefunds.reduce(
-      (sum: number, r: any) => sum + Number(r.refundedTotal),
+      (sum, r) => sum + Number(r.refundedTotal),
       0
     );
+    const refundedQtyByName = new Map<string, number>();
+    for (const r of existingRefunds) {
+      for (const rl of r.lines) {
+        refundedQtyByName.set(rl.name, (refundedQtyByName.get(rl.name) || 0) + rl.quantity);
+      }
+    }
 
-    // Build refund lines and calculate totals
     let refundedTotal = 0;
-    let refundedTax = 0;
-    const refundLines = lines.map((line: any, i: number) => {
+    const requestedQtyByItem = new Map<string, number>();
+    const refundLines: Array<{
+      name: string;
+      quantity: number;
+      price: number;
+      cost: number;
+      productId: string | null;
+    }> = lines.map((line: any) => {
       const saleItem = sale.items.find((si) => si.id === line.saleItemId);
       if (!saleItem) {
         throw new Error(`Sale item not found: ${line.saleItemId}`);
       }
-
-      // Validate quantity doesn't exceed original
-      const alreadyRefundedQty = existingRefunds.length > 0 ? 0 : 0; // Simplified — could track per-item
-      if (line.quantity > saleItem.quantity + alreadyRefundedQty) {
-        throw new Error(
-          `Refund quantity (${line.quantity}) exceeds sold quantity (${saleItem.quantity})`
-        );
+      const quantity = parseInt(String(line.quantity), 10);
+      if (!Number.isInteger(quantity) || quantity <= 0) {
+        throw new Error("Refund quantity must be a positive integer");
       }
 
-      const price = Number(line.price || saleItem.price);
-      const cost = Number(line.cost || saleItem.cost);
-      const lineTotal = line.quantity * price;
-      refundedTotal += lineTotal;
+      const prevForItem =
+        (refundedQtyByName.get(saleItem.name) || 0) +
+        (requestedQtyByItem.get(saleItem.id) || 0);
+      if (prevForItem + quantity > saleItem.quantity) {
+        throw new Error(
+          `Refund quantity (${prevForItem + quantity}) exceeds sold quantity (${saleItem.quantity})`
+        );
+      }
+      requestedQtyByItem.set(saleItem.id, (requestedQtyByItem.get(saleItem.id) || 0) + quantity);
+
+      const price = Number(saleItem.price);
+      const cost = Number(saleItem.cost);
+      refundedTotal += quantity * price;
 
       return {
         name: saleItem.name,
-        quantity: line.quantity,
+        quantity,
         price,
         cost,
-        saleItemId: line.saleItemId || null,
+        productId: saleItem.productId,
       };
     });
 
-    // Check total doesn't exceed sale total
-    if (alreadyRefunded + refundedTotal > Number(sale.total)) {
+    if (alreadyRefunded + refundedTotal > Number(sale.total) + 0.01) {
       return NextResponse.json(
         { error: "Refund total exceeds original sale amount" },
         { status: 400 }
       );
     }
 
-    // Calculate tax portion
-    if (Number(sale.taxRate) > 0) {
-      refundedTax = refundedTotal - refundedTotal / (1 + Number(sale.taxRate) / 100);
-    }
+    // Gate on the server-computed refund amount, never client-supplied body.total.
+    const approval = await gateRequest(request, body, {
+      businessId,
+      userId: user.id,
+      actionType: "REFUND",
+      resourceType: "Refund",
+      amount: refundedTotal,
+    });
+    if (approval) return approvalResponse(approval);
 
-    // Auto-generate refund number
+    const refundedTax =
+      Number(sale.taxRate) > 0
+        ? refundedTotal - refundedTotal / (1 + Number(sale.taxRate) / 100)
+        : 0;
+
     const year = new Date().getFullYear();
-    const count = await prisma.refund.count({ where: { businessId } });
-    const refundNo = `RFD-${year}-${(count + 1).toString().padStart(4, "0")}`;
-
-    // Determine status based on role
     const status = membership.role === "OWNER" ? "COMPLETED" : "PENDING";
 
-    // Create the refund
-    const refund = await prisma.refund.create({
-      data: {
-        businessId,
-        saleId,
-        refundNo,
-        reason,
-        status,
-        refundedTotal: refundedTotal,
-        refundedTax,
-        notes: body?.notes?.trim() || null,
-        lines: {
-          create: refundLines,
-        },
-      },
-      include: {
-        lines: true,
-        sale: {
-          select: {
-            id: true,
-            total: true,
-            createdAt: true,
-            cashier: true,
+    const refund = await prisma.$transaction(async (tx) => {
+      const latest = await tx.refund.findFirst({
+        where: { businessId, refundNo: { startsWith: `RFD-${year}-` } },
+        orderBy: { refundNo: "desc" },
+        select: { refundNo: true },
+      });
+      const match = latest?.refundNo.match(/RFD-\d{4}-(\d+)/);
+      const seq = match ? parseInt(match[1], 10) + 1 : 1;
+      const refundNo = `RFD-${year}-${seq.toString().padStart(4, "0")}`;
+
+      const created = await tx.refund.create({
+        data: {
+          businessId,
+          saleId,
+          refundNo,
+          reason,
+          status,
+          refundedTotal,
+          refundedTax,
+          notes: body?.notes?.trim() || null,
+          lines: {
+            create: refundLines.map(({ productId: _pid, ...l }) => l),
           },
         },
-      },
-    });
+        include: {
+          lines: true,
+          sale: {
+            select: {
+              id: true,
+              total: true,
+              createdAt: true,
+              cashier: true,
+            },
+          },
+        },
+      });
 
-    // If completed, apply stock reversal and GL entry
-    if (status === "COMPLETED") {
-      // Restock items
-      for (const line of refundLines) {
-        if (line.saleItemId) {
-          const saleItem = sale.items.find((si) => si.id === line.saleItemId);
-          if (saleItem && saleItem.productId) {
-            await prisma.product.update({
-              where: { id: saleItem.productId },
-              data: {
-                quantity: {
-                  increment: line.quantity,
-                },
-              },
+      if (status === "COMPLETED") {
+        for (const line of refundLines) {
+          if (line.productId) {
+            await tx.product.updateMany({
+              where: { id: line.productId, businessId },
+              data: { quantity: { increment: line.quantity } },
             });
           }
         }
-      }
 
-      // Create reversing GL entry
-      try {
-        await prisma.$transaction(async (tx) => {
-          // Credit: Sales Revenue (reverse)
+        const accountCount = await tx.account.count({ where: { businessId } });
+        if (accountCount > 0) {
           const netRevenue = refundedTotal - refundedTax;
-          const postings: any[] = [
-            {
+          const postings: Array<{ account: string; amount: number; side: "debit" | "credit"; description: string }> = [];
+          if (netRevenue > 0) {
+            postings.push({
               account: "4001",
               amount: netRevenue,
               side: "debit",
               description: `Refund revenue reversal (${refundNo})`,
-            },
-            {
-              account: "1000",
-              amount: refundedTotal,
-              side: "credit",
-              description: `Refund cash out (${refundNo})`,
-            },
-          ];
-
+            });
+          }
           if (refundedTax > 0) {
             postings.push({
               account: "2010",
@@ -249,12 +245,16 @@ export async function POST(request: NextRequest) {
               description: `Refund VAT reversal (${refundNo})`,
             });
           }
+          if (refundedTotal > 0) {
+            postings.push({
+              account: "1000",
+              amount: refundedTotal,
+              side: "credit",
+              description: `Refund cash out (${refundNo})`,
+            });
+          }
 
-          // Reverse COGS and inventory
-          const totalCost = refundLines.reduce(
-            (sum: number, l: any) => sum + l.cost * l.quantity,
-            0
-          );
+          const totalCost = refundLines.reduce((sum, l) => sum + l.cost * l.quantity, 0);
           if (totalCost > 0) {
             postings.push({
               account: "1100",
@@ -270,27 +270,29 @@ export async function POST(request: NextRequest) {
             });
           }
 
-          // Use the posting engine
-          const { postEntry } = await import("@/lib/accounting/post");
-          await postEntry({
-            businessId,
-            description: `Refund ${refundNo} — ${sale.cashier || "unknown"}`,
-            sourceType: "refund",
-            sourceId: refund.id,
-            postings: postings as any,
-          });
-        });
-      } catch (glError) {
-        // Log but don't fail the refund
-        console.error("GL posting failed for refund:", glError);
+          if (postings.length > 0) {
+            await postEntry({
+              businessId,
+              description: `Refund ${refundNo} — ${sale.cashier || "unknown"}`,
+              sourceType: "refund",
+              sourceId: created.id,
+              postings,
+              tx,
+            });
+          }
+        }
       }
-    }
+
+      return created;
+    });
 
     return NextResponse.json(refund, { status: 201 });
   } catch (err: any) {
-    if (err?.message?.includes("Sale item not found") ||
-        err?.message?.includes("Refund quantity") ||
-        err?.message?.includes("Refund total")) {
+    if (
+      err?.message?.includes("Sale item not found") ||
+      err?.message?.includes("Refund quantity") ||
+      err?.message?.includes("Refund total")
+    ) {
       return NextResponse.json({ error: err.message }, { status: 400 });
     }
     return toAuthError(err);

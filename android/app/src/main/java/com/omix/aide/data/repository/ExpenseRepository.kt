@@ -132,9 +132,9 @@ class ReportRepository(
         val expenseCategories: List<CategoryExpenseRow>
     ) {
         /** Gross profit less overheads — the number a shop owner actually wants. */
-        val netProfit: Double get() = totals.profit - overheads
+        val netProfit: Double get() = totals.profit.asMoney() - overheads
         val marginPercent: Double
-            get() = if (totals.revenue <= 0.0) 0.0 else netProfit / totals.revenue * 100.0
+            get() = if (totals.revenue <= 0L) 0.0 else (netProfit / totals.revenue.asMoney()) * 100.0
     }
 
     suspend fun build(businessId: String, sinceIso: String): Report = Report(

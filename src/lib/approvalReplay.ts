@@ -29,7 +29,7 @@ export async function gateRequest(
     payload: {
       __replay: {
         method: request.method,
-        path: new URL(request.url).pathname,
+        path: `${new URL(request.url).pathname}${new URL(request.url).search}`,
         body,
         params: input.params ?? {},
       },

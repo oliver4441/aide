@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireBusiness, toAuthError } from "@/lib/apiAuth";
 import { hasPermission, Permission } from "@/lib/rbac";
-import { SupplierInvoiceStatus } from "@prisma/client";
 
 /**
  * AIDE-09: Supplier invoice management API.
@@ -15,7 +14,15 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
-    const { businessId } = await requireBusiness(null, request);
+    const { user, businessId } = await requireBusiness(null, request);
+
+    const membership = await prisma.businessMembership.findUnique({
+      where: { userId_businessId: { userId: user.id, businessId } },
+      select: { role: true },
+    });
+    if (!membership || !hasPermission(membership.role, Permission.SUPPLIER_INVOICE_READ)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
@@ -82,36 +89,51 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "invoiceNumber is required" }, { status: 400 });
     }
 
-    const subtotal = Number(body?.subtotal) || 0;
-    const tax = Number(body?.tax) || 0;
-    const total = Number(body?.total) || (subtotal + tax);
-    const dueDate = body?.dueDate ? new Date(body.dueDate) : new Date(Date.now() + supplier.paymentTerms * 86400000);
+    const subtotal = Number(body?.subtotal ?? 0);
+    const tax = Number(body?.tax ?? 0);
+    const total = body?.total !== undefined ? Number(body.total) : subtotal + tax;
+    if (!Number.isFinite(subtotal) || subtotal < 0 || !Number.isFinite(tax) || tax < 0 || !Number.isFinite(total) || total <= 0) {
+      return NextResponse.json({ error: "Invalid invoice amounts" }, { status: 400 });
+    }
 
-    const invoice = await prisma.supplierInvoice.create({
-      data: {
-        businessId,
-        invoiceNumber,
-        supplierId,
-        purchaseOrderId: body?.purchaseOrderId || null,
-        ourRef: body?.ourRef?.trim() || null,
-        issueDate: body?.issueDate ? new Date(body.issueDate) : new Date(),
-        dueDate,
-        subtotal,
-        tax,
-        total,
-        balanceDue: total,
-        notes: body?.notes?.trim() || null,
-      },
-    });
+    if (body?.purchaseOrderId) {
+      const po = await prisma.purchaseOrder.findFirst({
+        where: { id: String(body.purchaseOrderId), businessId },
+        select: { id: true },
+      });
+      if (!po) {
+        return NextResponse.json({ error: "Purchase order not found" }, { status: 404 });
+      }
+    }
 
-    // Update supplier balance
-    await prisma.supplier.update({
-      where: { id: supplierId },
-      data: {
-        balance: {
-          increment: total,
+    const dueDate = body?.dueDate
+      ? new Date(body.dueDate)
+      : new Date(Date.now() + supplier.paymentTerms * 86400000);
+
+    const invoice = await prisma.$transaction(async (tx) => {
+      const created = await tx.supplierInvoice.create({
+        data: {
+          businessId,
+          invoiceNumber,
+          supplierId,
+          purchaseOrderId: body?.purchaseOrderId || null,
+          ourRef: body?.ourRef?.trim() || null,
+          issueDate: body?.issueDate ? new Date(body.issueDate) : new Date(),
+          dueDate,
+          subtotal,
+          tax,
+          total,
+          balanceDue: total,
+          notes: body?.notes?.trim() || null,
         },
-      },
+      });
+
+      await tx.supplier.update({
+        where: { id: supplierId },
+        data: { balance: { increment: total } },
+      });
+
+      return created;
     });
 
     return NextResponse.json(invoice, { status: 201 });

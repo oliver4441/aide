@@ -2,6 +2,7 @@ package com.omix.aide.ui.navigation
 
 /** Every screen in the Android app. */
 sealed class Screen(val route: String) {
+    object Welcome : Screen("welcome")
     object Home : Screen("home")
     object Sell : Screen("sell")
     object Stock : Screen("stock")

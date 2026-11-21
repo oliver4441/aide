@@ -144,29 +144,55 @@ class SyncEngine {
     this.notifyListeners();
 
     try {
-      const mutations = await db.syncQueue.orderBy('timestamp').toArray();
+      const allQueued = await db.syncQueue.orderBy('timestamp').toArray();
+      const mutations = allQueued.filter(
+        (m) => m.status !== 'quarantined' && m.status !== 'synced'
+      );
       if (mutations.length === 0) return { synced: 0, conflicts: [] };
 
       const deviceId = getDeviceId();
+      const businessId = getActiveBusinessId() || undefined;
       const res = await fetch('/api/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mutations, deviceId }),
+        body: JSON.stringify({ businessId, mutations, deviceId }),
       });
 
       if (!res.ok) throw new Error(`Sync failed: ${res.status}`);
 
       const result = await res.json();
+      const failedList: Array<{ table?: string; recordId?: string }> = Array.isArray(result.failed)
+        ? result.failed
+        : [];
+      const failedSet = new Set(failedList.map((f) => `${f.table}:${f.recordId}`));
 
-      // ⚡ Bolt Optimization: Batch delete queue items and update synced statuses in a single IndexedDB transaction
-      // instead of opening separate transactions for every single mutation in a loop.
-      const keysToDelete = mutations.map((m) => m.key).filter((k): k is number => k !== undefined);
+      const succeededMutations = mutations.filter(
+        (m) => !failedSet.has(`${m.table}:${m.recordId}`)
+      );
+      const failedMutations = mutations.filter((m) =>
+        failedSet.has(`${m.table}:${m.recordId}`)
+      );
+
+      const keysToDelete = succeededMutations
+        .map((m) => m.key)
+        .filter((k): k is number => k !== undefined);
       if (keysToDelete.length > 0) {
         await db.syncQueue.bulkDelete(keysToDelete);
       }
 
+      const nowIso = new Date().toISOString();
+      for (const m of failedMutations) {
+        if (m.key === undefined) continue;
+        const nextAttempts = Number(m.attempts ?? 0) + 1;
+        await db.syncQueue.update(m.key, {
+          status: nextAttempts >= SYNC_MAX_ATTEMPTS ? 'quarantined' : 'retry',
+          attempts: nextAttempts,
+          updatedAt: nowIso,
+        });
+      }
+
       await db.transaction('rw', [db.products, db.categories, db.sales], async () => {
-        for (const mutation of mutations) {
+        for (const mutation of succeededMutations) {
           if (mutation.table === 'products') {
             await db.products.update(mutation.recordId, { syncStatus: 'synced' }).catch(() => {});
           } else if (mutation.table === 'categories') {
@@ -177,14 +203,11 @@ class SyncEngine {
         }
       });
 
-      // For new tables (AIDE-03 through AIDE-11), they don't have syncStatus fields
-      // but the queue deletion above already marks them as synced.
-
       if (result.conflicts && result.conflicts.length > 0) {
         await db.syncConflicts.bulkPut(result.conflicts);
       }
 
-      return { synced: result.synced || mutations.length, conflicts: result.conflicts || [] };
+      return { synced: result.synced ?? succeededMutations.length, conflicts: result.conflicts || [] };
     } catch (err) {
       console.error('Push failed:', err);
       return { synced: 0, conflicts: [] };
@@ -326,7 +349,7 @@ class SyncEngine {
         count += result.invitations.length;
       }
 
-      localStorage.setItem('aide_last_sync', new Date().toISOString());
+      localStorage.setItem('aide_last_sync', result.lastSync || new Date().toISOString());
       return count;
     } catch (err) {
       console.error('Pull failed:', err);

@@ -29,15 +29,17 @@ export async function gateAction(input: GateInput) {
   if (!policy) return null;
 
   const resourceId = input.resourceId ?? null;
-  const existing = await prisma.approvalRequest.findFirst({
-    where: {
-      businessId: input.businessId,
-      status: "PENDING",
-      resourceType: input.resourceType,
-      resourceId,
-    },
-  });
-  if (existing) return existing;
+  if (resourceId !== null) {
+    const existing = await prisma.approvalRequest.findFirst({
+      where: {
+        businessId: input.businessId,
+        status: "PENDING",
+        resourceType: input.resourceType,
+        resourceId,
+      },
+    });
+    if (existing) return existing;
+  }
 
   const created = await prisma.approvalRequest.create({
     data: {

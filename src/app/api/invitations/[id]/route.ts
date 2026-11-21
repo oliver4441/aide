@@ -6,23 +6,17 @@ import { hasPermission, Permission } from "@/lib/rbac";
 /**
  * AIDE-03: Invitation detail operations.
  *
- * PATCH /api/invitations/[id]/accept — Accept an invitation by token
+ * PATCH  /api/invitations/[id] — Accept an invitation
  * DELETE /api/invitations/[id] — Revoke an invitation (OWNER/MANAGER)
  */
 
 export const dynamic = "force-dynamic";
 
-function generateEmployeeId(businessId: string, count: number): string {
+function generateEmployeeId(count: number): string {
   const seq = (count + 1).toString().padStart(3, "0");
   return `EMP-${seq}`;
 }
 
-/**
- * PATCH /accept — Accept an invitation.
- *
- * The invitee must be authenticated. If they don't have an account yet,
- * they need to register first via /api/auth/register, then accept.
- */
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const user = await requireUser(request);
@@ -35,56 +29,69 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       return NextResponse.json({ error: "Invitation not found" }, { status: 404 });
     }
 
-    // Check expiry
     if (invitation.expiresAt < new Date()) {
       return NextResponse.json({ error: "Invitation has expired" }, { status: 410 });
     }
 
-    // Check if already accepted
     if (invitation.acceptedAt) {
       return NextResponse.json({ error: "Invitation already accepted" }, { status: 409 });
     }
 
-    // Check email matches
     if (invitation.email.toLowerCase() !== user.email.toLowerCase()) {
       return NextResponse.json({ error: "Invitation not for this account" }, { status: 403 });
     }
 
     const businessId = invitation.businessId;
 
-    // Create membership
-    await prisma.businessMembership.create({
-      data: {
-        userId: user.id,
-        businessId,
-        role: invitation.role,
-      },
+    const outcome = await prisma.$transaction(async (tx) => {
+      const claim = await tx.invitation.updateMany({
+        where: { id: invitation.id, acceptedAt: null },
+        data: { acceptedAt: new Date(), acceptedBy: user.id },
+      });
+      if (claim.count === 0) {
+        return { conflict: "Invitation already accepted" as const };
+      }
+
+      const existingMembership = await tx.businessMembership.findUnique({
+        where: { userId_businessId: { userId: user.id, businessId } },
+      });
+      if (existingMembership) {
+        return { conflict: "User is already a member" as const };
+      }
+
+      const membership = await tx.businessMembership.create({
+        data: {
+          userId: user.id,
+          businessId,
+          role: invitation.role,
+        },
+      });
+
+      const employeeCount = await tx.employee.count({ where: { businessId } });
+      const employee = await tx.employee.create({
+        data: {
+          userId: user.id,
+          businessId,
+          employeeId: generateEmployeeId(employeeCount),
+          membershipId: membership.id,
+        },
+      });
+
+      return { employee };
     });
 
-    // Count existing employees for sequential ID
-    const employeeCount = await prisma.employee.count({ where: { businessId } });
-
-    // Create employee profile
-    const employee = await prisma.employee.create({
-      data: {
-        userId: user.id,
-        businessId,
-        employeeId: generateEmployeeId(businessId, employeeCount),
-        membershipId: (await prisma.businessMembership.findUnique({
-          where: { userId_businessId: { userId: user.id, businessId } },
-        }))!.id,
-      },
-    });
-
-    // Mark invitation as accepted
-    await prisma.invitation.update({
-      where: { id: invitation.id },
-      data: { acceptedAt: new Date(), acceptedBy: user.id },
-    });
+    if ("conflict" in outcome) {
+      return NextResponse.json({ error: outcome.conflict }, { status: 409 });
+    }
 
     return NextResponse.json({
-      invitation,
-      employee,
+      invitation: {
+        id: invitation.id,
+        email: invitation.email,
+        role: invitation.role,
+        businessId: invitation.businessId,
+      },
+      employee: outcome.employee,
       business: invitation.business,
     });
   } catch (err) {
@@ -92,16 +99,10 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   }
 }
 
-/**
- * DELETE — Revoke an invitation.
- *
- * Only OWNER and MANAGER can revoke (EMPLOYEE_MANAGE permission).
- */
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const { user, businessId } = await requireBusiness(null, request);
 
-    // Check permission
     const membership = await prisma.businessMembership.findUnique({
       where: { userId_businessId: { userId: user.id, businessId } },
       select: { role: true },

@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { requireBusiness, toAuthError } from "@/lib/apiAuth";
-import { hasPermission, Permission } from "@/lib/rbac";
+import { hasPermission, hasAnyPermission, Permission, canManageRole } from "@/lib/rbac";
+import { isAdminEmail } from "@/lib/adminEmails";
 import { BusinessRole } from "@prisma/client";
-import { randomBytes } from "crypto";
 
 /**
  * AIDE-03: Invitation API.
@@ -11,7 +12,7 @@ import { randomBytes } from "crypto";
  * POST /api/invitations — Create an invitation (OWNER/MANAGER)
  * GET  /api/invitations — List pending invitations for the business
  *
- * Accepting an invitation is handled via PATCH /api/invitations/[id]/accept
+ * Accepting an invitation is handled via PATCH /api/invitations/[id]
  * Revoking via DELETE /api/invitations/[id]
  */
 
@@ -21,22 +22,17 @@ function generateToken(): string {
   return randomBytes(20).toString("hex");
 }
 
-function generateEmployeeId(businessId: string, count: number): string {
-  const seq = (count + 1).toString().padStart(3, "0");
-  return `EMP-${seq}`;
-}
-
 /**
  * POST — Create an invitation.
  *
  * Body: { email: string, role?: BusinessRole }
  * Only OWNER and MANAGER can invite (EMPLOYEE_INVITE permission).
+ * Invitations always require explicit acceptance by the invitee.
  */
 export async function POST(request: NextRequest) {
   try {
     const { user, businessId } = await requireBusiness(null, request);
 
-    // Check permission
     const membership = await prisma.businessMembership.findUnique({
       where: { userId_businessId: { userId: user.id, businessId } },
       select: { role: true },
@@ -50,13 +46,18 @@ export async function POST(request: NextRequest) {
     if (!email) {
       return NextResponse.json({ error: "Email required" }, { status: 400 });
     }
+    if (isAdminEmail(email)) {
+      return NextResponse.json({ error: "Cannot invite a platform admin email" }, { status: 400 });
+    }
 
     const role = (body?.role as BusinessRole) || BusinessRole.STAFF;
     if (!Object.values(BusinessRole).includes(role)) {
       return NextResponse.json({ error: "Invalid role" }, { status: 400 });
     }
+    if (!canManageRole(membership.role, role)) {
+      return NextResponse.json({ error: "Cannot invite a role equal to or higher than your own" }, { status: 403 });
+    }
 
-    // Check if already a member
     const existingUser = await prisma.user.findUnique({
       where: { email },
       select: { id: true },
@@ -71,7 +72,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Check for existing pending invitation
     const existingInvitation = await prisma.invitation.findFirst({
       where: {
         businessId,
@@ -84,48 +84,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Pending invitation already exists" }, { status: 409 });
     }
 
-    // Count existing employees for sequential ID
-    const employeeCount = await prisma.employee.count({ where: { businessId } });
-
-    // Create invitation
     const invitation = await prisma.invitation.create({
       data: {
         token: generateToken(),
         email,
         role,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         businessId,
         invitedById: user.id,
       },
-      include: {
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        expiresAt: true,
+        acceptedAt: true,
+        createdAt: true,
+        businessId: true,
         invitedBy: { select: { name: true, email: true } },
         business: { select: { name: true } },
       },
     });
-
-    // If user exists, create membership and employee immediately
-    if (existingUser) {
-      const newMembership = await prisma.businessMembership.create({
-        data: {
-          userId: existingUser.id,
-          businessId,
-          role,
-        },
-      });
-      await prisma.employee.create({
-        data: {
-          userId: existingUser.id,
-          businessId,
-          employeeId: generateEmployeeId(businessId, employeeCount),
-          membershipId: newMembership.id,
-        },
-      });
-      // Mark invitation as accepted
-      await prisma.invitation.update({
-        where: { id: invitation.id },
-        data: { acceptedAt: new Date(), acceptedBy: existingUser.id },
-      });
-    }
 
     return NextResponse.json(invitation, { status: 201 });
   } catch (err) {
@@ -134,16 +113,34 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * GET — List pending invitations for the business.
+ * GET — List invitations for the business (omits raw token).
  */
 export async function GET(request: NextRequest) {
   try {
-    const { businessId } = await requireBusiness(null, request);
+    const { user, businessId } = await requireBusiness(null, request);
+
+    const membership = await prisma.businessMembership.findUnique({
+      where: { userId_businessId: { userId: user.id, businessId } },
+      select: { role: true },
+    });
+    if (
+      !membership ||
+      !hasAnyPermission(membership.role, [Permission.EMPLOYEE_INVITE, Permission.EMPLOYEE_MANAGE])
+    ) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     const invitations = await prisma.invitation.findMany({
       where: { businessId },
       orderBy: { createdAt: "desc" },
-      include: {
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        expiresAt: true,
+        acceptedAt: true,
+        createdAt: true,
+        businessId: true,
         invitedBy: { select: { name: true, email: true } },
       },
     });

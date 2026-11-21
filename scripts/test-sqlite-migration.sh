@@ -16,7 +16,9 @@ PRAGMA foreign_keys = OFF;
 -- ==================== MIGRATION_5_6: PRODUCTS ====================
 ALTER TABLE `products` ADD COLUMN `buyingPrice_scaled` INTEGER;
 ALTER TABLE `products` ADD COLUMN `sellingPrice_scaled` INTEGER;
-UPDATE `products` SET `buyingPrice_scaled` = ROUND(`buyingPrice` * 10000), `sellingPrice_scaled` = ROUND(`sellingPrice` * 10000);
+UPDATE `products` SET
+    `buyingPrice_scaled` = CAST(COALESCE(ROUND(`buyingPrice` * 10000), 0) AS INTEGER),
+    `sellingPrice_scaled` = CAST(COALESCE(ROUND(`sellingPrice` * 10000), 0) AS INTEGER);
 CREATE TABLE `products_new` (
     `id` TEXT NOT NULL,
     `businessId` TEXT NOT NULL,
@@ -48,13 +50,13 @@ ALTER TABLE `sales` ADD COLUMN `change_scaled` INTEGER;
 ALTER TABLE `sales` ADD COLUMN `tax_scaled` INTEGER;
 ALTER TABLE `sales` ADD COLUMN `taxRate_scaled` INTEGER;
 UPDATE `sales` SET
-    `total_scaled` = ROUND(`total` * 10000),
-    `cost_scaled` = ROUND(`cost` * 10000),
-    `profit_scaled` = ROUND(`profit` * 10000),
-    `paid_scaled` = ROUND(`paid` * 10000),
-    `change_scaled` = ROUND(`change` * 10000),
-    `tax_scaled` = ROUND(`tax` * 10000),
-    `taxRate_scaled` = ROUND(`taxRate` * 10000);
+    `total_scaled` = CAST(COALESCE(ROUND(`total` * 10000), 0) AS INTEGER),
+    `cost_scaled` = CAST(COALESCE(ROUND(`cost` * 10000), 0) AS INTEGER),
+    `profit_scaled` = CAST(COALESCE(ROUND(`profit` * 10000), 0) AS INTEGER),
+    `paid_scaled` = CAST(COALESCE(ROUND(`paid` * 10000), 0) AS INTEGER),
+    `change_scaled` = CAST(COALESCE(ROUND(`change` * 10000), 0) AS INTEGER),
+    `tax_scaled` = CAST(COALESCE(ROUND(`tax` * 10000), 0) AS INTEGER),
+    `taxRate_scaled` = CAST(COALESCE(ROUND(`taxRate` * 10000), 0) AS INTEGER);
 CREATE TABLE `sales_new` (
     `id` TEXT NOT NULL,
     `businessId` TEXT NOT NULL,
@@ -79,7 +81,9 @@ ALTER TABLE `sales_new` RENAME TO `sales`;
 -- ==================== MIGRATION_5_6: SALE_ITEMS ====================
 ALTER TABLE `sale_items` ADD COLUMN `price_scaled` INTEGER;
 ALTER TABLE `sale_items` ADD COLUMN `cost_scaled` INTEGER;
-UPDATE `sale_items` SET `price_scaled` = ROUND(`price` * 10000), `cost_scaled` = ROUND(`cost` * 10000);
+UPDATE `sale_items` SET
+    `price_scaled` = CAST(COALESCE(ROUND(`price` * 10000), 0) AS INTEGER),
+    `cost_scaled` = CAST(COALESCE(ROUND(`cost` * 10000), 0) AS INTEGER);
 CREATE TABLE `sale_items_new` (
     `id` TEXT NOT NULL,
     `saleId` TEXT NOT NULL,
@@ -97,7 +101,7 @@ ALTER TABLE `sale_items_new` RENAME TO `sale_items`;
 
 -- ==================== MIGRATION_5_6: EXPENSES ====================
 ALTER TABLE `expenses` ADD COLUMN `amount_scaled` INTEGER;
-UPDATE `expenses` SET `amount_scaled` = ROUND(`amount` * 10000);
+UPDATE `expenses` SET `amount_scaled` = CAST(COALESCE(ROUND(`amount` * 10000), 0) AS INTEGER);
 CREATE TABLE `expenses_new` (
     `id` TEXT NOT NULL,
     `businessId` TEXT NOT NULL,
@@ -118,7 +122,7 @@ CREATE INDEX IF NOT EXISTS `index_expenses_createdAt` ON `expenses` (`createdAt`
 
 -- ==================== MIGRATION_5_6: CUSTOMERS ====================
 ALTER TABLE `customers` ADD COLUMN `balance_scaled` INTEGER;
-UPDATE `customers` SET `balance_scaled` = ROUND(`balance` * 10000);
+UPDATE `customers` SET `balance_scaled` = CAST(COALESCE(ROUND(`balance` * 10000), 0) AS INTEGER);
 CREATE TABLE `customers_new` (
     `id` TEXT NOT NULL,
     `businessId` TEXT NOT NULL,
@@ -141,7 +145,7 @@ CREATE INDEX IF NOT EXISTS `index_customers_name` ON `customers` (`name`);
 
 -- ==================== MIGRATION_5_6: BUSINESSES ====================
 ALTER TABLE `businesses` ADD COLUMN `taxRate_scaled` INTEGER;
-UPDATE `businesses` SET `taxRate_scaled` = ROUND(`taxRate` * 10000);
+UPDATE `businesses` SET `taxRate_scaled` = CAST(COALESCE(ROUND(`taxRate` * 10000), 0) AS INTEGER);
 CREATE TABLE `businesses_new` (
     `id` TEXT NOT NULL,
     `name` TEXT NOT NULL,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireBusiness, toAuthError } from "@/lib/apiAuth";
+import { gateRequest, approvalResponse } from "@/lib/approvalReplay";
 import { hasPermission, Permission } from "@/lib/rbac";
 import { PurchaseOrderStatus } from "@prisma/client";
 
@@ -15,7 +16,15 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { businessId } = await requireBusiness(null, request);
+    const { user, businessId } = await requireBusiness(null, request);
+
+    const membership = await prisma.businessMembership.findUnique({
+      where: { userId_businessId: { userId: user.id, businessId } },
+      select: { role: true },
+    });
+    if (!membership || !hasPermission(membership.role, Permission.PURCHASE_ORDER_READ)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     const order = await prisma.purchaseOrder.findUnique({
       where: { id: params.id },
@@ -73,6 +82,18 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       const validStatuses = Object.values(PurchaseOrderStatus);
       if (!validStatuses.includes(body.status)) {
         return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+      }
+      if (order.status === "DRAFT" && body.status !== "DRAFT" && body.status !== "CANCELLED") {
+        const approval = await gateRequest(request, body, {
+          businessId,
+          userId: user.id,
+          actionType: "PURCHASE_ORDER",
+          resourceType: "PurchaseOrder",
+          resourceId: order.id,
+          amount: Number(order.total),
+          params: { id: params.id },
+        });
+        if (approval) return approvalResponse(approval);
       }
       updateData.status = body.status;
     }

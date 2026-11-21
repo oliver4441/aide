@@ -28,8 +28,10 @@ object Palette {
     fun find(id: String): AccentTheme =
         entries.firstOrNull { it.id == id } ?: entries.first()
 
-    /** Read the persisted accent theme from SharedPreferences. */
+    /** Read the persisted accent theme from SettingsStore / SharedPreferences. */
     fun read(context: Context): String {
+        val settingsAccent = com.omix.aide.data.local.SettingsStore.read(context).accent
+        if (all.any { it.id == settingsAccent }) return settingsAccent
         val prefs: SharedPreferences = context.getSharedPreferences(
             "aide_preferences", Context.MODE_PRIVATE
         )
@@ -37,13 +39,17 @@ object Palette {
         return if (saved != null && all.any { it.id == saved }) saved else all.first().id
     }
 
-    /** Persist the accepted accent theme. */
+    /** Persist the accepted accent theme across both stores without touching other settings. */
     fun write(context: Context, accent: String) {
         if (!all.any { it.id == accent }) return
         val prefs: SharedPreferences = context.getSharedPreferences(
             "aide_preferences", Context.MODE_PRIVATE
         )
         prefs.edit().putString(KEY_ACCENT, accent).apply()
+        val current = com.omix.aide.data.local.SettingsStore.read(context)
+        if (current.accent != accent) {
+            com.omix.aide.data.local.SettingsStore.write(context, current.copy(accent = accent))
+        }
     }
 
     private const val KEY_ACCENT = "aide_accent"

@@ -16,12 +16,13 @@ export function useCategories(businessId?: string) {
   const loading = data === undefined;
 
   const mutate = useCallback(async (category: CategoryRecord) => {
+    const existing = category.id ? await db.categories.get(category.id) : undefined;
     const record = {
       ...category,
       syncStatus: 'pending' as const,
     };
     await db.categories.put(record);
-    await syncEngine.enqueue('categories', category.id ? 'update' : 'create', category.id, record);
+    await syncEngine.enqueue('categories', existing ? 'update' : 'create', category.id, record);
   }, []);
 
   const remove = useCallback(async (id: string) => {

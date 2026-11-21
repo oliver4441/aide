@@ -6,7 +6,7 @@ import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 
 interface Customer {
   id: string;
-  code: string;
+  customerCode: string;
   name: string;
   email?: string;
   phone?: string;
@@ -59,7 +59,11 @@ export default function CustomersPageInner() {
 
   const filtered = customers.filter((c) => {
     const q = search.toLowerCase();
-    return c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q) || (c.phone || "").includes(q);
+    return (
+      c.name.toLowerCase().includes(q) ||
+      (c.customerCode || "").toLowerCase().includes(q) ||
+      (c.phone || "").includes(q)
+    );
   });
 
   const resetForm = () => {
@@ -128,7 +132,7 @@ export default function CustomersPageInner() {
     e.preventDefault();
     if (!showPayment) return;
     try {
-      const res = await fetch(`/api/customers/${showPayment.id}/payment`, {
+      const res = await fetch(`/api/customers/${showPayment.id}/pay`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -221,7 +225,7 @@ export default function CustomersPageInner() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="font-display text-sm font-black text-ink">{customer.name}</h3>
-                  <span className="font-display text-xs text-secondary font-mono">{customer.code}</span>
+                  <span className="font-display text-xs text-secondary font-mono">{customer.customerCode}</span>
                   {!customer.isActive && (
                     <span className="font-display text-xs font-black uppercase tracking-wider text-secondary line-through">
                       Inactive
@@ -402,9 +406,9 @@ export default function CustomersPageInner() {
                   className="w-full px-3 py-2 border border-rule bg-ground text-ink font-display text-control focus:outline-none mt-1"
                 >
                   <option value="CASH">Cash</option>
-                  <option value="MPESA">M-Pesa</option>
+                  <option value="MOBILE_MONEY">M-Pesa / Mobile Money</option>
                   <option value="CARD">Card</option>
-                  <option value="BANK_TRANSFER">Bank Transfer</option>
+                  <option value="OTHER">Bank Transfer / Other</option>
                 </select>
               </div>
               <div className="flex gap-3 pt-2">

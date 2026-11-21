@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { isAdminEmail } from "@/lib/adminEmails";
 
 export const dynamic = "force-dynamic";
 
@@ -72,12 +73,18 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   }
+  if (isAdminEmail(email)) {
+    return NextResponse.json(
+      { error: "That email is reserved. Please use a different one." },
+      { status: 400 }
+    );
+  }
 
-  const existing = await prisma.user.findUnique({
-    where: { email },
-    select: { id: true },
-  });
-  if (existing) {
+  const [existing, adminTaken] = await Promise.all([
+    prisma.user.findUnique({ where: { email }, select: { id: true } }),
+    prisma.admin.findUnique({ where: { email }, select: { id: true } }),
+  ]);
+  if (existing || adminTaken) {
     return NextResponse.json({ error: "An account with that email already exists" }, { status: 409 });
   }
 

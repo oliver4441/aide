@@ -1,14 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { requireBusiness, toAuthError } from "@/lib/apiAuth";
+import { hasPermission, Permission } from "@/lib/rbac";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
-    const { businessId } = await requireBusiness(null, request);
+    const { user, businessId } = await requireBusiness(null, request);
+
+    const membership = await prisma.businessMembership.findUnique({
+      where: { userId_businessId: { userId: user.id, businessId } },
+      select: { role: true },
+    });
+    if (!membership || !hasPermission(membership.role, Permission.PRODUCT_READ)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     const { searchParams } = new URL(request.url);
     const categoryId = searchParams.get("categoryId");
@@ -31,29 +38,63 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  // Require authentication before allowing product creation
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  try {
+    const { user, businessId } = await requireBusiness(null, request);
 
-  const body = await request.json();
-  const businessId = (session.user as any).businessId || (await getDefaultBusinessId());
+    const membership = await prisma.businessMembership.findUnique({
+      where: { userId_businessId: { userId: user.id, businessId } },
+      select: { role: true },
+    });
+    if (!membership || !hasPermission(membership.role, Permission.PRODUCT_CREATE)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     const body = await request.json();
+    const name = typeof body?.name === "string" ? body.name.trim() : "";
+    if (!name) {
+      return NextResponse.json({ error: "Product name is required" }, { status: 400 });
+    }
+
+    const buyingPrice = Number(body.buyingPrice ?? 0);
+    const sellingPrice = Number(body.sellingPrice);
+    if (!Number.isFinite(buyingPrice) || buyingPrice < 0) {
+      return NextResponse.json({ error: "Invalid buyingPrice" }, { status: 400 });
+    }
+    if (!Number.isFinite(sellingPrice) || sellingPrice < 0) {
+      return NextResponse.json({ error: "Invalid sellingPrice" }, { status: 400 });
+    }
+
+    const quantity = body.quantity !== undefined ? parseInt(String(body.quantity), 10) : 0;
+    const lowStock = body.lowStock !== undefined ? parseInt(String(body.lowStock), 10) : 5;
+    if (!Number.isInteger(quantity) || quantity < 0) {
+      return NextResponse.json({ error: "Invalid quantity" }, { status: 400 });
+    }
+    if (!Number.isInteger(lowStock) || lowStock < 0) {
+      return NextResponse.json({ error: "Invalid lowStock" }, { status: 400 });
+    }
+
+    if (body.categoryId) {
+      const cat = await prisma.category.findFirst({
+        where: { id: String(body.categoryId), businessId },
+        select: { id: true },
+      });
+      if (!cat) {
+        return NextResponse.json({ error: "Category not found" }, { status: 404 });
+      }
+    }
 
     const product = await prisma.product.create({
       data: {
-        name: body.name,
-        sku: body.sku,
-        buyingPrice: parseFloat(body.buyingPrice),
-        sellingPrice: parseFloat(body.sellingPrice),
-        quantity: parseInt(body.quantity) || 0,
-        lowStock: parseInt(body.lowStock) || 5,
-        isService: body.isService || false,
-        categoryId: body.categoryId || null,
-        imageUrl: body.imageUrl || null,
-        thumbnailUrl: body.thumbnailUrl || null,
+        name,
+        sku: typeof body.sku === "string" && body.sku.trim() ? body.sku.trim() : null,
+        buyingPrice,
+        sellingPrice,
+        quantity,
+        lowStock,
+        isService: Boolean(body.isService),
+        categoryId: body.categoryId ? String(body.categoryId) : null,
+        imageUrl: typeof body.imageUrl === "string" && body.imageUrl ? body.imageUrl : null,
+        thumbnailUrl: typeof body.thumbnailUrl === "string" && body.thumbnailUrl ? body.thumbnailUrl : null,
         businessId,
       },
     });

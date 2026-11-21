@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser, requireBusiness, getAccessibleBusinessIds, toAuthError } from "@/lib/apiAuth";
+import { hasPermission, Permission } from "@/lib/rbac";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,15 @@ export async function GET(request: NextRequest) {
  */
 export async function PATCH(request: NextRequest) {
   try {
-    const { businessId } = await requireBusiness(null, request);
+    const { user, businessId } = await requireBusiness(null, request);
+
+    const membership = await prisma.businessMembership.findUnique({
+      where: { userId_businessId: { userId: user.id, businessId } },
+      select: { role: true },
+    });
+    if (!membership || !hasPermission(membership.role, Permission.SETTINGS_UPDATE)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     const body = await request.json();
     const data: {

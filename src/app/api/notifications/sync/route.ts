@@ -20,7 +20,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { readIds, deletedIds, since, businessId: requestedBusinessId } = body;
 
-    const { user, businessId } = await requireBusiness(requestedBusinessId, request);
+    const { user, businessId, businessIds } = await requireBusiness(requestedBusinessId, request);
+    if (requestedBusinessId && !businessIds.includes(requestedBusinessId)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     if (Array.isArray(readIds) && readIds.length > 0) {
       await prisma.notification.updateMany({

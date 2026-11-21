@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
+import { useCategories } from "@/hooks/useCategories";
 import db from "@/lib/db";
 import { getSyncStatus } from "@/lib/sync";
 import { liveQuery } from "dexie";
@@ -50,9 +51,9 @@ function ToggleRow({
 export default function SettingsPage() {
   const { data: session } = useSession();
   const { data: business, mutate: mutateBusiness } = useBusinessSettings();
+  const { data: allCategories, mutate: mutateCategory, remove: removeCategory } = useCategories(business?.id);
   const sync = getSyncStatus();
   const [conflicts, setConflicts] = useState<any[]>([]);
-  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [newCategory, setNewCategory] = useState("");
   const [notifEnabled, setNotifEnabledState] = useState(true);
   const [notifCats, setNotifCats] = useState<Record<string, boolean>>({});
@@ -103,22 +104,19 @@ export default function SettingsPage() {
 
   useEffect(() => {
     const sub = liveQuery(() =>
-      db.syncConflicts.where("status").equals("pending").toArray()
+      db.syncConflicts.where("status").anyOf(["PENDING_OWNER", "pending"]).toArray()
     ).subscribe((records) => setConflicts(records));
     return () => sub.unsubscribe();
   }, []);
 
-  useEffect(() => {
-    const sub = liveQuery(() => db.categories.toArray()).subscribe((cats) => {
-      setCategories(cats.filter((c) => !c.deletedAt).map((c) => ({ id: c.id, name: c.name })));
-    });
-    return () => sub.unsubscribe();
-  }, []);
+  const categories = allCategories
+    .filter((c) => !c.deletedAt)
+    .map((c) => ({ id: c.id, name: c.name }));
 
   const addCategory = async () => {
     if (!newCategory.trim()) return;
     const id = `cat_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    await db.categories.put({
+    await mutateCategory({
       id,
       name: newCategory.trim(),
       businessId: business?.id || localStorage.getItem("aide_business_id") || "",
@@ -130,7 +128,7 @@ export default function SettingsPage() {
   };
 
   const deleteCategory = async (id: string) => {
-    await db.categories.update(id, { syncStatus: "pending" as const, deletedAt: new Date().toISOString() });
+    await removeCategory(id);
   };
 
   const save = async () => {
@@ -241,15 +239,134 @@ export default function SettingsPage() {
       <div className="border border-rule p-6 bg-ground">
         <h2 className="font-display text-lg font-black text-ink mb-4">Account</h2>
         <div className="space-y-4">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 border border-rule flex items-center justify-center text-accent font-black text-lg">
-              {session?.user?.name?.[0] || "U"}
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 border border-rule flex items-center justify-center text-accent font-black text-lg">
+                {session?.user?.name?.[0] || "U"}
+              </div>
+              <div>
+                <div className="text-sm font-display font-black text-ink">{session?.user?.name}</div>
+                <div className="text-xs text-secondary">{session?.user?.email}</div>
+              </div>
             </div>
-            <div>
-              <div className="text-sm font-display font-black text-ink">{session?.user?.name}</div>
-              <div className="text-xs text-secondary">{session?.user?.email}</div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowEmailForm((v) => !v);
+                  setShowPasswordForm(false);
+                }}
+                className="np-btn text-xs px-3 py-1.5"
+              >
+                Change Email
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPasswordForm((v) => !v);
+                  setShowEmailForm(false);
+                }}
+                className="np-btn text-xs px-3 py-1.5"
+              >
+                Change Password
+              </button>
             </div>
           </div>
+
+          {showEmailForm && (
+            <div className="border-t border-rule pt-4 space-y-3">
+              <div>
+                <label className="block text-xs font-display font-black text-secondary mb-1">New Email</label>
+                <input
+                  type="email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  placeholder="you@business.com"
+                  className="w-full px-3 py-2 border border-rule bg-ground text-ink font-display text-sm focus:outline-none focus:border-accent"
+                />
+              </div>
+              {emailStatus && (
+                <p className={`text-xs font-display ${emailStatus.ok ? "text-success" : "text-danger"}`}>
+                  {emailStatus.msg}
+                </p>
+              )}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={saveEmail}
+                  disabled={savingEmail || !newEmail.trim()}
+                  className="np-btn np-btn--accent text-xs px-4 py-2 disabled:opacity-40"
+                >
+                  {savingEmail ? "Saving..." : "Update Email"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowEmailForm(false)}
+                  className="np-btn text-xs px-4 py-2"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {showPasswordForm && (
+            <div className="border-t border-rule pt-4 space-y-3">
+              <div>
+                <label className="block text-xs font-display font-black text-secondary mb-1">Current Password</label>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="w-full px-3 py-2 border border-rule bg-ground text-ink font-display text-sm focus:outline-none focus:border-accent"
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-display font-black text-secondary mb-1">New Password</label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full px-3 py-2 border border-rule bg-ground text-ink font-display text-sm focus:outline-none focus:border-accent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-display font-black text-secondary mb-1">Confirm New Password</label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="w-full px-3 py-2 border border-rule bg-ground text-ink font-display text-sm focus:outline-none focus:border-accent"
+                  />
+                </div>
+              </div>
+              {passwordStatus && (
+                <p className={`text-xs font-display ${passwordStatus.ok ? "text-success" : "text-danger"}`}>
+                  {passwordStatus.msg}
+                </p>
+              )}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={savePassword}
+                  disabled={savingPassword || !currentPassword || !newPassword}
+                  className="np-btn np-btn--accent text-xs px-4 py-2 disabled:opacity-40"
+                >
+                  {savingPassword ? "Saving..." : "Update Password"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowPasswordForm(false)}
+                  className="np-btn text-xs px-4 py-2"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Appearance */}
       <div className="border border-rule p-6 bg-ground">
@@ -350,7 +467,12 @@ export default function SettingsPage() {
 
       {/* Sync & Conflicts */}
       <div className="border border-rule p-6 bg-ground">
-        <h2 className="font-display text-lg font-black text-ink mb-4">Sync & Conflicts</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-display text-lg font-black text-ink">Sync & Conflicts</h2>
+          <span className="font-mono text-xs text-secondary">
+            {sync.isOnline ? "Online" : "Offline"} · {sync.pending} queued
+          </span>
+        </div>
         {conflicts.length === 0 ? (
           <p className="font-display text-sm text-secondary">No pending conflicts.</p>
         ) : (
@@ -440,17 +562,25 @@ export default function SettingsPage() {
 
       {/* Danger Zone */}
       <div className="border border-danger/30 p-6 bg-ground">
-        <h2 className="font-display text-lg font-black text-danger mb-2">Danger Zone</h2>
-        <p className="font-display text-xs text-secondary mb-4">These actions cannot be undone.</p>
+        <h2 className="font-display text-lg font-black text-danger mb-2">Data & Local Cache</h2>
+        <p className="font-display text-xs text-secondary mb-4">Export your local data or reset the offline cache to re-sync from the server.</p>
         <div className="flex gap-3">
           <button
             onClick={exportData}
-            className="np-btn text-xs px-4 py-2 text-danger hover:text-danger hover:bg-danger/10"
+            className="np-btn text-xs px-4 py-2"
           >
             Export All Data
           </button>
-          <button className="np-btn text-xs px-4 py-2 text-danger hover:text-danger hover:bg-danger/10">
-            Delete Business
+          <button
+            onClick={async () => {
+              if (!confirm("Reset local offline cache and re-sync from the server? Unsynced local mutations will be lost.")) return;
+              localStorage.removeItem("aide_last_sync");
+              await db.delete();
+              window.location.reload();
+            }}
+            className="np-btn text-xs px-4 py-2 text-danger hover:text-danger hover:bg-danger/10"
+          >
+            Reset Local Cache
           </button>
         </div>
       </div>

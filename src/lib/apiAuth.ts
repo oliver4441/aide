@@ -21,6 +21,13 @@ export class UnauthorizedError extends Error {
   }
 }
 
+export class ForbiddenError extends Error {
+  constructor(message = "Forbidden") {
+    super(message);
+    this.name = "ForbiddenError";
+  }
+}
+
 function bearerToken(request: NextRequest): string | null {
   const header = request.headers.get("authorization");
   if (!header?.toLowerCase().startsWith("bearer ")) return null;
@@ -194,6 +201,9 @@ export async function resolveOrganization(
 export function toAuthError(err: unknown): NextResponse {
   if (err instanceof UnauthorizedError) {
     return NextResponse.json({ error: err.message }, { status: 401 });
+  }
+  if (err instanceof ForbiddenError) {
+    return NextResponse.json({ error: err.message }, { status: 403 });
   }
   const message = err instanceof Error ? err.message : "Internal error";
   return NextResponse.json({ error: message }, { status: 500 });

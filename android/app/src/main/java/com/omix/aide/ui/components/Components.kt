@@ -1,22 +1,20 @@
 package com.omix.aide.ui.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.omix.aide.ui.theme.WarningAmber
 
 @Composable
@@ -43,19 +41,71 @@ fun AideButton(
 @Composable
 fun AideCard(
     modifier: Modifier = Modifier,
+    containerColor: Color = MaterialTheme.colorScheme.surface,
+    borderColor: Color = MaterialTheme.colorScheme.outline,
+    onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        // A hairline border reads cleaner than a drop shadow on both surfaces,
-        // and it keeps the card edge legible in dark mode where elevation
-        // shading is almost invisible.
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        content = content
-    )
+    val shape = RoundedCornerShape(16.dp)
+    val colors = CardDefaults.cardColors(containerColor = containerColor)
+    val border = BorderStroke(1.dp, borderColor)
+    val elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+
+    if (onClick != null) {
+        Card(
+            onClick = onClick,
+            modifier = modifier.fillMaxWidth(),
+            shape = shape,
+            colors = colors,
+            border = border,
+            elevation = elevation,
+            content = content
+        )
+    } else {
+        Card(
+            modifier = modifier.fillMaxWidth(),
+            shape = shape,
+            colors = colors,
+            border = border,
+            elevation = elevation,
+            content = content
+        )
+    }
+}
+
+@Composable
+fun AideBadge(
+    text: String,
+    modifier: Modifier = Modifier,
+    containerColor: Color = MaterialTheme.colorScheme.secondaryContainer,
+    contentColor: Color = MaterialTheme.colorScheme.onSecondaryContainer,
+    icon: ImageVector? = null
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(8.dp),
+        color = containerColor,
+        contentColor = contentColor
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp)
+                )
+            }
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+    }
 }
 
 @Composable
@@ -64,16 +114,43 @@ fun AideStatCard(
     value: String,
     subtitle: String? = null,
     modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
     valueColor: Color = MaterialTheme.colorScheme.onSurface
 ) {
     AideCard(modifier = modifier) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = title, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                if (icon != null) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = valueColor,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             Spacer(modifier = Modifier.height(4.dp))
-            Text(text = value, style = MaterialTheme.typography.headlineMedium, color = valueColor, fontWeight = FontWeight.Bold)
+            Text(
+                text = value,
+                style = MaterialTheme.typography.headlineMedium,
+                color = valueColor,
+                fontWeight = FontWeight.Bold
+            )
             if (subtitle != null) {
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(text = subtitle, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f))
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+                )
             }
         }
     }
@@ -95,16 +172,18 @@ fun AideProductRow(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Thumbnail first so a photo-led catalogue reads as a catalogue
-            // rather than a wall of text.
             if (!imagePath.isNullOrBlank()) {
                 ProductThumbnail(path = imagePath, size = 56)
                 Spacer(modifier = Modifier.width(12.dp))
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-                if (!sku.isNull_or_blank_check()) {
-                    Text(text = "SKU: $sku", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f))
+                if (!sku.isNullOrBlank()) {
+                    Text(
+                        text = "SKU: $sku",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+                    )
                 }
                 val isLow = stock <= lowStockThreshold
                 Text(
@@ -115,7 +194,12 @@ fun AideProductRow(
                 )
             }
             Column(horizontalAlignment = Alignment.End) {
-                Text(text = price, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Text(
+                    text = price,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
                 if (onAddClick != null) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Button(
@@ -133,18 +217,17 @@ fun AideProductRow(
     }
 }
 
-private fun String?.isNull_or_blank_check(): Boolean = this.isNullOrBlank()
-
 @Composable
 fun AideSearchBar(
     query: String,
     onQueryChange: (String) -> Unit,
-    placeholder: String = "Search products..."
+    placeholder: String = "Search products...",
+    modifier: Modifier = Modifier
 ) {
     OutlinedTextField(
         value = query,
         onValueChange = onQueryChange,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         placeholder = { Text(placeholder) },
         leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
         shape = RoundedCornerShape(12.dp),
@@ -186,7 +269,11 @@ fun AideEmptyState(
         modifier = Modifier.fillMaxWidth().padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = message, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
         if (actionLabel != null && onAction != null) {
             Spacer(modifier = Modifier.height(16.dp))
             AideButton(text = actionLabel, onClick = onAction, modifier = Modifier.width(200.dp))
@@ -194,14 +281,6 @@ fun AideEmptyState(
     }
 }
 
-/**
- * Shown while a screen's first read from Room is still in flight.
- *
- * Both HomeUiState and StockUiState start with isLoading = true, but nothing
- * consumed it -- so the app flashed "No sales recorded today yet" and a row of
- * zeroed stats before the real numbers landed. This is what should occupy that
- * window instead.
- */
 @Composable
 fun LoadingState(modifier: Modifier = Modifier) {
     Column(

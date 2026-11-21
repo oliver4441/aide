@@ -1,6 +1,5 @@
-const VERSION = "v5";
+const VERSION = "v6";
 const CACHE_NAME = `aide-${VERSION}`;
-const API_CACHE = `api-${VERSION}`;
 const OFFLINE_PAGE = "/offline.html";
 const NETWORK_TIMEOUT = 3000;
 
@@ -42,7 +41,7 @@ self.addEventListener("activate", (event) => {
       .then((keys) =>
         Promise.all(
           keys
-            .filter((key) => key !== CACHE_NAME && key !== API_CACHE)
+            .filter((key) => key !== CACHE_NAME)
             .map((key) => caches.delete(key)),
         ),
       )
@@ -54,19 +53,8 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // API requests: network-first with cache fallback, no timeout
+  // Never store authenticated API responses in CacheStorage; IndexedDB is the offline store.
   if (url.pathname.startsWith("/api/")) {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          if (response.ok && request.method === "GET") {
-            const clone = response.clone();
-            caches.open(API_CACHE).then((cache) => cache.put(request, clone));
-          }
-          return response;
-        })
-        .catch(() => caches.match(request)),
-    );
     return;
   }
 

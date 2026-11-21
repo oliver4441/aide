@@ -11,8 +11,8 @@ data class ProductEntity(
     val categoryId: String? = null,
     val name: String,
     val sku: String? = null,
-    val buyingPrice: Double,
-    val sellingPrice: Double,
+    val buyingPrice: Long,
+    val sellingPrice: Long,
     val quantity: Int = 0,
     val lowStock: Int = 5,
     val isService: Boolean = false,
@@ -35,13 +35,13 @@ data class CategoryEntity(
 data class SaleEntity(
     @PrimaryKey val id: String,
     val businessId: String,
-    val total: Double,
-    val cost: Double,
-    val profit: Double,
-    val paid: Double,
-    val change: Double,
-    val tax: Double = 0.0,
-    val taxRate: Double = 0.0,
+    val total: Long,
+    val cost: Long,
+    val profit: Long,
+    val paid: Long,
+    val change: Long,
+    val tax: Long = 0L,
+    val taxRate: Long = 0L,
     val cashier: String? = null,
     val paymentMethod: String = "CASH",
     val notes: String? = null,
@@ -55,8 +55,8 @@ data class SaleItemEntity(
     val productId: String? = null,
     val name: String,
     val quantity: Int,
-    val price: Double,
-    val cost: Double
+    val price: Long,
+    val cost: Long
 )
 
 /**
@@ -97,7 +97,7 @@ data class ExpenseEntity(
     val businessId: String,
     val category: String,
     val description: String? = null,
-    val amount: Double,
+    val amount: Long,
     /** Shop overheads are not itemised against a product; COGS lives on the sale. */
     val isCogs: Boolean = false,
     val notes: String? = null,
@@ -122,7 +122,7 @@ data class CustomerEntity(
     val phone: String? = null,
     val email: String? = null,
     val notes: String? = null,
-    val balance: Double = 0.0,
+    val balance: Long = 0L,
     val isActive: Boolean = true,
     val createdAt: String,
     val updatedAt: String
