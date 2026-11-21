@@ -251,6 +251,118 @@ export default function SettingsPage() {
             </div>
           </div>
 
+          <div className="flex flex-wrap gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => {
+                setShowEmailForm((v) => !v);
+                setEmailStatus(null);
+              }}
+              className="np-btn px-4 py-2 text-xs"
+            >
+              Change Email
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowPasswordForm((v) => !v);
+                setPasswordStatus(null);
+              }}
+              className="np-btn px-4 py-2 text-xs"
+            >
+              Change Password
+            </button>
+          </div>
+
+          {showEmailForm && (
+            <div className="space-y-2 border-t border-rule pt-4">
+              <label className="block text-xs font-display font-black text-secondary mb-1">
+                New email address
+              </label>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                  type="email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  placeholder={session?.user?.email || "you@example.com"}
+                  className="flex-1 px-3 py-2.5 border border-rule bg-ground text-ink font-display text-sm focus:outline-none focus:border-accent focus:ring-0"
+                />
+                <button
+                  onClick={saveEmail}
+                  disabled={savingEmail || !newEmail.trim()}
+                  className="np-btn np-btn--accent px-4 py-2.5 text-sm disabled:opacity-40"
+                >
+                  {savingEmail ? "Saving..." : "Update Email"}
+                </button>
+              </div>
+              <p className="text-xs text-secondary">
+                You will be signed out and asked to log in with your new email.
+              </p>
+              {emailStatus && (
+                <p className={`text-xs font-display font-black ${emailStatus.ok ? "text-accent" : "text-danger"}`}>
+                  {emailStatus.msg}
+                </p>
+              )}
+            </div>
+          )}
+
+          {showPasswordForm && (
+            <div className="space-y-2 border-t border-rule pt-4">
+              <div>
+                <label className="block text-xs font-display font-black text-secondary mb-1">
+                  Current password
+                </label>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  autoComplete="current-password"
+                  className="w-full px-3 py-2.5 border border-rule bg-ground text-ink font-display text-sm focus:outline-none focus:border-accent focus:ring-0"
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-display font-black text-secondary mb-1">
+                    New password (min 8 characters)
+                  </label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    autoComplete="new-password"
+                    className="w-full px-3 py-2.5 border border-rule bg-ground text-ink font-display text-sm focus:outline-none focus:border-accent focus:ring-0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-display font-black text-secondary mb-1">
+                    Confirm new password
+                  </label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    autoComplete="new-password"
+                    className="w-full px-3 py-2.5 border border-rule bg-ground text-ink font-display text-sm focus:outline-none focus:border-accent focus:ring-0"
+                  />
+                </div>
+              </div>
+              <button
+                onClick={savePassword}
+                disabled={savingPassword || !currentPassword || !newPassword}
+                className="np-btn np-btn--accent px-4 py-2.5 text-sm disabled:opacity-40"
+              >
+                {savingPassword ? "Saving..." : "Update Password"}
+              </button>
+              {passwordStatus && (
+                <p className={`text-xs font-display font-black ${passwordStatus.ok ? "text-accent" : "text-danger"}`}>
+                  {passwordStatus.msg}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Appearance */}
       <div className="border border-rule p-6 bg-ground">
         <h2 className="font-display text-lg font-black text-ink mb-4">Appearance</h2>

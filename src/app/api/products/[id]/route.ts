@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { requireUser, canAccessBusiness, toAuthError } from "@/lib/apiAuth";
 import { gateRequest, approvalResponse } from "@/lib/approvalReplay";
@@ -38,45 +37,8 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  // Security: Require active session authentication to modify products
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const existingProduct = await prisma.product.findUnique({
-    where: { id: params.id },
-  });
-
-  if (!existingProduct) {
-    return NextResponse.json({ error: "Product not found" }, { status: 404 });
-  }
-
-  // Security: Prevent cross-tenant authorization bypass
-  const userBusinessId = (session.user as any).businessId;
-  const userRole = (session.user as any).role;
-  if (userRole !== "admin" && existingProduct.businessId !== userBusinessId) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const body = await request.json();
-
-  const existingProduct = await prisma.product.findUnique({
-    where: { id: params.id },
-  });
-
-  if (!existingProduct) {
-    return NextResponse.json({ error: "Product not found" }, { status: 404 });
-  }
-
-  // Security: Prevent cross-tenant authorization bypass
-  const userBusinessId = (session.user as any).businessId;
-  const userRole = (session.user as any).role;
-  if (userRole !== "admin" && existingProduct.businessId !== userBusinessId) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const body = await request.json();
+  try {
+    const user = await requireUser(request);
 
     const existingProduct = await prisma.product.findUnique({
       where: { id: params.id },
@@ -135,32 +97,8 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  // Security: Require active session authentication to soft-delete products
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const existingProduct = await prisma.product.findUnique({
-    where: { id: params.id },
-  });
-
-  if (!existingProduct) {
-    return NextResponse.json({ error: "Product not found" }, { status: 404 });
-  }
-
-  // Security: Prevent cross-tenant authorization bypass
-  const userBusinessId = (session.user as any).businessId;
-  const userRole = (session.user as any).role;
-  if (userRole !== "admin" && existingProduct.businessId !== userBusinessId) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  // Soft delete
-  await prisma.product.update({
-    where: { id: params.id },
-    data: { isActive: false },
-  });
+  try {
+    const user = await requireUser(request);
 
     const existingProduct = await prisma.product.findUnique({
       where: { id: params.id },

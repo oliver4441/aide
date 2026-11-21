@@ -1,18 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useProducts } from "@/hooks/useProducts";
 import { useSales } from "@/hooks/useSales";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 import { formatMoney } from "@/lib/format";
 import { printReceipt } from "@/components/receipt/PrintReceipt";
-import { SaleRecord, SaleItemRecord } from "@/lib/db";
+import { ProductRecord, SaleRecord, SaleItemRecord } from "@/lib/db";
 
 interface CartItem {
   productId: string;
   name: string;
-  price: number;
-  cost: number;
+  price: string;
+  cost: string;
   quantity: number;
   isService: boolean;
 }
@@ -39,7 +39,7 @@ export default function POSPage() {
       (p.sku && p.sku.toLowerCase().includes(search.toLowerCase()))
   );
 
-  const addToCart = (product: any) => {
+  const addToCart = (product: ProductRecord) => {
     setCart((prev) => {
       const existing = prev.find((c) => c.productId === product.id);
       if (existing) {
@@ -273,7 +273,7 @@ export default function POSPage() {
                       </button>
                     </div>
                     <div className="ml-3 text-sm font-black text-ink whitespace-nowrap">
-                      {formatMoney(item.price * item.quantity)}
+                      {formatMoney(Number(item.price) * item.quantity)}
                     </div>
                   </div>
                 ))}
@@ -342,7 +342,7 @@ export default function POSPage() {
               />
             </div>
 
-            {paid >= total && (
+            {paid >= totalNum && (
               <div className="text-center text-sm font-display">
                 <span className="text-secondary">Change: </span>
                 <span className="text-success font-black">{formatMoney(change)}</span>
@@ -358,7 +358,7 @@ export default function POSPage() {
               </button>
               <button
                 onClick={checkout}
-                disabled={paid < total || processing}
+                disabled={paid < totalNum || processing}
                 className="flex-1 px-4 py-3 border border-accent bg-accent text-ground font-display text-sm font-black hover:bg-ground hover:text-accent disabled:opacity-40"
               >
                 {processing ? "Processing…" : "Complete Sale"}
