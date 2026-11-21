@@ -16,7 +16,7 @@ export interface Posting {
   /** Account code or ID */
   account: string;
   /** Amount on this side */
-  amount: number | Prisma.Decimal;
+  amount: number | string | Prisma.Decimal;
   /** Which side of the entry */
   side: "debit" | "credit";
   /** Optional description for the line */
