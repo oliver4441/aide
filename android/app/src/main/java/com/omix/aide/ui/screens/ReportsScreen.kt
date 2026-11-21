@@ -494,4 +494,3 @@ fun ReportsScreen(
             }
         }
     }
-}
