@@ -3,7 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { requireBusiness, toAuthError } from "@/lib/apiAuth";
 import { gateRequest, approvalResponse } from "@/lib/approvalReplay";
 import { hasPermission, Permission } from "@/lib/rbac";
-import { PurchaseOrderStatus } from "@prisma/client";
 
 /**
  * AIDE-09: Purchase order management API.
@@ -16,7 +15,15 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
-    const { businessId } = await requireBusiness(null, request);
+    const { user, businessId } = await requireBusiness(null, request);
+
+    const membership = await prisma.businessMembership.findUnique({
+      where: { userId_businessId: { userId: user.id, businessId } },
+      select: { role: true },
+    });
+    if (!membership || !hasPermission(membership.role, Permission.PURCHASE_ORDER_READ)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
@@ -57,17 +64,8 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
 
-    const approval = await gateRequest(request, body, {
-      businessId,
-      userId: user.id,
-      actionType: "PURCHASE_ORDER",
-      resourceType: "PurchaseOrder",
-      amount: Number(body.total) || 0,
-    });
-    if (approval) return approvalResponse(approval);
-
     const supplierId = body?.supplierId;
-    if (!body?.supplierId) {
+    if (!supplierId) {
       return NextResponse.json({ error: "supplierId is required" }, { status: 400 });
     }
 
@@ -83,52 +81,80 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "At least one line item is required" }, { status: 400 });
     }
 
+    const poLines: Array<{ description: string; quantity: number; unitPrice: number; amount: number }> = lines.map((line: any) => {
+      const quantity = Number(line?.quantity);
+      const unitPrice = Number(line?.unitPrice);
+      if (!Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(unitPrice) || unitPrice < 0) {
+        throw new Error("Invalid line item quantity or unitPrice");
+      }
+      return {
+        description: String(line.description || "").trim(),
+        quantity,
+        unitPrice,
+        amount: quantity * unitPrice,
+      };
+    });
+
     const business = await prisma.business.findUnique({
       where: { id: businessId },
       select: { taxRate: true },
     });
-    const taxRate = business?.taxRate ? Number(business.taxRate) : 0;
+    const taxRate = body?.taxRate !== undefined
+      ? Math.max(0, Number(body.taxRate) || 0)
+      : (business?.taxRate ? Number(business.taxRate) : 0);
 
-    const poLines = lines.map((line: any, i: number) => ({
-      lineOrder: i + 1,
-      description: line.description || "",
-      quantity: Number(line.quantity) || 0,
-      unitPrice: Number(line.unitPrice) || 0,
-      amount: (Number(line.quantity) || 0) * (Number(line.unitPrice) || 0),
-    }));
-
-    const subtotal = poLines.reduce((sum: number, l: any) => sum + l.amount, 0);
-    const tax = subtotal * (taxRate / (100 + taxRate));
+    const subtotal = poLines.reduce((sum, l) => sum + l.amount, 0);
+    const tax = subtotal * (taxRate / 100);
     const total = subtotal + tax;
 
-    const year = new Date().getFullYear();
-    const count = await prisma.purchaseOrder.count({ where: { businessId } });
-    const poNumber = `PO-${year}-${(count + 1).toString().padStart(4, "0")}`;
+    const approval = await gateRequest(request, body, {
+      businessId,
+      userId: user.id,
+      actionType: "PURCHASE_ORDER",
+      resourceType: "PurchaseOrder",
+      amount: total,
+    });
+    if (approval) return approvalResponse(approval);
 
-    const order = await prisma.purchaseOrder.create({
-      data: {
-        businessId,
-        poNumber,
-        supplierId,
-        subtotal,
-        tax,
-        total,
-        expectedDate: body?.expectedDate ? new Date(body.expectedDate) : null,
-        notes: body?.notes?.trim() || null,
-        lines: {
-          create: poLines,
+    const year = new Date().getFullYear();
+    const order = await prisma.$transaction(async (tx) => {
+      const latest = await tx.purchaseOrder.findFirst({
+        where: { businessId, poNumber: { startsWith: `PO-${year}-` } },
+        orderBy: { poNumber: "desc" },
+        select: { poNumber: true },
+      });
+      const match = latest?.poNumber.match(/PO-\d{4}-(\d+)/);
+      const seq = match ? parseInt(match[1], 10) + 1 : 1;
+      const poNumber = `PO-${year}-${seq.toString().padStart(4, "0")}`;
+
+      return tx.purchaseOrder.create({
+        data: {
+          businessId,
+          poNumber,
+          supplierId,
+          subtotal,
+          tax,
+          total,
+          expectedDate: body?.expectedDate ? new Date(body.expectedDate) : null,
+          notes: body?.notes?.trim() || null,
+          lines: {
+            create: poLines,
+          },
         },
-      },
-      include: {
-        lines: true,
-        supplier: {
-          select: { id: true, name: true },
+        include: {
+          lines: true,
+          supplier: {
+            select: { id: true, name: true },
+          },
         },
-      },
+      });
     });
 
     return NextResponse.json(order, { status: 201 });
-  } catch (err) {
+  } catch (err: any) {
+    if (err?.message?.includes("Invalid line item")) {
+      return NextResponse.json({ error: err.message }, { status: 400 });
+    }
     return toAuthError(err);
   }
 }

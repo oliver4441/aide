@@ -68,19 +68,26 @@ export default function ReportsPage() {
     const sales = allSales ?? [];
     const totalTransactions = sales.length;
 
-    const weekStart = getStartOfPeriod("week");
-    const weekSales = sales.filter((s) => new Date(s.createdAt) >= weekStart);
-    const weekRevenue = weekSales.reduce((s, sale) => s + sale.total, 0);
-    const weekCost = weekSales.reduce((s, sale) => s + sale.cost, 0);
-    const weekProfit = weekSales.reduce((s, sale) => s + sale.profit, 0);
+    let totalRevenue = 0;
+    let totalCost = 0;
+    let totalProfit = 0;
+    let weekRevenue = 0;
+    let weekCost = 0;
+    let weekProfit = 0;
+    let monthRevenue = 0;
+    let monthCost = 0;
+    let monthProfit = 0;
 
-    const monthStart = getStartOfPeriod("month");
-    const monthSales = sales.filter((s) => new Date(s.createdAt) >= monthStart);
-    const monthRevenue = monthSales.reduce((s, sale) => s + sale.total, 0);
-    const monthCost = monthSales.reduce((s, sale) => s + sale.cost, 0);
-    const monthProfit = monthSales.reduce((s, sale) => s + sale.profit, 0);
+    const weekStartMs = getStartOfPeriod("week").getTime();
+    const monthStartMs = getStartOfPeriod("month").getTime();
 
-    const last7Days: { date: string; label: string; total: number }[] = [];
+    const last7DaysBuckets: {
+      date: string;
+      label: string;
+      total: number;
+      startMs: number;
+      endMs: number;
+    }[] = [];
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
@@ -141,7 +148,7 @@ export default function ReportsPage() {
             prodMap[item.name] = p;
           }
           p.quantity += item.quantity;
-          p.revenue += Number(item.price) * item.quantity;
+          p.revenue += (Number(item.price) || 0) * item.quantity;
         }
       }
 
@@ -162,12 +169,6 @@ export default function ReportsPage() {
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 5);
 
-    const payMap: Record<string, { count: number; total: number }> = {};
-    sales.forEach((sale) => {
-      if (!payMap[sale.paymentMethod]) payMap[sale.paymentMethod] = { count: 0, total: 0 };
-      payMap[sale.paymentMethod].count += 1;
-      payMap[sale.paymentMethod].total += sale.total;
-    });
     const paymentBreakdown = Object.entries(payMap)
       .map(([method, d]) => ({ method, ...d }))
       .sort((a, b) => b.total - a.total);

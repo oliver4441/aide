@@ -39,7 +39,7 @@ jobs:
         run: npx tsc --noEmit
 
       - name: Lint
-        run: npm run lint || true
+        run: npm run lint
 
       # The app's public pages are all static; DATABASE_URL is only used if a
       # route queries Prisma at build time.

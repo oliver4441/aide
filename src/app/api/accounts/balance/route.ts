@@ -1,16 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 import { requireBusiness, toAuthError } from "@/lib/apiAuth";
+import { hasPermission, Permission } from "@/lib/rbac";
 import { getAccountBalance } from "@/lib/accounting/post";
 
 export const dynamic = "force-dynamic";
 
-/**
- * GET /api/accounts/balance?account=1000
- * Return the current balance of an account.
- */
 export async function GET(request: NextRequest) {
   try {
-    const { businessId } = await requireBusiness(null, request);
+    const { user, businessId } = await requireBusiness(null, request);
+
+    const membership = await prisma.businessMembership.findUnique({
+      where: { userId_businessId: { userId: user.id, businessId } },
+      select: { role: true },
+    });
+    if (!membership || !hasPermission(membership.role, Permission.ACCOUNT_READ)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     const { searchParams } = new URL(request.url);
     const account = searchParams.get("account");

@@ -49,6 +49,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "name is required" }, { status: 400 });
     }
 
+    const threshold =
+      body.threshold === null || body.threshold === undefined || body.threshold === ""
+        ? null
+        : Number(body.threshold);
+    if (threshold !== null && (!Number.isFinite(threshold) || threshold < 0)) {
+      return NextResponse.json({ error: "threshold must be a non-negative number" }, { status: 400 });
+    }
+
     const policy = await prisma.$transaction(async (tx) => {
       const latest = await tx.approvalPolicy.findFirst({
         where: { businessId, actionType },
@@ -56,7 +64,7 @@ export async function POST(request: NextRequest) {
         select: { version: true },
       });
       await tx.approvalPolicy.updateMany({
-        where: { businessId, actionType, active: true },
+        where: { businessId, actionType, threshold, active: true },
         data: { active: false },
       });
       return tx.approvalPolicy.create({
@@ -64,9 +72,7 @@ export async function POST(request: NextRequest) {
           businessId,
           name: body.name.trim(),
           actionType,
-          threshold: body.threshold === null || body.threshold === undefined || body.threshold === ""
-            ? null
-            : Number(body.threshold),
+          threshold,
           minApprovals,
           requireSeparation: body.requireSeparation !== false,
           escalationHours: body.escalationHours ? Number(body.escalationHours) : null,

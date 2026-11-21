@@ -127,7 +127,7 @@ export default function ReceiptDocument({
               </div>
               <div className="flex justify-between text-right">
                 <span></span>
-                <span className="font-black text-ink">{formatMoney(item.price * item.quantity, currency)}</span>
+                <span className="font-black text-ink">{formatMoney(Number(item.price) * item.quantity, currency)}</span>
               </div>
             </div>
           ))}

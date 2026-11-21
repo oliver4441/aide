@@ -35,7 +35,10 @@ export default function CalculatorPageInner() {
   const [history, setHistory] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
 
-  const currentValue = () => parseFloat(display.replace(/,/g, "")) || 0;
+  const currentValue = useCallback(
+    () => parseFloat(display.replace(/,/g, "")) || 0,
+    [display]
+  );
 
   const inputDigit = useCallback(
     (d: string) => {
@@ -99,7 +102,7 @@ export default function CalculatorPageInner() {
     },
     // `display` is intentionally read via currentValue(); eslint exhaustive-deps
     // is satisfied by including display below.
-    [accumulator, pendingOp, justEvaluated, display]
+    [accumulator, pendingOp, justEvaluated, display, currentValue]
   );
 
   const equals = useCallback(() => {
@@ -114,7 +117,7 @@ export default function CalculatorPageInner() {
     setExpression("");
     setJustEvaluated(true);
     setCopied(false);
-  }, [accumulator, pendingOp, expression, display]);
+  }, [accumulator, pendingOp, expression, display, currentValue]);
 
   const negate = useCallback(() => {
     setCopied(false);

@@ -72,10 +72,16 @@ if [ "$FAMILY" = "android" ] && [ "$SKIP_VERSION_CHECK" -eq 0 ]; then
   # versionCode from it and passes them to Gradle as -P overrides, so a stale
   # value in build.gradle.kts can no longer produce a mislabelled APK. What is
   # left here is a heads-up, not a gate.
-  GRADLE_NAME=$(grep -oE 'aideVersionName"\)\.getOrElse\("[^"]+"' android/app/build.gradle.kts \
-    | grep -oE '[0-9][^"]*' || true)
-  GRADLE_CODE=$(grep -oE 'aideVersionCode"\)\.getOrElse\("[0-9]+"' android/app/build.gradle.kts \
-    | grep -oE '[0-9]+' || true)
+  GRADLE_NAME=$(grep -oE '^versionName=' android/version.properties | cut -d= -f2 || true)
+  GRADLE_CODE=$(grep -oE '^versionCode=' android/version.properties | cut -d= -f2 || true)
+  if [ -z "$GRADLE_NAME" ]; then
+    GRADLE_NAME=$(grep -oE 'aideVersionName"\)\.getOrElse\("[^"]+"' android/app/build.gradle.kts \
+      | grep -oE '[0-9][^"]*' || true)
+  fi
+  if [ -z "$GRADLE_CODE" ]; then
+    GRADLE_CODE=$(grep -oE 'aideVersionCode"\)\.getOrElse\("[0-9]+"' android/app/build.gradle.kts \
+      | grep -oE '[0-9]+' || true)
+  fi
   if [ -n "$GRADLE_NAME" ] && [ "$GRADLE_NAME" != "$VERSION" ]; then
     say "note: build.gradle.kts falls back to $GRADLE_NAME locally, but this release will be built as $VERSION from the tag"
   else

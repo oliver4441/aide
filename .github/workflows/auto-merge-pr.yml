@@ -1,12 +1,12 @@
 name: Auto-merge PRs
 run-name: "Auto-merge PR #${{ github.event.pull_request.number }}"
 
-# This workflow only reads PR/check metadata and issues the merge command. It
-# deliberately does not check out or execute pull-request code.
+# This workflow only reads PR/check metadata and issues the merge command for
+# explicitly labelled same-repository PRs. It never checks out PR code.
 on:
   pull_request_target:
     branches: [master]
-    types: [opened, reopened, synchronize, ready_for_review, edited]
+    types: [opened, reopened, synchronize, ready_for_review, labeled]
 
 permissions:
   contents: write
@@ -20,7 +20,11 @@ concurrency:
 
 jobs:
   merge:
-    if: github.event.pull_request.base.ref == 'master' && github.event.pull_request.draft == false
+    if: >-
+      github.event.pull_request.base.ref == 'master' &&
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      contains(github.event.pull_request.labels.*.name, 'automerge')
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
@@ -36,18 +40,24 @@ jobs:
             --repo "$REPOSITORY" \
             --watch \
             --interval 15
+          CHECK_COUNT=$(gh pr checks "$PR_NUMBER" --repo "$REPOSITORY" | wc -l)
+          if [ "$CHECK_COUNT" -lt 1 ]; then
+            echo "::error::Refusing to auto-merge PR #$PR_NUMBER with zero registered checks."
+            exit 1
+          fi
 
       - name: Confirm the pull request is still eligible
         run: |
           set -euo pipefail
           PR=$(gh pr view "$PR_NUMBER" --repo "$REPOSITORY" \
-            --json state,isDraft,mergeable)
+            --json state,isDraft,mergeable,labels)
           STATE=$(jq -r '.state' <<< "$PR")
           DRAFT=$(jq -r '.isDraft' <<< "$PR")
           MERGEABLE=$(jq -r '.mergeable' <<< "$PR")
+          HAS_LABEL=$(jq -r '[.labels[].name] | index("automerge") != null' <<< "$PR")
 
-          if [ "$STATE" != "OPEN" ] || [ "$DRAFT" != "false" ]; then
-            echo "PR #$PR_NUMBER is no longer open and ready; leaving it untouched."
+          if [ "$STATE" != "OPEN" ] || [ "$DRAFT" != "false" ] || [ "$HAS_LABEL" != "true" ]; then
+            echo "PR #$PR_NUMBER is no longer eligible; leaving it untouched."
             exit 1
           fi
           if [ "$MERGEABLE" != "MERGEABLE" ]; then

@@ -28,8 +28,11 @@ android {
         // -PaideVersionName / -PaideVersionCode, so an APK can never report a
         // version that disagrees with the GitHub release it hangs off. The
         // literals below are only the local-development fallback.
-        versionCode = providers.gradleProperty("aideVersionCode").getOrElse("2").toInt()
-        versionName = providers.gradleProperty("aideVersionName").getOrElse("1.0.2")
+        versionCode = providers.gradleProperty("aideVersionCode")
+            .getOrElse(localVersion.getProperty("versionCode", "1014"))
+            .toInt()
+        versionName = providers.gradleProperty("aideVersionName")
+            .getOrElse(localVersion.getProperty("versionName", "1.0.14"))
 
         // Accent theme baked into the APK, read by theme/Palette.kt and the
         // release banner. Defaults to the first entry in Palette.
@@ -45,6 +48,14 @@ android {
             "int",
             "LATEST_VERSION_CODE",
             providers.gradleProperty("aideLatestVersionCode").getOrElse("0")
+        )
+
+        // Pinned SHA-256 certificate fingerprint of the official release signer,
+        // verified by UpdateManager and ApkDownloadWorker before installing updates.
+        buildConfigField(
+            "String",
+            "UPDATE_CERT_SHA256",
+            "\"$releaseCertificate\""
         )
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

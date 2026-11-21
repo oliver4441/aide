@@ -11,7 +11,10 @@ export async function GET(request: NextRequest) {
   try {
     const businessIdParam = request.nextUrl.searchParams.get("businessId");
     const since = request.nextUrl.searchParams.get("since");
-    const { user, businessId } = await requireBusiness(businessIdParam, request);
+    const { user, businessId, businessIds } = await requireBusiness(businessIdParam, request);
+    if (businessIdParam && !businessIds.includes(businessIdParam)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     const where: any = {
       userId: user.id,
@@ -43,7 +46,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "type, title and message are required" }, { status: 400 });
     }
 
-    const { user, businessId } = await requireBusiness(requestedBusinessId, request);
+    const { user, businessId, businessIds } = await requireBusiness(requestedBusinessId, request);
+    if (requestedBusinessId && !businessIds.includes(requestedBusinessId)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     const pref = await prisma.notificationPreference.findUnique({
       where: {
@@ -82,7 +88,10 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "ids array required" }, { status: 400 });
     }
 
-    const { user, businessId } = await requireBusiness(requestedBusinessId, request);
+    const { user, businessId, businessIds } = await requireBusiness(requestedBusinessId, request);
+    if (requestedBusinessId && !businessIds.includes(requestedBusinessId)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     const { count } = await prisma.notification.updateMany({
       where: { id: { in: ids }, userId: user.id, businessId, deletedAt: null },

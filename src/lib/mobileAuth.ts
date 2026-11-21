@@ -1,17 +1,16 @@
 import { SignJWT, jwtVerify } from "jose";
-import { prisma } from "./prisma";
 import bcrypt from "bcryptjs";
-
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "kipkiruigideon890@gmail.com")
-  .split(",")
-  .map((e) => e.trim().toLowerCase())
-  .filter(Boolean);
+import { prisma } from "./prisma";
+import { isAdminEmail } from "./adminEmails";
 
 // Matches the NextAuth session lifetime (see authOptions.session.maxAge).
 const TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60;
 
 function secretKey(): Uint8Array {
-  const secret = process.env.NEXTAUTH_SECRET || "aide-secret-development-key-32-chars-long";
+  const secret = process.env.NEXTAUTH_SECRET;
+  if (!secret) {
+    throw new Error("NEXTAUTH_SECRET is required");
+  }
   return new TextEncoder().encode(secret);
 }
 
@@ -66,12 +65,18 @@ export async function authenticate(
 ): Promise<TokenClaims | null> {
   const email = emailRaw.toLowerCase().trim();
 
-  if (ADMIN_EMAILS.includes(email)) {
+  if (isAdminEmail(email)) {
     const admin = await prisma.admin.findUnique({
       where: { email },
       select: { id: true, email: true, name: true, passwordHash: true },
     });
-    if (!admin?.passwordHash) return null;
+    if (!admin?.passwordHash) {
+      await bcrypt.compare(
+        password,
+        "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy"
+      );
+      return null;
+    }
 
     const ok = await bcrypt.compare(password, admin.passwordHash);
     if (!ok) return null;
@@ -102,8 +107,6 @@ export async function authenticate(
   });
 
   if (!user?.passwordHash) {
-    // Compare against a dummy hash so a missing account and a wrong password
-    // take similar time, avoiding an account-enumeration oracle.
     await bcrypt.compare(
       password,
       "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy"

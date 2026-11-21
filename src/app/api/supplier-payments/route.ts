@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { PaymentMethod } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireBusiness, toAuthError } from "@/lib/apiAuth";
 import { gateRequest, approvalResponse } from "@/lib/approvalReplay";
@@ -13,12 +14,17 @@ import { hasPermission, Permission } from "@/lib/rbac";
 
 export const dynamic = "force-dynamic";
 
-/**
- * GET — List supplier payments with optional filters.
- */
 export async function GET(request: NextRequest) {
   try {
-    const { businessId } = await requireBusiness(null, request);
+    const { user, businessId } = await requireBusiness(null, request);
+
+    const membership = await prisma.businessMembership.findUnique({
+      where: { userId_businessId: { userId: user.id, businessId } },
+      select: { role: true },
+    });
+    if (!membership || !hasPermission(membership.role, Permission.SUPPLIER_PAYMENT_READ)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     const { searchParams } = new URL(request.url);
     const supplierId = searchParams.get("supplierId");
@@ -45,11 +51,6 @@ export async function GET(request: NextRequest) {
   }
 }
 
-/**
- * POST — Record a general payment to a supplier (not tied to a specific invoice).
- *
- * Body: { supplierId, amount, paymentMethod?, reference?, notes? }
- */
 export async function POST(request: NextRequest) {
   try {
     const { user, businessId } = await requireBusiness(null, request);
@@ -64,17 +65,8 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
 
-    const approval = await gateRequest(request, body, {
-      businessId,
-      userId: user.id,
-      actionType: "SUPPLIER_PAYMENT",
-      resourceType: "SupplierPayment",
-      amount: Number(body.amount) || 0,
-    });
-    if (approval) return approvalResponse(approval);
-
     const supplierId = body?.supplierId;
-    if (!body?.supplierId) {
+    if (!supplierId) {
       return NextResponse.json({ error: "supplierId is required" }, { status: 400 });
     }
 
@@ -85,30 +77,43 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Supplier not found" }, { status: 404 });
     }
 
-    const amount = Number(body?.amount) || 0;
-    if (amount <= 0) {
+    const amount = Number(body?.amount);
+    if (!Number.isFinite(amount) || amount <= 0) {
       return NextResponse.json({ error: "Amount must be greater than 0" }, { status: 400 });
     }
 
-    const payment = await prisma.supplierPayment.create({
-      data: {
-        businessId,
-        supplierId,
-        amount,
-        paymentMethod: body?.paymentMethod || "CASH",
-        reference: body?.reference?.trim() || null,
-        notes: body?.notes?.trim() || null,
-      },
-    });
+    const paymentMethod = (body?.paymentMethod as PaymentMethod) || PaymentMethod.CASH;
+    if (!Object.values(PaymentMethod).includes(paymentMethod)) {
+      return NextResponse.json({ error: "Invalid paymentMethod" }, { status: 400 });
+    }
 
-    // Update supplier balance
-    await prisma.supplier.update({
-      where: { id: supplierId },
-      data: {
-        balance: {
-          decrement: amount,
+    const approval = await gateRequest(request, body, {
+      businessId,
+      userId: user.id,
+      actionType: "SUPPLIER_PAYMENT",
+      resourceType: "SupplierPayment",
+      amount,
+    });
+    if (approval) return approvalResponse(approval);
+
+    const payment = await prisma.$transaction(async (tx) => {
+      const created = await tx.supplierPayment.create({
+        data: {
+          businessId,
+          supplierId,
+          amount,
+          paymentMethod,
+          reference: body?.reference?.trim() || null,
+          notes: body?.notes?.trim() || null,
         },
-      },
+      });
+
+      await tx.supplier.update({
+        where: { id: supplierId },
+        data: { balance: { decrement: amount } },
+      });
+
+      return created;
     });
 
     return NextResponse.json(payment, { status: 201 });

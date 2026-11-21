@@ -9,6 +9,18 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.omix.aide.data.local.dao.*
 import com.omix.aide.data.local.entities.*
 
+private fun SupportSQLiteDatabase.tableExists(table: String): Boolean {
+    val cursor = query(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
+        arrayOf(table)
+    )
+    return try {
+        cursor.moveToFirst()
+    } finally {
+        cursor.close()
+    }
+}
+
 /** Idempotent column add: upgrading an already-migrated file must not fail. */
 private fun SupportSQLiteDatabase.addColumnIfMissing(table: String, column: String, definition: String) {
     val cursor = query("PRAGMA table_info(`$table`)", emptyArray<Any>())
@@ -35,9 +47,11 @@ private fun SupportSQLiteDatabase.addColumnIfMissing(table: String, column: Stri
         SaleItemEntity::class,
         NotifiedEventEntity::class,
         ExpenseEntity::class,
-        CustomerEntity::class
+        CustomerEntity::class,
+        OrganizationEntity::class,
+        LocationEntity::class
     ],
-    version = 4,
+    version = 6,
     exportSchema = false
 )
 abstract class AideDatabase : RoomDatabase() {
@@ -85,13 +99,6 @@ abstract class AideDatabase : RoomDatabase() {
 
         /**
          * Adds the expense log and the customer directory.
-         *
-         * Explicit rather than destructive, because falling back would wipe a
-         * shop's products and sales history on upgrade. Column types mirror
-         * what Room generates for the Kotlin types (String -> TEXT,
-         * Double -> REAL, Int/Boolean -> INTEGER); a mismatch here makes Room
-         * throw "Migration didn't properly handle" at open time rather than
-         * silently falling back, because a path *is* registered.
          */
         private val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(db: SupportSQLiteDatabase) {
@@ -144,8 +151,9 @@ abstract class AideDatabase : RoomDatabase() {
         }
 
         /**
-         * Adds Organization and Location tables, plus FK columns on Business.
-         * Mirrors Prisma AIDE-02 schema (PR #66).
+         * Adds Organization and Location tables.
+         * Guards legacy `businesses` table operations because Android stores the
+         * single local business in SharedPreferences rather than a Room table.
          */
         private val MIGRATION_4_5 = object : Migration(4, 5) {
             override fun migrate(db: SupportSQLiteDatabase) {
@@ -155,7 +163,7 @@ abstract class AideDatabase : RoomDatabase() {
                         `id` TEXT NOT NULL,
                         `name` TEXT NOT NULL,
                         `slug` TEXT NOT NULL,
-                        `currency` TEXT NOT NULL DEFAULT 'KSh',
+                        `currency` TEXT NOT NULL,
                         `createdAt` TEXT NOT NULL,
                         `updatedAt` TEXT NOT NULL,
                         PRIMARY KEY(`id`)
@@ -174,7 +182,7 @@ abstract class AideDatabase : RoomDatabase() {
                         `name` TEXT NOT NULL,
                         `address` TEXT,
                         `phone` TEXT,
-                        `isActive` INTEGER NOT NULL DEFAULT 1,
+                        `isActive` INTEGER NOT NULL,
                         `createdAt` TEXT NOT NULL,
                         `updatedAt` TEXT NOT NULL,
                         PRIMARY KEY(`id`)
@@ -188,73 +196,68 @@ abstract class AideDatabase : RoomDatabase() {
                     "CREATE INDEX IF NOT EXISTS `index_locations_name` ON `locations` (`name`)"
                 )
 
-                // Add FK columns to existing businesses table
-                db.addColumnIfMissing("businesses", "organizationId", "TEXT")
-                db.addColumnIfMissing("businesses", "locationId", "TEXT")
-                db.execSQL("CREATE INDEX IF NOT EXISTS `index_businesses_organizationId` ON `businesses` (`organizationId`)")
-                db.execSQL("CREATE INDEX IF NOT EXISTS `index_businesses_locationId` ON `businesses` (`locationId`)")
+                if (db.tableExists("businesses")) {
+                    db.addColumnIfMissing("businesses", "organizationId", "TEXT")
+                    db.addColumnIfMissing("businesses", "locationId", "TEXT")
+                    db.execSQL("CREATE INDEX IF NOT EXISTS `index_businesses_organizationId` ON `businesses` (`organizationId`)")
+                    db.execSQL("CREATE INDEX IF NOT EXISTS `index_businesses_locationId` ON `businesses` (`locationId`)")
 
-                // Backfill: create default org/location for existing businesses
-                db.execSQL(
-                    """
-                    INSERT OR IGNORE INTO `organizations` (`id`, `name`, `slug`, `currency`, `createdAt`, `updatedAt`)
-                    SELECT
-                        `id` || '_org',
-                        `name` || ' Organization',
-                        LOWER(`slug`) || '-org',
-                        `currency`,
-                        `createdAt`,
-                        `updatedAt`
-                    FROM `businesses`
-                    WHERE `organizationId` IS NULL
-                    """.trimIndent()
-                )
+                    db.execSQL(
+                        """
+                        INSERT OR IGNORE INTO `organizations` (`id`, `name`, `slug`, `currency`, `createdAt`, `updatedAt`)
+                        SELECT
+                            `id` || '_org',
+                            `name` || ' Organization',
+                            LOWER(`slug`) || '-org',
+                            `currency`,
+                            `createdAt`,
+                            `updatedAt`
+                        FROM `businesses`
+                        WHERE `organizationId` IS NULL
+                        """.trimIndent()
+                    )
 
-                db.execSQL(
-                    """
-                    INSERT OR IGNORE INTO `locations` (`id`, `organizationId`, `name`, `isActive`, `createdAt`, `updatedAt`)
-                    SELECT
-                        `id` || '_loc',
-                        `id` || '_org',
-                        `name` || ' Main',
-                        1,
-                        `createdAt`,
-                        `updatedAt`
-                    FROM `businesses`
-                    WHERE `locationId` IS NULL
-                    """.trimIndent()
-                )
+                    db.execSQL(
+                        """
+                        INSERT OR IGNORE INTO `locations` (`id`, `organizationId`, `name`, `isActive`, `createdAt`, `updatedAt`)
+                        SELECT
+                            `id` || '_loc',
+                            `id` || '_org',
+                            `name` || ' Main',
+                            1,
+                            `createdAt`,
+                            `updatedAt`
+                        FROM `businesses`
+                        WHERE `locationId` IS NULL
+                        """.trimIndent()
+                    )
 
-                db.execSQL(
-                    """
-                    UPDATE `businesses`
-                    SET `organizationId` = `id` || '_org', `locationId` = `id` || '_loc'
-                    WHERE `organizationId` IS NULL OR `locationId` IS NULL
-                    """.trimIndent()
-                )
+                    db.execSQL(
+                        """
+                        UPDATE `businesses`
+                        SET `organizationId` = `id` || '_org', `locationId` = `id` || '_loc'
+                        WHERE `organizationId` IS NULL OR `locationId` IS NULL
+                        """.trimIndent()
+                    )
+                }
             }
         }
 
         /**
          * Decimal migration: change monetary columns from REAL to INTEGER (scaled by 10000).
-         * This is the AIDE-04 migration — highest risk, zero-downtime via dual-column strategy.
-         *
-         * Strategy:
-         * 1. Add shadow INTEGER columns (_scaled suffix)
-         * 2. Backfill: UPDATE table SET col_scaled = ROUND(col * 10000)
-         * 3. Drop old REAL columns
-         * 4. Rename _scaled columns to original names
-         *
-         * Note: SQLite doesn't support RENAME COLUMN before 3.25.0 (2018), but all
-         * Android API 21+ devices ship with SQLite 3.28+, so RENAME is safe.
          */
         private val MIGRATION_5_6 = object : Migration(5, 6) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // ===== PRODUCTS =====
                 db.execSQL("ALTER TABLE `products` ADD COLUMN `buyingPrice_scaled` INTEGER")
                 db.execSQL("ALTER TABLE `products` ADD COLUMN `sellingPrice_scaled` INTEGER")
-                db.execSQL("UPDATE `products` SET `buyingPrice_scaled` = ROUND(`buyingPrice` * 10000), `sellingPrice_scaled` = ROUND(`sellingPrice` * 10000)")
-                // SQLite doesn't support DROP COLUMN directly; use table rebuild
+                db.execSQL(
+                    """
+                    UPDATE `products` SET
+                        `buyingPrice_scaled` = CAST(COALESCE(ROUND(`buyingPrice` * 10000), 0) AS INTEGER),
+                        `sellingPrice_scaled` = CAST(COALESCE(ROUND(`sellingPrice` * 10000), 0) AS INTEGER)
+                    """.trimIndent()
+                )
                 db.execSQL(
                     """
                     CREATE TABLE `products_new` (
@@ -296,13 +299,13 @@ abstract class AideDatabase : RoomDatabase() {
                 db.execSQL(
                     """
                     UPDATE `sales` SET
-                        `total_scaled` = ROUND(`total` * 10000),
-                        `cost_scaled` = ROUND(`cost` * 10000),
-                        `profit_scaled` = ROUND(`profit` * 10000),
-                        `paid_scaled` = ROUND(`paid` * 10000),
-                        `change_scaled` = ROUND(`change` * 10000),
-                        `tax_scaled` = ROUND(`tax` * 10000),
-                        `taxRate_scaled` = ROUND(`taxRate` * 10000)
+                        `total_scaled` = CAST(COALESCE(ROUND(`total` * 10000), 0) AS INTEGER),
+                        `cost_scaled` = CAST(COALESCE(ROUND(`cost` * 10000), 0) AS INTEGER),
+                        `profit_scaled` = CAST(COALESCE(ROUND(`profit` * 10000), 0) AS INTEGER),
+                        `paid_scaled` = CAST(COALESCE(ROUND(`paid` * 10000), 0) AS INTEGER),
+                        `change_scaled` = CAST(COALESCE(ROUND(`change` * 10000), 0) AS INTEGER),
+                        `tax_scaled` = CAST(COALESCE(ROUND(`tax` * 10000), 0) AS INTEGER),
+                        `taxRate_scaled` = CAST(COALESCE(ROUND(`taxRate` * 10000), 0) AS INTEGER)
                     """.trimIndent()
                 )
                 db.execSQL(
@@ -337,7 +340,13 @@ abstract class AideDatabase : RoomDatabase() {
                 // ===== SALE_ITEMS =====
                 db.execSQL("ALTER TABLE `sale_items` ADD COLUMN `price_scaled` INTEGER")
                 db.execSQL("ALTER TABLE `sale_items` ADD COLUMN `cost_scaled` INTEGER")
-                db.execSQL("UPDATE `sale_items` SET `price_scaled` = ROUND(`price` * 10000), `cost_scaled` = ROUND(`cost` * 10000)")
+                db.execSQL(
+                    """
+                    UPDATE `sale_items` SET
+                        `price_scaled` = CAST(COALESCE(ROUND(`price` * 10000), 0) AS INTEGER),
+                        `cost_scaled` = CAST(COALESCE(ROUND(`cost` * 10000), 0) AS INTEGER)
+                    """.trimIndent()
+                )
                 db.execSQL(
                     """
                     CREATE TABLE `sale_items_new` (
@@ -363,7 +372,7 @@ abstract class AideDatabase : RoomDatabase() {
 
                 // ===== EXPENSES =====
                 db.execSQL("ALTER TABLE `expenses` ADD COLUMN `amount_scaled` INTEGER")
-                db.execSQL("UPDATE `expenses` SET `amount_scaled` = ROUND(`amount` * 10000)")
+                db.execSQL("UPDATE `expenses` SET `amount_scaled` = CAST(COALESCE(ROUND(`amount` * 10000), 0) AS INTEGER)")
                 db.execSQL(
                     """
                     CREATE TABLE `expenses_new` (
@@ -392,7 +401,7 @@ abstract class AideDatabase : RoomDatabase() {
 
                 // ===== CUSTOMERS =====
                 db.execSQL("ALTER TABLE `customers` ADD COLUMN `balance_scaled` INTEGER")
-                db.execSQL("UPDATE `customers` SET `balance_scaled` = ROUND(`balance` * 10000)")
+                db.execSQL("UPDATE `customers` SET `balance_scaled` = CAST(COALESCE(ROUND(`balance` * 10000), 0) AS INTEGER)")
                 db.execSQL(
                     """
                     CREATE TABLE `customers_new` (
@@ -421,58 +430,67 @@ abstract class AideDatabase : RoomDatabase() {
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_customers_businessId` ON `customers` (`businessId`)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_customers_name` ON `customers` (`name`)")
 
-                // ===== BUSINESSES (taxRate) =====
-                db.execSQL("ALTER TABLE `businesses` ADD COLUMN `taxRate_scaled` INTEGER")
-                db.execSQL("UPDATE `businesses` SET `taxRate_scaled` = ROUND(`taxRate` * 10000)")
-                db.execSQL(
-                    """
-                    CREATE TABLE `businesses_new` (
-                        `id` TEXT NOT NULL,
-                        `name` TEXT NOT NULL,
-                        `type` TEXT NOT NULL,
-                        `slug` TEXT NOT NULL,
-                        `currency` TEXT NOT NULL,
-                        `taxRate` INTEGER NOT NULL,
-                        `receiptFooter` TEXT,
-                        `logoUrl` TEXT,
-                        `organizationId` TEXT,
-                        `locationId` TEXT,
-                        `createdAt` TEXT NOT NULL,
-                        `updatedAt` TEXT NOT NULL,
-                        PRIMARY KEY(`id`),
-                        FOREIGN KEY(`organizationId`) REFERENCES `organizations`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL,
-                        FOREIGN KEY(`locationId`) REFERENCES `locations`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL
+                // ===== BUSINESSES (if legacy table exists) =====
+                if (db.tableExists("businesses")) {
+                    db.execSQL("ALTER TABLE `businesses` ADD COLUMN `taxRate_scaled` INTEGER")
+                    db.execSQL("UPDATE `businesses` SET `taxRate_scaled` = CAST(COALESCE(ROUND(`taxRate` * 10000), 0) AS INTEGER)")
+                    db.execSQL(
+                        """
+                        CREATE TABLE `businesses_new` (
+                            `id` TEXT NOT NULL,
+                            `name` TEXT NOT NULL,
+                            `type` TEXT NOT NULL,
+                            `slug` TEXT NOT NULL,
+                            `currency` TEXT NOT NULL,
+                            `taxRate` INTEGER NOT NULL,
+                            `receiptFooter` TEXT,
+                            `logoUrl` TEXT,
+                            `organizationId` TEXT,
+                            `locationId` TEXT,
+                            `createdAt` TEXT NOT NULL,
+                            `updatedAt` TEXT NOT NULL,
+                            PRIMARY KEY(`id`),
+                            FOREIGN KEY(`organizationId`) REFERENCES `organizations`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL,
+                            FOREIGN KEY(`locationId`) REFERENCES `locations`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL
+                        )
+                        """.trimIndent()
                     )
-                    """.trimIndent()
-                )
-                db.execSQL(
-                    """
-                    INSERT INTO `businesses_new` (`id`, `name`, `type`, `slug`, `currency`, `taxRate`, `receiptFooter`, `logoUrl`, `organizationId`, `locationId`, `createdAt`, `updatedAt`)
-                    SELECT `id`, `name`, `type`, `slug`, `currency`, `taxRate_scaled`, `receiptFooter`, `logoUrl`, `organizationId`, `locationId`, `createdAt`, `updatedAt` FROM `businesses`
-                    """.trimIndent()
-                )
-                db.execSQL("DROP TABLE `businesses`")
-                db.execSQL("ALTER TABLE `businesses_new` RENAME TO `businesses`")
-                db.execSQL("CREATE INDEX IF NOT EXISTS `index_businesses_organizationId` ON `businesses` (`organizationId`)")
-                db.execSQL("CREATE INDEX IF NOT EXISTS `index_businesses_locationId` ON `businesses` (`locationId`)")
+                    db.execSQL(
+                        """
+                        INSERT INTO `businesses_new` (`id`, `name`, `type`, `slug`, `currency`, `taxRate`, `receiptFooter`, `logoUrl`, `organizationId`, `locationId`, `createdAt`, `updatedAt`)
+                        SELECT `id`, `name`, `type`, `slug`, `currency`, `taxRate_scaled`, `receiptFooter`, `logoUrl`, `organizationId`, `locationId`, `createdAt`, `updatedAt` FROM `businesses`
+                        """.trimIndent()
+                    )
+                    db.execSQL("DROP TABLE `businesses`")
+                    db.execSQL("ALTER TABLE `businesses_new` RENAME TO `businesses`")
+                    db.execSQL("CREATE INDEX IF NOT EXISTS `index_businesses_organizationId` ON `businesses` (`organizationId`)")
+                    db.execSQL("CREATE INDEX IF NOT EXISTS `index_businesses_locationId` ON `businesses` (`locationId`)")
+                }
             }
         }
 
         @Volatile
         private var INSTANCE: AideDatabase? = null
 
+        fun buildDatabase(context: Context, name: String): AideDatabase =
+            Room.databaseBuilder(
+                context.applicationContext,
+                AideDatabase::class.java,
+                name
+            )
+                .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                .build()
+
         fun getDatabase(context: Context): AideDatabase {
             return INSTANCE ?: synchronized(this) {
-                val instance = Room.databaseBuilder(
-                    context.applicationContext,
-                    AideDatabase::class.java,
-                    "aide_database"
-                )
-                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
-                    .fallbackToDestructiveMigration()
-                    .build()
-                INSTANCE = instance
-                instance
+                INSTANCE ?: buildDatabase(context, "aide_database").also { INSTANCE = it }
+            }
+        }
+
+        fun closeInstance() {
+            synchronized(this) {
+                INSTANCE?.close()
+                INSTANCE = null
             }
         }
     }

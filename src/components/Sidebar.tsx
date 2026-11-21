@@ -16,7 +16,13 @@ import {
   MoreHorizontal,
   LogOut,
   Calculator,
-  Plus,
+  X,
+  Users,
+  FileText,
+  Truck,
+  RotateCcw,
+  Clock,
+  Landmark,
   PanelLeftClose,
   PanelLeftOpen,
   type LucideIcon,
@@ -45,13 +51,19 @@ const navSections: NavSection[] = [
       { label: "Dashboard", href: "/dashboard", icon: "dashboard", offlineReady: true },
       { label: "New Sale", href: "/dashboard/pos", icon: "sale", offlineReady: true },
       { label: "Sales History", href: "/dashboard/sales", icon: "history", offlineReady: true },
+      { label: "Shifts", href: "/dashboard/shifts", icon: "shifts", offlineReady: false },
+      { label: "Refunds", href: "/dashboard/refunds", icon: "refunds", offlineReady: false },
     ],
   },
   {
     title: "Manage",
     items: [
       { label: "Inventory", href: "/dashboard/inventory", icon: "stock", offlineReady: true },
+      { label: "Customers", href: "/dashboard/customers", icon: "customers", offlineReady: false },
+      { label: "Invoices", href: "/dashboard/invoices", icon: "invoices", offlineReady: false },
+      { label: "Suppliers", href: "/dashboard/suppliers", icon: "suppliers", offlineReady: false },
       { label: "Reports", href: "/dashboard/reports", icon: "reports", offlineReady: true },
+      { label: "Financials", href: "/dashboard/financials", icon: "financials", offlineReady: false },
     ],
   },
   {
@@ -68,13 +80,20 @@ const navIcons: Record<string, LucideIcon> = {
   dashboard: LayoutDashboard,
   sale: ShoppingCart,
   history: History,
+  shifts: Clock,
+  refunds: RotateCcw,
   stock: Package,
+  customers: Users,
+  invoices: FileText,
+  suppliers: Truck,
   reports: BarChart3,
+  financials: Landmark,
   settings: Settings,
   calculator: Calculator,
   help: HelpCircle,
   shield: Shield,
   more: MoreHorizontal,
+  close: X,
 } as const;
 
 const mobileNavItems = [
@@ -86,6 +105,12 @@ const mobileNavItems = [
 
 const moreSheetItems = [
   { label: "Reports", href: "/dashboard/reports", icon: "reports" },
+  { label: "Financials", href: "/dashboard/financials", icon: "financials" },
+  { label: "Customers", href: "/dashboard/customers", icon: "customers" },
+  { label: "Invoices", href: "/dashboard/invoices", icon: "invoices" },
+  { label: "Suppliers", href: "/dashboard/suppliers", icon: "suppliers" },
+  { label: "Shifts", href: "/dashboard/shifts", icon: "shifts" },
+  { label: "Refunds", href: "/dashboard/refunds", icon: "refunds" },
   { label: "Settings", href: "/dashboard/settings", icon: "settings" },
   { label: "Calculator", href: "/dashboard/calculator", icon: "calculator" },
   { label: "Help Center", href: "/help", icon: "help" },
@@ -279,7 +304,7 @@ export default function Sidebar() {
             aria-expanded={moreOpen}
           >
             <NavIcon
-              name={moreOpen ? "plus" : "more"}
+              name={moreOpen ? "close" : "more"}
               className={cn("w-[24px] h-[24px]")}
             />
           </button>

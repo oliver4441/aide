@@ -1,20 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireBusiness, toAuthError } from "@/lib/apiAuth";
+import { hasPermission, Permission } from "@/lib/rbac";
 
 export const dynamic = "force-dynamic";
 
-/**
- * AIDE-07: Accounting period controls.
- *
- * GET  /api/periods          — list all periods for the business
- * POST /api/periods          — create a new period
- * PATCH /api/periods/:id     — close/lock/unlock a period
- */
-
 export async function GET(request: NextRequest) {
   try {
-    const { businessId } = await requireBusiness(null, request);
+    const { user, businessId } = await requireBusiness(null, request);
+
+    const membership = await prisma.businessMembership.findUnique({
+      where: { userId_businessId: { userId: user.id, businessId } },
+      select: { role: true },
+    });
+    if (!membership || !hasPermission(membership.role, Permission.ACCOUNT_READ)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     const periods = await prisma.accountingPeriod.findMany({
       where: { businessId },
@@ -29,12 +30,21 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { businessId } = await requireBusiness(null, request);
+    const { user, businessId } = await requireBusiness(null, request);
+
+    const membership = await prisma.businessMembership.findUnique({
+      where: { userId_businessId: { userId: user.id, businessId } },
+      select: { role: true },
+    });
+    if (!membership || !hasPermission(membership.role, Permission.ACCOUNT_EDIT)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     const body = await request.json();
-    const { year, month } = body;
+    const year = parseInt(String(body?.year), 10);
+    const month = parseInt(String(body?.month), 10);
 
-    if (!year || !month) {
+    if (!Number.isInteger(year) || !Number.isInteger(month)) {
       return NextResponse.json({ error: "year and month are required" }, { status: 400 });
     }
 

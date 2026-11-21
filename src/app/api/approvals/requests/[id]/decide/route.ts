@@ -66,13 +66,21 @@ export async function POST(
       throw err;
     }
 
+    let executionError: string | null = null;
     if (result.status === "APPROVED") {
-      await executeApproval(approval.id);
+      try {
+        await executeApproval(approval.id);
+      } catch (execErr) {
+        executionError = execErr instanceof Error ? execErr.message : "Approval execution failed";
+        console.error(`[approvals] Execution failed for ${approval.id}:`, execErr);
+      }
     }
     if (result.status === "APPROVED" || result.status === "REJECTED") {
       await notifyRequester(approval, result.status);
     }
-    return NextResponse.json(result);
+    return NextResponse.json(
+      executionError ? { ...result, executionStatus: "FAILED", executionError } : result
+    );
   } catch (err) {
     return toAuthError(err);
   }

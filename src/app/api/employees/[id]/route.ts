@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireBusiness, toAuthError } from "@/lib/apiAuth";
-import { hasPermission, Permission, canManageRole } from "@/lib/rbac";
+import { hasPermission, hasAnyPermission, Permission, canManageRole } from "@/lib/rbac";
 import { BusinessRole } from "@prisma/client";
 
 /**
@@ -19,7 +19,18 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { businessId } = await requireBusiness(null, request);
+    const { user, businessId } = await requireBusiness(null, request);
+
+    const callerMembership = await prisma.businessMembership.findUnique({
+      where: { userId_businessId: { userId: user.id, businessId } },
+      select: { role: true },
+    });
+    if (
+      !callerMembership ||
+      !hasAnyPermission(callerMembership.role, [Permission.EMPLOYEE_MANAGE, Permission.EMPLOYEE_INVITE])
+    ) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     const employee = await prisma.employee.findUnique({
       where: { id: params.id },

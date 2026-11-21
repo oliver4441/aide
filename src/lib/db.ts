@@ -493,4 +493,77 @@ db.version(3).stores({
   notificationPrefs: 'key',
 });
 
+/**
+ * version 4:
+ *  - Registers the remaining AIDE-03..AIDE-11 stores (accounting, AR, AP,
+ *    inventory adjustments, refunds, shifts, split payments, employees,
+ *    invitations) so pull() and offline reads never fail on missing tables.
+ *  - Normalizes legacy numeric monetary fields in products/sales/saleItems/
+ *    businesses to 4-decimal strings so Dexie matches Prisma Decimal values.
+ */
+db.version(4)
+  .stores({
+    products: 'id, businessId, categoryId, name, syncStatus, updatedAt',
+    categories: 'id, businessId, name, syncStatus',
+    sales: 'id, businessId, createdAt, syncStatus, deviceId',
+    saleItems: 'id, saleId, productId',
+    businesses: 'id, slug',
+    syncQueue: '++key, action, table, recordId, timestamp, status, attempts',
+    syncConflicts: 'id, entityType, entityId, status, createdAt',
+    notifications: 'id, businessId, type, read, createdAt',
+    notificationPrefs: 'key',
+    accounts: 'id, businessId, code, type',
+    journalEntries: 'id, businessId, entryNo, date, status',
+    journalLines: 'id, entryId, businessId, accountCode',
+    customers: 'id, businessId, code, name, isActive',
+    invoices: 'id, businessId, invoiceNo, customerId, status, dueDate',
+    invoiceLines: 'id, invoiceId, businessId',
+    paymentAllocations: 'id, invoiceId, businessId, paymentDate',
+    suppliers: 'id, businessId, code, name, isActive',
+    purchaseOrders: 'id, businessId, poNumber, supplierId, status',
+    purchaseOrderLines: 'id, poId, businessId',
+    supplierInvoices: 'id, businessId, invoiceNo, supplierId, status, dueDate',
+    stockAdjustments: 'id, businessId, adjustmentNo, createdAt',
+    stockAdjustmentLines: 'id, adjustmentId, businessId, productId',
+    refunds: 'id, businessId, refundNo, saleId, status',
+    refundLines: 'id, refundId',
+    cashierShifts: 'id, businessId, shiftNo, status, cashierId',
+    splitPayments: 'id, saleId, businessId',
+    employees: 'id, businessId, userId, email, role, status',
+    invitations: 'id, businessId, email, createdAt',
+  })
+  .upgrade(async (tx) => {
+    const toDecimalStr = (val: unknown, fallback = '0.0000') => {
+      if (typeof val === 'string' && /^-?\d+(\.\d+)?$/.test(val.trim())) {
+        const n = Number(val);
+        return Number.isFinite(n) ? n.toFixed(4) : fallback;
+      }
+      if (typeof val === 'number' && Number.isFinite(val)) {
+        return val.toFixed(4);
+      }
+      return fallback;
+    };
+
+    await tx.table('products').toCollection().modify((p: any) => {
+      p.buyingPrice = toDecimalStr(p.buyingPrice);
+      p.sellingPrice = toDecimalStr(p.sellingPrice);
+    });
+    await tx.table('sales').toCollection().modify((s: any) => {
+      s.total = toDecimalStr(s.total);
+      s.cost = toDecimalStr(s.cost);
+      s.profit = toDecimalStr(s.profit);
+      s.paid = toDecimalStr(s.paid);
+      s.change = toDecimalStr(s.change);
+      s.tax = toDecimalStr(s.tax);
+      s.taxRate = toDecimalStr(s.taxRate, '16.0000');
+    });
+    await tx.table('saleItems').toCollection().modify((si: any) => {
+      si.price = toDecimalStr(si.price);
+      si.cost = toDecimalStr(si.cost);
+    });
+    await tx.table('businesses').toCollection().modify((b: any) => {
+      b.taxRate = toDecimalStr(b.taxRate, '16.0000');
+    });
+  });
+
 export default db;

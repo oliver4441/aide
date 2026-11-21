@@ -1,23 +1,26 @@
 package com.omix.aide.ui.screens
 
-import com.omix.aide.data.local.converters.asMoney
-
 import android.content.Intent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.omix.aide.data.local.converters.asMoney
 import com.omix.aide.data.local.dao.SaleWithItems
 import com.omix.aide.data.repository.SaleRepository
 import com.omix.aide.ui.LocalAideSettings
-import com.omix.aide.ui.money
 import com.omix.aide.ui.components.AideButton
 import com.omix.aide.ui.components.AideCard
+import com.omix.aide.ui.money
 
 @Composable
 fun ReceiptScreen(
@@ -25,6 +28,7 @@ fun ReceiptScreen(
     saleRepository: SaleRepository,
     onDone: () -> Unit
 ) {
+    val context = LocalContext.current
     var saleWithItems by remember { mutableStateOf<SaleWithItems?>(null) }
 
     LaunchedEffect(saleId) {
@@ -32,19 +36,15 @@ fun ReceiptScreen(
     }
 
     val saleData = saleWithItems
-
     val settings = LocalAideSettings.current
+    val storeTitle = settings.businessName.ifBlank { "Aide Business Register" }
 
-    // Built in the composable body, not inside shareReceipt(): money() reads the
-    // shop's currency from a CompositionLocal, so it may only be called from a
-    // composable — a plain local function is neither. Doing it here also means
-    // the text is produced once per sale rather than rebuilt on every tap.
     val receiptText: String = if (saleData == null) {
         ""
     } else {
         buildString {
             appendLine("===============================")
-            appendLine(settings.businessName.ifBlank { "Aide Business Register" })
+            appendLine(storeTitle)
             appendLine("Receipt #${saleData.sale.id.takeLast(8)}")
             appendLine("Date: ${saleData.sale.createdAt}")
             appendLine("-------------------------------")
@@ -54,10 +54,10 @@ fun ReceiptScreen(
             appendLine("-------------------------------")
             appendLine("TOTAL PAID: ${money(saleData.sale.total.asMoney())}")
             appendLine("Payment Method: ${saleData.sale.paymentMethod}")
-            if (saleData.sale.change > 0) {
+            if (saleData.sale.change > 0L) {
                 appendLine("Change: ${money(saleData.sale.change.asMoney())}")
             }
-            if (saleData.sale.tax > 0.0) {
+            if (saleData.sale.tax > 0L) {
                 appendLine(
                     "VAT (${"%.0f".format(saleData.sale.taxRate.asMoney())}%): ${money(saleData.sale.tax.asMoney())}"
                 )
@@ -72,7 +72,6 @@ fun ReceiptScreen(
 
     fun shareReceipt() {
         if (receiptText.isEmpty()) return
-
         val sendIntent = Intent().apply {
             action = Intent.ACTION_SEND
             putExtra(Intent.EXTRA_TEXT, receiptText)
@@ -86,9 +85,6 @@ fun ReceiptScreen(
         modifier = Modifier.fillMaxSize().padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // The business name and footer come from Settings. Both used to be
-        // hardcoded, so a shop that set them still got "Aide Business Register"
-        // on every receipt.
         if (settings.businessName.isNotBlank()) {
             Text(
                 text = settings.businessName,
@@ -111,7 +107,7 @@ fun ReceiptScreen(
             AideCard(modifier = Modifier.weight(1f)) {
                 Column(modifier = Modifier.padding(20.dp).fillMaxWidth()) {
                     Text(
-                        text = "Aide Business Register",
+                        text = storeTitle,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
@@ -129,7 +125,7 @@ fun ReceiptScreen(
                     HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
                     LazyColumn(modifier = Modifier.weight(1f)) {
-                        items(saleData.items) { item ->
+                        items(saleData.items, key = { it.id }) { item ->
                             Row(
                                 modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween
@@ -170,9 +166,7 @@ fun ReceiptScreen(
                         Text(text = money(saleData.sale.change.asMoney()), style = MaterialTheme.typography.labelMedium)
                     }
 
-                    // Only shown when the sale actually carried VAT, so a shop
-                    // with no tax configured never sees a zero-tax line.
-                    if (saleData.sale.tax > 0.0) {
+                    if (saleData.sale.tax > 0L) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
@@ -198,15 +192,29 @@ fun ReceiptScreen(
                     text = settings.receiptFooter,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    textAlign = TextAlign.Center
                 )
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
-            AideButton(
-                text = "Done",
-                onClick = onDone
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedButton(
+                    onClick = { shareReceipt() },
+                    modifier = Modifier.weight(1f).height(48.dp)
+                ) {
+                    Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Share")
+                }
+                AideButton(
+                    text = "Done",
+                    onClick = onDone,
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
     }
 }

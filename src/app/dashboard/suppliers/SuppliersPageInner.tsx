@@ -6,7 +6,7 @@ import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 
 interface Supplier {
   id: string;
-  code: string;
+  supplierCode: string;
   name: string;
   email?: string;
   phone?: string;
@@ -54,7 +54,11 @@ export default function SuppliersPageInner() {
 
   const filtered = suppliers.filter((s) => {
     const q = search.toLowerCase();
-    return s.name.toLowerCase().includes(q) || s.code.toLowerCase().includes(q) || (s.phone || "").includes(q);
+    return (
+      s.name.toLowerCase().includes(q) ||
+      (s.supplierCode || "").toLowerCase().includes(q) ||
+      (s.phone || "").includes(q)
+    );
   });
 
   const resetForm = () => {
@@ -175,7 +179,7 @@ export default function SuppliersPageInner() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="font-display text-sm font-black text-ink">{supplier.name}</h3>
-                <span className="font-display text-xs text-secondary font-mono">{supplier.code}</span>
+                <span className="font-display text-xs text-secondary font-mono">{supplier.supplierCode}</span>
                 {!supplier.isActive && (
                   <span className="font-display text-xs font-black uppercase tracking-wider text-secondary line-through">
                     Inactive

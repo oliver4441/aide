@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getEligibleApproverIds } from "@/lib/approvalAccess";
@@ -5,14 +6,22 @@ import { notifyApprovers } from "@/lib/approvalNotifications";
 
 export const dynamic = "force-dynamic";
 
+function isAuthorizedCron(provided: string | null, expected: string | undefined): boolean {
+  if (!provided || !expected) return false;
+  const a = Buffer.from(provided);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
+}
+
 /**
- * Cron-triggered escalation. Protected by APPROVAL_CRON_SECRET (falls back to
- * NEXTAUTH_SECRET). Moves overdue requests to their escalation group without
- * touching the frozen policy snapshot.
+ * Cron-triggered escalation. Strictly requires APPROVAL_CRON_SECRET.
+ * Moves overdue requests to their escalation group without touching the
+ * frozen policy snapshot.
  */
 export async function POST(request: NextRequest) {
-  const secret = process.env.APPROVAL_CRON_SECRET || process.env.NEXTAUTH_SECRET;
-  if (!secret || request.headers.get("x-approval-cron") !== secret) {
+  const secret = process.env.APPROVAL_CRON_SECRET;
+  if (!isAuthorizedCron(request.headers.get("x-approval-cron"), secret)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

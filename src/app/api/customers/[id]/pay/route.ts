@@ -44,7 +44,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     const body = await request.json();
     const amount = Number(body?.amount);
-    if (!amount || amount <= 0) {
+    if (!Number.isFinite(amount) || amount <= 0) {
       return NextResponse.json({ error: "Amount must be positive" }, { status: 400 });
     }
 
@@ -53,8 +53,13 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: "Invalid payment method" }, { status: 400 });
     }
 
-    // Record payment and update customer balance
+    // Record payment and update customer balance atomically
     const result = await prisma.$transaction(async (tx) => {
+      const freshCustomer = await tx.customer.findUnique({ where: { id: params.id } });
+      if (!freshCustomer || freshCustomer.businessId !== businessId) {
+        throw new Error("Customer not found");
+      }
+
       const payment = await tx.paymentAllocation.create({
         data: {
           businessId,

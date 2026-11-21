@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser, toAuthError } from "@/lib/apiAuth";
-import { reverseEntry, getAccountBalance } from "@/lib/accounting/post";
+import { hasPermission, Permission } from "@/lib/rbac";
+import { reverseEntry } from "@/lib/accounting/post";
 
 export const dynamic = "force-dynamic";
 
-/**
- * GET /api/journal/[id]
- * Return a single journal entry with lines.
- */
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -28,14 +25,13 @@ export async function GET(
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    // Check membership
     const membership = await prisma.businessMembership.findUnique({
       where: { userId_businessId: { userId: user.id, businessId: entry.businessId } },
-      select: { id: true },
+      select: { role: true },
     });
 
-    if (!membership) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!membership || !hasPermission(membership.role, Permission.JOURNAL_READ)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     return NextResponse.json(entry);
@@ -44,10 +40,6 @@ export async function GET(
   }
 }
 
-/**
- * POST /api/journal/[id]/reverse
- * Reverse a posted journal entry.
- */
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -63,14 +55,13 @@ export async function POST(
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    // Check membership
     const membership = await prisma.businessMembership.findUnique({
       where: { userId_businessId: { userId: user.id, businessId: entry.businessId } },
-      select: { id: true },
+      select: { role: true },
     });
 
-    if (!membership) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!membership || !hasPermission(membership.role, Permission.JOURNAL_CREATE)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const result = await reverseEntry(params.id);

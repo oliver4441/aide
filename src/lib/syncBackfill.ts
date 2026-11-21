@@ -1,31 +1,14 @@
 /**
  * Sync backfill + reconciliation helpers.
  *
- * The existing SyncEngine relies on the browser's `online` event and a 30s
- * interval plus an occasional "Sync now" tap. This module adds a deterministic
- * backfill pass that the app can run in an idle/timeout hook or a background
- * worker:
- *
- *  1. Find pending syncQueue items older than `thresholdMs` (stuck / retry).
- *  2. Attempt a push (and optionally a pull) in the same order the queue holds
- *     them, so a failed mutation does not silently skip the older ones behind it.
- *  3. Record retry counts per queue item and fail items that exceed the retry
- *     budget, so they can be surfaced to the user as "needs attention".
- *  4. Reconcile local records from the server pull response, using the same
- *     upsert behaviour the native clients expect.
- *
- * The module deliberately keeps the existing `syncEngine.push()` / `pull()`
- * code paths. Nothing here changes the happy path; it only makes the failure
- * paths observable and retryable instead of "log and forget".
+ * Adds a deterministic backfill pass that retries stuck/failed outbox items
+ * (`status` in `'pending' | 'retry'`) and quarantines items that exceed the
+ * retry budget.
  */
 
 import db, { SyncQueueItem } from './db';
 import { syncEngine } from './sync';
 
-/**
- * Queue rows do not carry a businessId — the active business lives in
- * localStorage and every push is scoped to it.
- */
 function activeBusinessId(): string {
   if (typeof window === 'undefined') return '';
   return localStorage.getItem('aide_business_id') ?? '';
@@ -34,7 +17,7 @@ function activeBusinessId(): string {
 export type SyncTable = 'products' | 'categories' | 'sales' | 'saleItems';
 
 export interface BackfillOptions {
-  /** Seconds to wait before treating a pending item as stuck. */
+  /** Milliseconds to wait before treating a pending item as stuck. */
   retryThresholdMs?: number;
   /** How many push attempts are allowed before a queue item is quarantined. */
   maxAttempts?: number;
@@ -64,28 +47,12 @@ function isoNow(): string {
   return new Date().toISOString();
 }
 
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
-}
-
-function formatCount(n: number): string {
-  return n === 1 ? '1 item' : `${n} items`;
-}
-
-function wantsRetry(item: SyncQueueItem): boolean {
-  return (
-    item.action !== 'delete' &&
-    (item.status === 'pending' || item.status === 'retry')
-  );
-}
-
 // Prevents overlapping backfill runs from piling up on component re-mounts.
 let runningBackfill = false;
 
 export async function countPendingSyncQueue(): Promise<number> {
-  // Dexie fallback: if the table is empty or the query fails, return 0.
   try {
-    return await db.syncQueue.where('status').equals('pending').count();
+    return await db.syncQueue.where('status').anyOf(['pending', 'retry']).count();
   } catch {
     return 0;
   }
@@ -100,18 +67,17 @@ export async function quarantineStaleItems(options: {
   const maxAttempts = options.maxAttempts ?? 5;
   const quarantinedStatus = options.quarantinedStatus ?? 'quarantined';
 
-  const now = Date.now();
-  const cutoff = new Date(now - thresholdMs).toISOString();
+  const cutoffMs = Date.now() - thresholdMs;
 
   const stale = await db.syncQueue
     .where('status')
-    .equals('pending')
-    .and((item) => toDate(item.timestamp).getTime() < toDate(cutoff).getTime())
+    .anyOf(['pending', 'retry'])
+    .and((item) => toDate(item.updatedAt || item.timestamp).getTime() < cutoffMs)
     .toArray();
 
   let quarantined = 0;
   for (const item of stale) {
-    if (item.status === 'quarantined' || item.action === 'delete') continue;
+    if (item.action === 'delete') continue;
     const attempts = Number(item.attempts ?? 0);
     if (attempts >= maxAttempts) {
       await db.syncQueue.update(item.key!, {
@@ -127,7 +93,17 @@ export async function quarantineStaleItems(options: {
 }
 
 export async function processStaleQueue(options: BackfillOptions = {}): Promise<BackfillResult> {
-  if (runningBackfill) return { attempts: 0, synced: 0, conflicts: 0, quarantined: 0, failed: 0, queued: 0, message: 'backfill already running' };
+  if (runningBackfill) {
+    return {
+      attempts: 0,
+      synced: 0,
+      conflicts: 0,
+      quarantined: 0,
+      failed: 0,
+      queued: 0,
+      message: 'backfill already running',
+    };
+  }
   runningBackfill = true;
   try {
     const {
@@ -139,12 +115,12 @@ export async function processStaleQueue(options: BackfillOptions = {}): Promise<
     } = options;
 
     const now = Date.now();
-    const cutoff = new Date(now - retryThresholdMs).toISOString();
+    const cutoffMs = now - retryThresholdMs;
 
     const pending = await db.syncQueue
       .where('status')
-      .equals('pending')
-      .and((item) => toDate(item.timestamp).getTime() < toDate(cutoff).getTime())
+      .anyOf(['pending', 'retry'])
+      .and((item) => toDate(item.updatedAt || item.timestamp).getTime() < cutoffMs)
       .toArray();
 
     let attempts = 0;
@@ -154,21 +130,21 @@ export async function processStaleQueue(options: BackfillOptions = {}): Promise<
     let failed = 0;
 
     for (const item of pending) {
+      if (item.status === 'quarantined' || item.status === 'synced') continue;
+
       attempts++;
       const attemptsSoFar = Number(item.attempts ?? 0);
 
-      // Skip items that are already being retried or are in a terminal state.
-      if (item.status === 'retry' || item.status === 'quarantined' || item.action === 'delete') continue;
-
       try {
-        const pushed = await processOneMutation(item);
-        if (pushed) {
+        const pushRes = await processOneMutation(item);
+        conflicts += pushRes.conflicts.length;
+        if (pushRes.synced) {
           synced++;
           continue;
         }
       } catch (err) {
-        // The push itself failed before we could mark anything; retry below.
-        const isAuthError = typeof err === 'string' && /401|403|Unauthorized/i.test(err);
+        const msg = err instanceof Error ? err.message : String(err);
+        const isAuthError = /\b(401|403)\b|Unauthorized|Forbidden/i.test(msg);
         if (isAuthError) {
           failed++;
           continue;
@@ -223,20 +199,19 @@ export async function processStaleQueue(options: BackfillOptions = {}): Promise<
   }
 }
 
-async function processOneMutation(item: SyncQueueItem): Promise<boolean> {
-  if (!syncEngine.getStatus().isOnline) return false;
+async function processOneMutation(item: SyncQueueItem): Promise<{ synced: boolean; conflicts: any[] }> {
+  if (!syncEngine.getStatus().isOnline) return { synced: false, conflicts: [] };
 
-  // Push one mutation at a time so the backfill result accurately reflects
-  // whether THIS item made it to the server, not just whether the queue drained.
   const deviceId =
     typeof localStorage !== 'undefined'
       ? localStorage.getItem('aide_device_id') ?? ''
       : '';
+  const businessId = activeBusinessId() || undefined;
 
   const res = await fetch('/api/sync', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ mutations: [item], deviceId }),
+    body: JSON.stringify({ businessId, mutations: [item], deviceId }),
   });
 
   if (!res.ok) {
@@ -247,20 +222,21 @@ async function processOneMutation(item: SyncQueueItem): Promise<boolean> {
   const conflicts: any[] = result.conflicts ?? [];
 
   if (conflicts.length > 0) {
-    for (const conflict of conflicts) {
-      await db.syncConflicts.put(conflict);
-    }
-    // Conflict doesn't mean the item wasn't written — check the synced count.
+    await db.syncConflicts.bulkPut(conflicts);
   }
+
+  const failedList: any[] = Array.isArray(result.failed) ? result.failed : [];
+  const itemFailed = failedList.some(
+    (f) => f.table === item.table && f.recordId === item.recordId
+  );
 
   const synced: number = result.synced ?? 0;
-  if (synced > 0) {
-    // Remove this specific item from the local queue.
+  if (synced > 0 && !itemFailed) {
     await db.syncQueue.delete(item.key!);
-    return true;
+    return { synced: true, conflicts };
   }
 
-  return false;
+  return { synced: false, conflicts };
 }
 
 export async function reconcileFromServer(options: {
@@ -299,7 +275,6 @@ export async function reconcileFromServer(options: {
     pulled = pulledResult;
   }
 
-  // Quarantined items are surface-level only; the user must act on them.
   quarantined = await countQuarantined();
 
   return { pulled, pushed, conflicts, quarantined };
@@ -319,31 +294,26 @@ async function pullFromServer(
   let count = 0;
 
   if (result.business) {
-    await db.businesses.put({ ...result.business, syncStatus: 'synced' });
+    await db.businesses.put(result.business);
   }
   if (result.products) {
-    for (const p of result.products) {
-      await db.products.put({ ...p, syncStatus: 'synced' });
-      count++;
-    }
+    const records = result.products.map((p: any) => ({ ...p, syncStatus: 'synced' as const }));
+    await db.products.bulkPut(records);
+    count += records.length;
   }
   if (result.categories) {
-    for (const c of result.categories) {
-      await db.categories.put({ ...c, syncStatus: 'synced' });
-      count++;
-    }
+    const records = result.categories.map((c: any) => ({ ...c, syncStatus: 'synced' as const }));
+    await db.categories.bulkPut(records);
+    count += records.length;
   }
   if (result.sales) {
-    for (const s of result.sales) {
-      await db.sales.put({ ...s, syncStatus: 'synced' });
-      count++;
-    }
+    const records = result.sales.map((s: any) => ({ ...s, syncStatus: 'synced' as const }));
+    await db.sales.bulkPut(records);
+    count += records.length;
   }
   if (result.saleItems) {
-    for (const si of result.saleItems) {
-      await db.saleItems.put(si);
-      count++;
-    }
+    await db.saleItems.bulkPut(result.saleItems);
+    count += result.saleItems.length;
   }
 
   if (result.lastSync) {
@@ -368,7 +338,5 @@ export function getSyncStatus(): {
   isSyncing: boolean;
   pending: number;
 } {
-  // The engine owns the live flags and the mirrored outbox count; reading them
-  // from here keeps every caller on one source of truth.
   return syncEngine.getStatus();
 }

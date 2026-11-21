@@ -1,12 +1,5 @@
 package com.omix.aide.ui.screens
 
-import com.omix.aide.data.local.converters.asMoney
-
-import androidx.compose.animation.*
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -18,8 +11,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.omix.aide.ui.money
+import com.omix.aide.data.local.converters.asMoney
 import com.omix.aide.ui.components.*
+import com.omix.aide.ui.money
 import com.omix.aide.ui.theme.WarningAmber
 import com.omix.aide.ui.viewmodel.HomeViewModel
 
@@ -44,7 +38,11 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
-                Text(text = "TODAY", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    text = "TODAY",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 Spacer(modifier = Modifier.height(4.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -53,7 +51,7 @@ fun HomeScreen(
                     AideStatCard(
                         title = "Sales",
                         value = money(uiState.todaySalesTotal),
-                        subtitle = "${uiState.todaySalesCount} sales",
+                        subtitle = "${uiState.todaySalesCount} sale${if (uiState.todaySalesCount == 1) "" else "s"}",
                         modifier = Modifier.weight(1f),
                         valueColor = MaterialTheme.colorScheme.primary
                     )
@@ -79,8 +77,36 @@ fun HomeScreen(
                         text = "[ STOCK ]",
                         onClick = onNavigateToStock,
                         modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = MaterialTheme.colorScheme.onSurface
+                        )
                     )
+                }
+            }
+
+            if (uiState.weeklySales.isNotEmpty() && uiState.weeklySales.any { it.total > 0.0 }) {
+                item {
+                    AideCard {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = "Last 7 Days",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            AideBarChart(
+                                data = uiState.weeklySales.map { day ->
+                                    ChartDataPoint(
+                                        label = day.label,
+                                        value = day.total.toFloat(),
+                                        formattedValue = money(day.total)
+                                    )
+                                },
+                                height = 150.dp
+                            )
+                        }
+                    }
                 }
             }
 
@@ -96,7 +122,7 @@ fun HomeScreen(
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "${uiState.lowStockProducts.size} products are running low in stock.",
+                                text = "${uiState.lowStockProducts.size} product${if (uiState.lowStockProducts.size == 1) "" else "s"} running low in stock.",
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
@@ -114,10 +140,10 @@ fun HomeScreen(
 
             if (uiState.recentSales.isEmpty()) {
                 item {
-                    AideEmptyState(message = "No sales recorded today yet.")
+                    AideEmptyState(message = "No sales recorded yet.")
                 }
             } else {
-                items(uiState.recentSales) { saleWithItems ->
+                items(uiState.recentSales, key = { it.sale.id }) { saleWithItems ->
                     AideCard {
                         Row(
                             modifier = Modifier.padding(16.dp).fillMaxWidth(),
@@ -126,18 +152,18 @@ fun HomeScreen(
                         ) {
                             Column {
                                 Text(
-                                    text = money(saleWithItems.sale.total.asMoney()),
-                                    style = MaterialTheme.typography.titleLarge,
+                                    text = "${saleWithItems.items.size} item${if (saleWithItems.items.size == 1) "" else "s"} • ${saleWithItems.sale.paymentMethod.replace('_', ' ')}",
+                                    style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.SemiBold
                                 )
                                 Text(
-                                    text = "${saleWithItems.items.size} items • ${saleWithItems.sale.paymentMethod}",
-                                    style = MaterialTheme.typography.bodyMedium,
+                                    text = saleWithItems.sale.createdAt.take(10),
+                                    style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                             Text(
-                                text = money(saleWithItems.sale.total),
+                                text = money(saleWithItems.sale.total.asMoney()),
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary

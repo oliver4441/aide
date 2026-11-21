@@ -77,7 +77,7 @@ export default function SharedReceiptPage({
               name: business?.name || "Aide Business",
               type: business?.type || "",
               currency: business?.currency || "KSh",
-              taxRate: business?.taxRate ?? local.taxRate ?? 16,
+              taxRate: String(business?.taxRate ?? local.taxRate ?? "16"),
               receiptFooter: business?.receiptFooter || null,
             },
           });

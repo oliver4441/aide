@@ -40,9 +40,13 @@ export async function PATCH(
       return NextResponse.json({ error: "status must be OPEN, CLOSED, or LOCKED" }, { status: 400 });
     }
 
-    // Only OWNER or MANAGER can close/lock periods
-    if (status === "LOCKED" && membership.role !== "OWNER" && membership.role !== "MANAGER") {
-      return NextResponse.json({ error: "Only owner or manager can lock periods" }, { status: 403 });
+    // Only OWNER or MANAGER can change period status
+    if (membership.role !== "OWNER" && membership.role !== "MANAGER") {
+      return NextResponse.json({ error: "Only owner or manager can manage periods" }, { status: 403 });
+    }
+
+    if (period.status === "LOCKED" && status !== "LOCKED" && membership.role !== "OWNER") {
+      return NextResponse.json({ error: "Only owner can unlock a locked period" }, { status: 403 });
     }
 
     if (status !== "OPEN") {

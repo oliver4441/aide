@@ -19,7 +19,15 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { businessId } = await requireBusiness(null, request);
+    const { user, businessId } = await requireBusiness(null, request);
+
+    const membership = await prisma.businessMembership.findUnique({
+      where: { userId_businessId: { userId: user.id, businessId } },
+      select: { role: true },
+    });
+    if (!membership || !hasPermission(membership.role, Permission.CUSTOMER_READ)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     const invoice = await prisma.invoice.findUnique({
       where: { id: params.id },
@@ -154,7 +162,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     const body = await request.json();
     const amount = Number(body?.amount);
-    if (!amount || amount <= 0) {
+    if (!Number.isFinite(amount) || amount <= 0) {
       return NextResponse.json({ error: "Amount must be positive" }, { status: 400 });
     }
 
@@ -163,13 +171,25 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: "Invalid payment method" }, { status: 400 });
     }
 
-    // Use transaction to ensure consistency
-    const result = await prisma.$transaction(async (tx) => {
-      // Create payment allocation
+    // Use transaction with fresh invoice read to prevent double-payment races
+    const outcome = await prisma.$transaction(async (tx) => {
+      const freshInvoice = await tx.invoice.findUnique({
+        where: { id: params.id },
+      });
+      if (!freshInvoice) return { error: "Invoice not found", code: 404 as const };
+      if (freshInvoice.businessId !== businessId) return { error: "Forbidden", code: 403 as const };
+      if (
+        freshInvoice.status === "PAID" ||
+        freshInvoice.status === "CANCELLED" ||
+        freshInvoice.status === "WRITTEN_OFF"
+      ) {
+        return { error: "Cannot pay this invoice", code: 409 as const };
+      }
+
       const payment = await tx.paymentAllocation.create({
         data: {
           businessId,
-          customerId: invoice.customerId,
+          customerId: freshInvoice.customerId,
           invoiceId: params.id,
           amount,
           paymentMethod,
@@ -178,11 +198,10 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         },
       });
 
-      // Update invoice
-      const newAmountPaid = Number(invoice.amountPaid) + amount;
-      const newBalanceDue = Number(invoice.total) - newAmountPaid;
+      const newAmountPaid = Number(freshInvoice.amountPaid) + amount;
+      const newBalanceDue = Number(freshInvoice.total) - newAmountPaid;
 
-      let newStatus: InvoiceStatus = invoice.status;
+      let newStatus: InvoiceStatus = freshInvoice.status;
       if (newBalanceDue <= 0) {
         newStatus = InvoiceStatus.PAID;
       } else if (newAmountPaid > 0) {
@@ -205,9 +224,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         },
       });
 
-      // Update customer balance (reduce by payment amount)
       await tx.customer.update({
-        where: { id: invoice.customerId },
+        where: { id: freshInvoice.customerId },
         data: {
           balance: {
             decrement: amount,
@@ -218,7 +236,11 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return { invoice: updatedInvoice, payment };
     });
 
-    return NextResponse.json(result);
+    if ("error" in outcome) {
+      return NextResponse.json({ error: outcome.error }, { status: outcome.code });
+    }
+
+    return NextResponse.json(outcome);
   } catch (err) {
     return toAuthError(err);
   }

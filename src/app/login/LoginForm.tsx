@@ -4,7 +4,6 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Circle } from "lucide-react";
 import { ArrowLeft } from "lucide-react";
 import UiButton from "@/components/ui/UiButton";
 
@@ -185,22 +184,6 @@ export default function LoginForm() {
                 ? (isSignUp ? "Creating account..." : "Signing in...")
                 : (isSignUp ? "Create Account" : "Sign In")}
             </UiButton>
-
-            {/* Google OAuth */}
-            <div className="relative flex items-center gap-3">
-              <div className="flex-1 h-px bg-rule" />
-              <span className="text-xs text-secondary font-bold">or</span>
-              <div className="flex-1 h-px bg-rule" />
-            </div>
-
-            <button
-              type="button"
-              onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-rule bg-surface text-ink font-bold text-sm hover:bg-ground transition-colors"
-            >
-              <Circle className="w-4 h-4" />
-              Continue with Google
-            </button>
           </form>
 
           <div className="border-t border-rule px-6 py-4 text-center">
@@ -218,7 +201,7 @@ export default function LoginForm() {
         </div>
 
         <p className="text-center text-xs text-secondary mt-6">
-          Your data stays on this device and syncs when you're online.
+          Your data stays on this device and syncs when you&apos;re online.
         </p>
       </div>
     </div>

@@ -196,7 +196,7 @@ export default function DownloadsClient() {
           <div className="mt-6 flex flex-col sm:flex-row gap-3">
             {loading ? (
               <div className="flex h-[50px] w-full sm:w-64 items-center justify-center border border-rule">
-                <UiLoader size={16} className="text-secondary" />
+                <Loader2 className="h-4 w-4 animate-spin text-secondary" />
               </div>
             ) : latestApk ? (
               <a
@@ -249,7 +249,7 @@ export default function DownloadsClient() {
 
           {loading ? (
             <div className="flex justify-center py-12">
-              <UiLoader size={24} className="text-secondary" />
+              <Loader2 className="h-6 w-6 animate-spin text-secondary" />
             </div>
           ) : androidReleases.length === 0 ? (
             <p className="rounded-xl border border-outline-variant bg-surface-container-low p-6 text-sm text-on-surface-variant">

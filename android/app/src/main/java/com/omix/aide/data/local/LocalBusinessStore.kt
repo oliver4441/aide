@@ -68,6 +68,7 @@ class LocalBusinessStore(context: Context) {
         const val KEY_BUSINESS_ID = "business_id"
         const val KEY_BUSINESS_NAME = "business_name"
         const val KEY_SETUP_DONE = "setup_done"
+        const val KEY_WELCOME_SEEN = "welcome_seen"
         const val KEY_OUT_OF_DATE = "aide_out_of_date"
     }
 }

@@ -6,33 +6,55 @@ import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 
 interface Invoice {
   id: string;
-  invoiceNo: string;
+  invoiceNumber: string;
   customerId: string;
-  customerName: string;
+  customer?: { id: string; name: string; phone?: string | null; email?: string | null };
   status: string;
   issueDate: string;
   dueDate: string;
   subtotal: string | number;
   tax: string | number;
   total: string | number;
-  paidAmount: string | number;
+  amountPaid: string | number;
+  balanceDue: string | number;
   notes?: string;
   createdAt: string;
+}
+
+interface CustomerOption {
+  id: string;
+  name: string;
 }
 
 export default function InvoicesPageInner() {
   const { data: business } = useBusinessSettings();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [customers, setCustomers] = useState<CustomerOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Invoice | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState("");
+  const [newInvoice, setNewInvoice] = useState({
+    customerId: "",
+    description: "",
+    quantity: "1",
+    unitPrice: "",
+    notes: "",
+  });
 
   const fetchInvoices = useCallback(async () => {
     try {
-      const res = await fetch("/api/invoices");
-      if (res.ok) {
-        const data = await res.json();
-        setInvoices(data);
+      const [invRes, custRes] = await Promise.all([
+        fetch("/api/invoices"),
+        fetch("/api/customers?active=true"),
+      ]);
+      if (invRes.ok) {
+        setInvoices(await invRes.json());
+      }
+      if (custRes.ok) {
+        setCustomers(await custRes.json());
       }
     } catch (err) {
       console.error("Failed to fetch invoices:", err);
@@ -47,7 +69,9 @@ export default function InvoicesPageInner() {
 
   const filtered = invoices.filter((inv) => {
     const q = search.toLowerCase();
-    return inv.invoiceNo.toLowerCase().includes(q) || inv.customerName.toLowerCase().includes(q);
+    const num = (inv.invoiceNumber || "").toLowerCase();
+    const cust = (inv.customer?.name || "").toLowerCase();
+    return num.includes(q) || cust.includes(q);
   });
 
   const statusLabel = (status: string) => {
@@ -59,7 +83,45 @@ export default function InvoicesPageInner() {
     }
   };
 
-  const totalOutstanding = invoices.reduce((s, inv) => s + Number(inv.total) - Number(inv.paidAmount), 0);
+  const handleCreateInvoice = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreateError("");
+    setCreating(true);
+    try {
+      const res = await fetch("/api/invoices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customerId: newInvoice.customerId,
+          notes: newInvoice.notes,
+          lines: [
+            {
+              description: newInvoice.description.trim(),
+              quantity: Number(newInvoice.quantity) || 1,
+              unitPrice: Number(newInvoice.unitPrice) || 0,
+            },
+          ],
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setCreateError(data.error || "Failed to create invoice");
+        return;
+      }
+      setShowCreate(false);
+      setNewInvoice({ customerId: "", description: "", quantity: "1", unitPrice: "", notes: "" });
+      await fetchInvoices();
+    } catch {
+      setCreateError("Network error while creating invoice");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const totalOutstanding = invoices.reduce(
+    (s, inv) => s + Math.max(0, Number(inv.total) - Number(inv.amountPaid || 0)),
+    0
+  );
 
   if (loading) {
     return (
@@ -88,7 +150,10 @@ export default function InvoicesPageInner() {
           </p>
         </div>
         <button
-          onClick={() => alert("Invoice creation — coming soon. For now, create invoices via credit sales at the POS.")}
+          onClick={() => {
+            setCreateError("");
+            setShowCreate(true);
+          }}
           className="np-btn"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -120,7 +185,7 @@ export default function InvoicesPageInner() {
       )}
       <div className="space-y-0">
         {filtered.map((inv) => {
-          const balance = Number(inv.total) - Number(inv.paidAmount);
+          const balance = Math.max(0, Number(inv.total) - Number(inv.amountPaid || 0));
           return (
             <div
               key={inv.id}
@@ -129,11 +194,11 @@ export default function InvoicesPageInner() {
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-display text-sm font-black text-ink">{inv.invoiceNo}</span>
+                  <span className="font-display text-sm font-black text-ink">{inv.invoiceNumber}</span>
                   {statusLabel(inv.status)}
                 </div>
                 <div className="font-display text-sm text-secondary mt-1">
-                  {inv.customerName} · Due {new Date(inv.dueDate).toLocaleDateString()}
+                  {inv.customer?.name || "Customer"} · Due {new Date(inv.dueDate).toLocaleDateString()}
                 </div>
               </div>
               <div className="text-right shrink-0 ml-4">
@@ -151,12 +216,98 @@ export default function InvoicesPageInner() {
         })}
       </div>
 
+      {/* Create Invoice Modal */}
+      {showCreate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4">
+          <div className="bg-ground border border-ink w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-4 border-b border-rule">
+              <h2 className="font-display text-lg font-black text-ink">New Invoice</h2>
+              <button onClick={() => setShowCreate(false)} className="p-1 text-secondary hover:text-ink">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <form onSubmit={handleCreateInvoice} className="p-4 space-y-4">
+              <div>
+                <label className="np-kicker">Customer</label>
+                <select
+                  required
+                  value={newInvoice.customerId}
+                  onChange={(e) => setNewInvoice({ ...newInvoice, customerId: e.target.value })}
+                  className="w-full px-3 py-2 border border-rule bg-ground text-ink font-display text-control focus:outline-none mt-1"
+                >
+                  <option value="">Select customer...</option>
+                  {customers.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="np-kicker">Item / Description</label>
+                <input
+                  required
+                  value={newInvoice.description}
+                  onChange={(e) => setNewInvoice({ ...newInvoice, description: e.target.value })}
+                  className="w-full px-3 py-2 border border-rule bg-ground text-ink font-display text-control focus:outline-none mt-1"
+                  placeholder="Service or goods description"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="np-kicker">Quantity</label>
+                  <input
+                    required
+                    type="number"
+                    min="1"
+                    value={newInvoice.quantity}
+                    onChange={(e) => setNewInvoice({ ...newInvoice, quantity: e.target.value })}
+                    className="w-full px-3 py-2 border border-rule bg-ground text-ink font-display text-control focus:outline-none mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="np-kicker">Unit Price</label>
+                  <input
+                    required
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    value={newInvoice.unitPrice}
+                    onChange={(e) => setNewInvoice({ ...newInvoice, unitPrice: e.target.value })}
+                    className="w-full px-3 py-2 border border-rule bg-ground text-ink font-display text-control focus:outline-none mt-1"
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="np-kicker">Notes</label>
+                <textarea
+                  value={newInvoice.notes}
+                  onChange={(e) => setNewInvoice({ ...newInvoice, notes: e.target.value })}
+                  rows={2}
+                  className="w-full px-3 py-2 border border-rule bg-ground text-ink font-display text-control focus:outline-none mt-1"
+                />
+              </div>
+              {createError && <p className="text-xs text-accent font-display">{createError}</p>}
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setShowCreate(false)} className="np-btn flex-1">
+                  Cancel
+                </button>
+                <button type="submit" disabled={creating} className="np-btn flex-1 np-btn--accent">
+                  {creating ? "Creating..." : "Create Invoice"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Invoice Detail Modal */}
       {selected && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4">
           <div className="bg-ground border border-ink w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-4 border-b border-rule">
-              <h2 className="font-display text-lg font-black text-ink">{selected.invoiceNo}</h2>
+              <h2 className="font-display text-lg font-black text-ink">{selected.invoiceNumber}</h2>
               <button onClick={() => setSelected(null)} className="p-1 text-secondary hover:text-ink">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -167,7 +318,7 @@ export default function InvoicesPageInner() {
               {statusLabel(selected.status)}
               <div className="font-display text-sm">
                 <span className="text-secondary">Customer:</span>{" "}
-                <span className="font-black text-ink">{selected.customerName}</span>
+                <span className="font-black text-ink">{selected.customer?.name || "Customer"}</span>
               </div>
               <div className="grid grid-cols-2 gap-2 font-display text-sm">
                 <div><span className="text-secondary">Issue Date:</span> {new Date(selected.issueDate).toLocaleDateString()}</div>
@@ -188,12 +339,12 @@ export default function InvoicesPageInner() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-secondary">Paid:</span>
-                  <span className="font-mono text-success">{formatMoney(selected.paidAmount, business?.currency)}</span>
+                  <span className="font-mono text-success">{formatMoney(selected.amountPaid || 0, business?.currency)}</span>
                 </div>
                 <div className="border-t border-rule pt-1 flex justify-between font-black">
                   <span className="text-ink">Balance:</span>
                   <span className="font-mono text-accent">
-                    {formatMoney(Number(selected.total) - Number(selected.paidAmount), business?.currency)}
+                    {formatMoney(Math.max(0, Number(selected.total) - Number(selected.amountPaid || 0)), business?.currency)}
                   </span>
                 </div>
               </div>

@@ -1,23 +1,30 @@
 package com.omix.aide.ui.screens
 
-import com.omix.aide.data.local.converters.asMoney
-
-import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Inventory
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.omix.aide.data.local.converters.asMoney
+import com.omix.aide.data.local.entities.ProductEntity
 import com.omix.aide.ui.components.*
 import com.omix.aide.ui.money
+import com.omix.aide.ui.theme.DangerRed
+import com.omix.aide.ui.theme.WarningAmber
 import com.omix.aide.ui.viewmodel.StockViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -26,6 +33,7 @@ fun StockScreen(
     stockViewModel: StockViewModel
 ) {
     val uiState by stockViewModel.uiState.collectAsState()
+    var selectedFilter by remember { mutableStateOf("ALL") }
 
     var name by remember { mutableStateOf("") }
     var buyingPrice by remember { mutableStateOf("") }
@@ -69,29 +77,103 @@ fun StockScreen(
                 return@Column
             }
 
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                AideStatCard(
+                    title = "Stock Value",
+                    value = money(totalValuation),
+                    subtitle = "${uiState.products.size} products",
+                    modifier = Modifier.weight(1f),
+                    valueColor = MaterialTheme.colorScheme.primary
+                )
+                AideStatCard(
+                    title = "Low Stock",
+                    value = lowStockCount.toString(),
+                    modifier = Modifier.weight(1f),
+                    valueColor = if (lowStockCount > 0) WarningAmber else MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
             AideSearchBar(
                 query = uiState.searchQuery,
                 onQueryChange = { stockViewModel.setSearchQuery(it) }
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            if (uiState.products.isEmpty()) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(
+                    selected = selectedFilter == "ALL",
+                    onClick = { selectedFilter = "ALL" },
+                    label = { Text("All (${uiState.products.size})") },
+                    modifier = Modifier.height(44.dp)
+                )
+                FilterChip(
+                    selected = selectedFilter == "LOW_STOCK",
+                    onClick = { selectedFilter = "LOW_STOCK" },
+                    label = { Text("Low Stock ($lowStockCount)") },
+                    modifier = Modifier.height(44.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (displayedProducts.isEmpty()) {
                 AideEmptyState(
-                    message = "No products in inventory.",
-                    actionLabel = "+ Add Product",
-                    onAction = { stockViewModel.setAddProductOpen(true) }
+                    message = if (selectedFilter == "LOW_STOCK") {
+                        "No products are running low in stock."
+                    } else {
+                        "No products in inventory."
+                    },
+                    actionLabel = if (uiState.products.isEmpty()) "+ Add Product" else null,
+                    onAction = if (uiState.products.isEmpty()) {
+                        { stockViewModel.setAddProductOpen(true) }
+                    } else null
                 )
             } else {
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(uiState.products) { product ->
-                        AideProductRow(
-                            name = product.name,
-                            stock = product.quantity,
-                            price = money(product.sellingPrice),
-                            sku = product.sku,
-                            lowStockThreshold = product.lowStock,
-                            imagePath = product.imageUrl
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    items(displayedProducts, key = { it.id }) { product ->
+                        StockProductCard(
+                            product = product,
+                            onClick = { stockViewModel.setEditingProduct(product) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    val editingProduct = uiState.editingProduct
+    if (editingProduct != null) {
+        var editName by remember(editingProduct.id) { mutableStateOf(editingProduct.name) }
+        var editBuyingPrice by remember(editingProduct.id) { mutableStateOf("%.2f".format(editingProduct.buyingPrice.asMoney())) }
+        var editSellingPrice by remember(editingProduct.id) { mutableStateOf("%.2f".format(editingProduct.sellingPrice.asMoney())) }
+        var editQuantity by remember(editingProduct.id) { mutableStateOf(editingProduct.quantity.toString()) }
+        var editLowStock by remember(editingProduct.id) { mutableStateOf(editingProduct.lowStock.toString()) }
+        var editSku by remember(editingProduct.id) { mutableStateOf(editingProduct.sku ?: "") }
+        var editImagePath by remember(editingProduct.id) { mutableStateOf(editingProduct.imageUrl) }
+
+        ModalBottomSheet(onDismissRequest = { stockViewModel.setEditingProduct(null) }) {
+            Column(modifier = Modifier.padding(24.dp).fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Edit Product",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    IconButton(onClick = { stockViewModel.deleteProduct(editingProduct.id) }) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Delete product",
+                            tint = DangerRed
                         )
                     }
                 }
@@ -118,6 +200,7 @@ fun StockScreen(
                         value = editBuyingPrice,
                         onValueChange = { editBuyingPrice = it },
                         label = { Text("Buying Cost") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(14.dp),
                         singleLine = true
@@ -126,6 +209,7 @@ fun StockScreen(
                         value = editSellingPrice,
                         onValueChange = { editSellingPrice = it },
                         label = { Text("Selling Price") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(14.dp),
                         singleLine = true
@@ -139,6 +223,7 @@ fun StockScreen(
                         value = editQuantity,
                         onValueChange = { editQuantity = it },
                         label = { Text("Current Stock") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(14.dp),
                         singleLine = true
@@ -147,6 +232,7 @@ fun StockScreen(
                         value = editLowStock,
                         onValueChange = { editLowStock = it },
                         label = { Text("Low Alert Qty") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(14.dp),
                         singleLine = true
@@ -186,12 +272,12 @@ fun StockScreen(
                             if (editName.isNotBlank() && sp > 0) {
                                 stockViewModel.updateProduct(
                                     id = editingProduct.id,
-                                    name = editName,
+                                    name = editName.trim(),
                                     buyingPrice = bp,
                                     sellingPrice = sp,
                                     quantity = qty,
                                     lowStock = alertQty,
-                                    sku = editSku.ifBlank { null },
+                                    sku = editSku.trim().ifBlank { null },
                                     imagePath = editImagePath
                                 )
                             }
@@ -222,27 +308,30 @@ fun StockScreen(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text("Product Name") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
-
-                Spacer(modifier = Modifier.height(16.dp))
                 ProductImagePicker(imagePath = imagePath, onImagePicked = { imagePath = it })
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(
                         value = buyingPrice,
                         onValueChange = { buyingPrice = it },
                         label = { Text("Buying Price") },
-                        modifier = Modifier.weight(1f)
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
                     )
                     OutlinedTextField(
                         value = sellingPrice,
                         onValueChange = { sellingPrice = it },
                         label = { Text("Selling Price") },
-                        modifier = Modifier.weight(1f)
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
                     )
                 }
 
@@ -253,13 +342,16 @@ fun StockScreen(
                         value = quantity,
                         onValueChange = { quantity = it },
                         label = { Text("Quantity") },
-                        modifier = Modifier.weight(1f)
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
                     )
                     OutlinedTextField(
                         value = sku,
                         onValueChange = { sku = it },
                         label = { Text("SKU (Optional)") },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
                     )
                 }
 
@@ -273,13 +365,19 @@ fun StockScreen(
                         val qty = quantity.toIntOrNull() ?: 0
                         if (name.isNotBlank() && sp > 0) {
                             stockViewModel.addProduct(
-                                name = name,
+                                name = name.trim(),
                                 buyingPrice = bp,
                                 sellingPrice = sp,
                                 quantity = qty,
-                                sku = sku.ifBlank { null },
+                                sku = sku.trim().ifBlank { null },
                                 imagePath = imagePath
                             )
+                            name = ""
+                            buyingPrice = ""
+                            sellingPrice = ""
+                            quantity = ""
+                            sku = ""
+                            imagePath = null
                         }
                     }
                 )
@@ -288,17 +386,16 @@ fun StockScreen(
     }
 }
 
-/**
- * Expressive Inventory Item Card with visual stock progress bar
- */
 @Composable
 fun StockProductCard(
     product: ProductEntity,
     onClick: () -> Unit = {}
 ) {
     val isLow = product.quantity <= product.lowStock
-    val margin = if (product.sellingPrice > 0) {
-        ((product.sellingPrice - product.buyingPrice) / product.sellingPrice * 100).toInt()
+    val selling = product.sellingPrice.asMoney()
+    val buying = product.buyingPrice.asMoney()
+    val margin = if (selling > 0.0) {
+        ((selling - buying) / selling * 100).toInt()
     } else 0
 
     AideCard(onClick = onClick) {
@@ -351,7 +448,7 @@ fun StockProductCard(
 
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = money(product.sellingPrice.asMoney()),
+                        text = money(selling),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.primary
@@ -368,7 +465,6 @@ fun StockProductCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Stock Indicator Bar
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -382,7 +478,7 @@ fun StockProductCard(
                 )
                 if (isLow) {
                     AideBadge(
-                        text = "Low Stock Alert (Threshold: ${product.lowStock})",
+                        text = "Low Stock (Alert: ${product.lowStock})",
                         containerColor = WarningAmber.copy(alpha = 0.2f),
                         contentColor = WarningAmber,
                         icon = Icons.Default.Warning

@@ -1,19 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser, toAuthError } from "@/lib/apiAuth";
 import { prisma } from "@/lib/prisma";
+import { isAdminEmail } from "@/lib/adminEmails";
 
 export const dynamic = "force-dynamic";
-
-// Platform admin emails sign in against the Admin table (see lib/auth.ts);
-// a regular user must not be able to take one of those addresses, or their
-// next login would be routed to the admin credential check and fail.
-function isAdminEmail(email: string): boolean {
-  const adminEmails = (process.env.ADMIN_EMAILS || "kipkiruigideon890@gmail.com")
-    .split(",")
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
-  return adminEmails.includes(email);
-}
 
 /**
  * Update the signed-in user's own profile (name and/or email).
