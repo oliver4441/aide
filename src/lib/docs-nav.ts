@@ -148,6 +148,15 @@ export const DOC_PAGES: DocPage[] = [
     lastModified: "2026-10-01",
   },
   {
+    slug: "guides/data-import",
+    title: "Data import",
+    description:
+      "Bring historical products and customers into Aide from CSV or Excel — column mapping, dry-run validation, duplicate handling and one-click undo.",
+    category: "guides",
+    file: "guides/data-import",
+    lastModified: "2026-11-23",
+  },
+  {
     slug: "guides/notifications",
     title: "Notifications",
     description:

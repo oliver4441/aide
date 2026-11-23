@@ -107,6 +107,15 @@ export async function getAccessibleBusinessIds(user: SessionUser): Promise<strin
 }
 
 /**
+ * Backwards-compatible alias for older internal call sites
+ * (/api/internal/accounting/tenants/[orgId]/status).
+ * @deprecated Use getAccessibleBusinessIds instead.
+ */
+export async function accessibleBusinessIds(user: SessionUser): Promise<string[]> {
+  return getAccessibleBusinessIds(user);
+}
+
+/**
  * Resolves the business to operate on and asserts the caller belongs to it.
  *
  * A caller-supplied `businessId` is only honoured when the caller is a

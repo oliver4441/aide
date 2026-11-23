@@ -10,6 +10,7 @@ Multi-business management platform for small shops and businesses.
 - **Sales History** - Transaction logs and receipts
 - **Business Reports** - Revenue, profit, and analytics
 - **Admin Dashboard** - Platform administration
+- **Data Import** - Bring historical products and customers in from CSV or Excel (column mapping, dry-run validation, duplicate handling, one-click undo)
 - **Offline-First** - Works without internet
 - **PWA** - Installable on any device
 
