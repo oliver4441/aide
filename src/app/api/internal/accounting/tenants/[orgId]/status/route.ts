@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser, accessibleBusinessIds, toAuthError } from "@/lib/apiAuth";
+import { requireUser, getAccessibleBusinessIds, toAuthError } from "@/lib/apiAuth";
 import { resolveTrustedAccountingTenant, TENANT_LIFECYCLE } from "@/lib/accountingBridge.mjs";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +10,7 @@ export async function GET(
 ) {
   try {
     const user = await requireUser(request);
-    const allowedIds = await accessibleBusinessIds(user);
+    const allowedIds = await getAccessibleBusinessIds(user);
     const resolvedOrgId = resolveTrustedAccountingTenant(allowedIds, context.params.orgId);
 
     if (!resolvedOrgId || resolvedOrgId !== context.params.orgId) {
