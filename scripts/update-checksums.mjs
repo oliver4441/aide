@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /**
  * Merge SHA-256 checksums of a directory of release assets into
- * public/apk-checksums.json, keyed by release tag then asset filename.
+ * public/desktop-checksums.json, keyed by release tag then asset filename.
  *
- *   node scripts/update-checksums.mjs <asset-dir> <tag>
+ *   node scripts/update-checksums.mjs <asset-dir> <tag> [--desktop]
  *
- * The /downloads page reads that file and shows a copyable hash per asset.
+ * The /downloads and /changelog pages read that file and show a copyable hash per asset.
  * It is written by CI right after a release is published, because a hash can
  * only be computed from the exact bytes that were uploaded — hashing them
  * later by hand is how a checksum file silently drifts out of date.
@@ -17,14 +17,16 @@ import { createHash } from "node:crypto";
 import { createReadStream, readdirSync, statSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 
-const [dir, tag] = process.argv.slice(2);
+const [dir, tag, ...flags] = process.argv.slice(2);
+
+const isDesktop = flags.includes("--desktop");
 
 if (!dir || !tag) {
-  console.error("usage: node scripts/update-checksums.mjs <asset-dir> <tag>");
+  console.error("usage: node scripts/update-checksums.mjs <asset-dir> <tag> [--desktop]");
   process.exit(1);
 }
 
-const CHECKSUMS_PATH = resolve("public/apk-checksums.json");
+const CHECKSUMS_PATH = resolve(isDesktop ? "public/desktop-checksums.json" : "public/apk-checksums.json");
 
 const sha256 = (path) =>
   new Promise((res, rej) => {

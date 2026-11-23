@@ -149,7 +149,55 @@ jobs:
       - name: List artifacts
         run: find dist -type f | sort
 
-      - name: Create GitHub Release
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Determine publication mode and source commit
+        id: mode
+        env:
+          SOURCE_SHA: $(git rev-parse HEAD)
+        run: |
+          set -euo pipefail
+          echo "source_sha=${SOURCE_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch GitHub API releases for changelog source references
+        id: releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          gh api "repos/$REPOSITORY/releases?per_page=100" > "$RUNNER_TEMP/releases.json"
+          echo "releases_json=$RUNNER_TEMP/releases.json" >> "$GITHUB_OUTPUT"
+
+      - name: Generate release notes
+        id: notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          SOURCE_SHA: ${{ steps.mode.outputs.source_sha }}
+        run: |
+          set -euo pipefail
+          # Get source notes from GitHub API (ordered list format)
+          gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes" \
+            -f tag_name="$TAG" \
+            -f target_commitish="${{ steps.mode.outputs.source_sha }}" \
+            --jq .body > "$RUNNER_TEMP/source-notes.md"
+
+          # Create a desktop-specific section appended to the source notes
+          {
+            echo '## Desktop-specific changes'
+            echo ''
+            echo 'This is a desktop release of Aide.'
+          } > "$RUNNER_TEMP/desktop-notes.md"
+
+          # Combine notes
+          cat "$RUNNER_TEMP/desktop-notes.md" "$RUNNER_TEMP/source-notes.md" > "$RUNNER_TEMP/final-notes.md"
+
+          echo "changelog=$RUNNER_TEMP/final-notes.md" >> "$GITHUB_OUTPUT"
+
+      - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           # Distinct from the Android tags (v1.0.x) so releases never collide.
@@ -157,7 +205,7 @@ jobs:
           name: "Aide Desktop v${{ steps.version.outputs.version }}"
           draft: false
           prerelease: false
-          generate_release_notes: true
+          body_path: ${{ steps.notes.outputs.changelog }}
           files: dist/**/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
