@@ -6,13 +6,13 @@ import { useSales } from "@/hooks/useSales";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 import { formatMoney } from "@/lib/format";
 import { printReceipt } from "@/components/receipt/PrintReceipt";
-import { SaleRecord, SaleItemRecord } from "@/lib/db";
+import { ProductRecord, SaleRecord, SaleItemRecord } from "@/lib/db";
 
 interface CartItem {
   productId: string;
   name: string;
-  price: number;
-  cost: number;
+  price: string;
+  cost: string;
   quantity: number;
   isService: boolean;
 }
@@ -39,7 +39,7 @@ export default function POSPage() {
       (p.sku && p.sku.toLowerCase().includes(search.toLowerCase()))
   );
 
-  const addToCart = (product: any) => {
+  const addToCart = (product: ProductRecord) => {
     setCart((prev) => {
       const existing = prev.find((c) => c.productId === product.id);
       if (existing) {

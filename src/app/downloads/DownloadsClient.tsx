@@ -14,6 +14,7 @@ import {
   Loader2,
 } from "lucide-react";
 import UiButton from "@/components/ui/UiButton";
+import UiLoader from "@/components/ui/UiLoader";
 import { fetchLatestRelease, getDeviceLabel, type ReleaseInfo } from "@/lib/device";
 
 
