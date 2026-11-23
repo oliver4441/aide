@@ -2,7 +2,7 @@
 
 - **Issue**: #77 (Parent: #75)
 - **Pinned Baseline**: `607f10a43d7ae9418c6ae50a4e38d262f161a9c4`
-- **Compose Spec**: `infra/bigcapital/docker-compose.yml`
+- **Compose Spec**: `infra/aide-accounting/docker-compose.yml`
 
 ---
 
@@ -31,7 +31,7 @@
 Always take a consistent MariaDB dump before running schema migrations or upgrading `BIGCAPITAL_IMAGE_TAG`:
 
 ```bash
-docker compose -f infra/bigcapital/docker-compose.yml exec -T bigcapital-mariadb \
+docker compose -f infra/aide-accounting/docker-compose.yml exec -T bigcapital-mariadb \
   mysqldump -u root -p"$BIGCAPITAL_DB_ROOT_PASSWORD" --all-databases --single-transaction \
   > "backup-$(date +%Y%m%d-%H%M%S).sql"
 ```
@@ -40,7 +40,7 @@ docker compose -f infra/bigcapital/docker-compose.yml exec -T bigcapital-mariadb
 Verify backups regularly in staging:
 
 ```bash
-docker compose -f infra/bigcapital/docker-compose.yml exec -T bigcapital-mariadb \
+docker compose -f infra/aide-accounting/docker-compose.yml exec -T bigcapital-mariadb \
   mysql -u root -p"$BIGCAPITAL_DB_ROOT_PASSWORD" < backup-YYYYMMDD-HHMMSS.sql
 ```
 
@@ -50,6 +50,6 @@ docker compose -f infra/bigcapital/docker-compose.yml exec -T bigcapital-mariadb
 
 1. Take a pre-migration backup (Section 3).
 2. Update `BIGCAPITAL_IMAGE_TAG` in `.env` to the new pinned commit SHA.
-3. Pull and restart: `docker compose -f infra/bigcapital/docker-compose.yml up -d`.
+3. Pull and restart: `docker compose -f infra/aide-accounting/docker-compose.yml up -d`.
 4. Verify `/api/health` and run a smoke check against a **canary tenant** before routing production traffic.
 5. **Rollback**: Revert `BIGCAPITAL_IMAGE_TAG` to the previous SHA, restore the pre-migration SQL dump if schema changed, and restart the stack.
