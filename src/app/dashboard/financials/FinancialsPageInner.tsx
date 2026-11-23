@@ -5,6 +5,7 @@ import { formatMoney } from "@/lib/format";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 import { AIDE_ACCOUNTING_BRANDING } from "@/lib/accountingBranding.mjs";
 import { KENYA_DEFAULTS, buildFinancialCsv } from "@/lib/kenyaLocalization.mjs";
+import { summarizeSyncQueue } from "@/lib/accountingOfflineSync.mjs";
 
 type Tab = "pl" | "balance" | "cashflow" | "trial";
 
@@ -147,8 +148,12 @@ export default function FinancialsPageInner() {
             Profit & Loss, Balance Sheet, Cash Flow, and Trial Balance · {KENYA_DEFAULTS.timezone} ({business?.currency || KENYA_DEFAULTS.currency})
           </p>
         </div>
-        <button
-          type="button"
+        <div className="flex items-center gap-3">
+          <span className="px-2.5 py-1 border border-rule text-xs font-mono text-secondary">
+            Sync: {summarizeSyncQueue([]).queued === 0 ? "Ready" : "Queued"}
+          </span>
+          <button
+            type="button"
           onClick={() => {
             const csv = buildFinancialCsv(rows, [
               { key: "label", label: "Account / Line" },
@@ -164,9 +169,10 @@ export default function FinancialsPageInner() {
           }}
           disabled={rows.length === 0}
           className="px-3 py-1.5 border border-ink text-xs font-display font-bold uppercase tracking-wider hover:bg-ink hover:text-ground disabled:opacity-40"
-        >
-          Export CSV
-        </button>
+          >
+            Export CSV
+          </button>
+        </div>
       </div>
 
       {/* Date Range — inline */}

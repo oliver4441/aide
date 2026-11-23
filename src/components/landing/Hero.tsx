@@ -30,11 +30,12 @@ export default function Hero() {
       />
 
       <Container className="relative z-10 text-center">
-        <div className="mx-auto mb-6 inline-flex items-center gap-2 border border-accent bg-accent/10 px-3.5 py-1.5 text-xs font-display font-black text-accent">
-          <span className="h-1.5 w-1.5 border border-accent text-accent" />
-          Offline-first business workspace
-        </div>
-
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              'document.documentElement.classList.add("dark");try{localStorage.setItem("theme","dark");}catch(e){}',
+          }}
+        />
         <h1 className="mx-auto max-w-5xl font-display text-5xl font-black tracking-[-0.04em] text-ink sm:text-6xl md:text-7xl lg:text-[84px] lg:leading-[0.98]">
           Run your business.
           <br />
