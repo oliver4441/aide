@@ -15,8 +15,8 @@ export const DEFAULT_DASHBOARD_WALLPAPER: DashboardWallpaperId = "dusk-lake";
 
 /** Scrim alpha pair per wallpaper tone, per theme. */
 const SCRIM: Record<"dark" | "light", { dark: [number, number]; light: [number, number] }> = {
-  dark: { dark: [0.14, 0.18], light: [0.46, 0.5] },
-  light: { dark: [0.4, 0.42], light: [0.22, 0.26] },
+  dark: { dark: [0.86, 0.92], light: [0.88, 0.93] },
+  light: { dark: [0.88, 0.93], light: [0.88, 0.93] },
 };
 
 function getWallpaper(id: string) {

@@ -37,6 +37,17 @@ const ads: Ad[] = [
     ),
   },
   {
+    text: "BRO — Less noise. More you. Calm, private messaging",
+    highlight: "bro.omixsystems.store",
+    url: "https://bro.omixsystems.store",
+    cta: "Try BRO",
+    icon: (
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+      </svg>
+    ),
+  },
+  {
     text: "Shop the OmixSystems Market catalogue",
     highlight: "market.omixsystems.store",
     url: "https://market.omixsystems.store",
@@ -112,8 +123,8 @@ export default function AdBanner() {
   const ad = ads[idx];
 
   return (
-    <div className="max-w-[1200px] mx-auto px-4 md:px-10 pt-3">
-      <div className="border border-rule p-2 flex items-center justify-between gap-3 font-reading">
+    <div className="max-w-[1400px] mx-auto px-4 md:px-10 pt-3">
+      <div className="bg-yellow-300 border border-yellow-500 text-neutral-900 p-2.5 flex items-center justify-between gap-3 font-reading">
         <span className="text-secondary shrink-0 hidden sm:block">{ad.icon}</span>
         <a
           href={ad.url}
