@@ -53,8 +53,8 @@ export default function POSPage() {
         {
           productId: product.id,
           name: product.name,
-          price: Number(product.sellingPrice) || 0,
-          cost: Number(product.buyingPrice) || 0,
+          price: String(product.sellingPrice || 0),
+          cost: String(product.buyingPrice || 0),
           quantity: 1,
           isService: product.isService,
         },
