@@ -1,0 +1,88 @@
+services:
+  bigcapital-mariadb:
+    image: mariadb:10.11.11
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${BIGCAPITAL_DB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${BIGCAPITAL_SYSTEM_DB:-bigcapital_system}
+      MARIADB_USER: ${BIGCAPITAL_DB_USER:-bigcapital}
+      MARIADB_PASSWORD: ${BIGCAPITAL_DB_PASSWORD}
+    volumes:
+      - bigcapital_mariadb_data:/var/lib/mysql
+    networks:
+      - bigcapital_internal
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+
+  bigcapital-redis:
+    image: redis:7.4.2-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--requirepass", "${BIGCAPITAL_REDIS_PASSWORD}", "--appendonly", "yes"]
+    volumes:
+      - bigcapital_redis_data:/data
+    networks:
+      - bigcapital_internal
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${BIGCAPITAL_REDIS_PASSWORD}", "ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+  bigcapital-api:
+    image: ghcr.io/oliver4441/bigcapital-api:${BIGCAPITAL_IMAGE_TAG:-607f10a43d7ae9418c6ae50a4e38d262f161a9c4}
+    restart: unless-stopped
+    depends_on:
+      bigcapital-mariadb:
+        condition: service_healthy
+      bigcapital-redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      JWT_SECRET: ${BIGCAPITAL_JWT_SECRET}
+      DB_HOST: bigcapital-mariadb
+      DB_PORT: 3306
+      DB_USER: ${BIGCAPITAL_DB_USER:-bigcapital}
+      DB_PASSWORD: ${BIGCAPITAL_DB_PASSWORD}
+      DB_NAME: ${BIGCAPITAL_SYSTEM_DB:-bigcapital_system}
+      REDIS_HOST: bigcapital-redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${BIGCAPITAL_REDIS_PASSWORD}
+      TZ: Africa/Nairobi
+    # Bound to localhost/private gateway only; never expose directly to public internet.
+    ports:
+      - "127.0.0.1:3100:3000"
+    networks:
+      - bigcapital_internal
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+
+volumes:
+  bigcapital_mariadb_data:
+  bigcapital_redis_data:
+
+networks:
+  bigcapital_internal:
+    driver: bridge
+    internal: true
