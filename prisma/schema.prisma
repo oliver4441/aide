@@ -126,6 +126,9 @@ model Business {
   splitPayments     SplitPayment[]
   shifts            CashierShift[]
 
+  // AIDE-22: Data import
+  importBatches     ImportBatch[]
+
   @@index([organizationId])
 }
 
@@ -1330,4 +1333,50 @@ model ApprovalDecision {
 
   @@unique([requestId, actorId])
   @@index([requestId])
+}
+
+
+// AIDE-22: auditable record of one data-import run. Rollback support:
+// createdIds holds the ids of records created by this batch so an undo can
+// delete exactly what the import created (scoped to businessId). For rows
+// merged into existing records, updatedSnapshot stores the prior values of
+// exactly the fields the import overwrote, so an undo can restore them.
+model ImportBatch {
+  id                String                  @id @default(cuid())
+  fileName          String
+  entity            ImportEntity
+  status            ImportBatchStatus       @default(COMPLETED)
+  duplicateStrategy ImportDuplicateStrategy @default(SKIP)
+  mapping           Json?
+  totalRows         Int
+  createdCount      Int                     @default(0)
+  updatedCount      Int                     @default(0)
+  skippedCount      Int                     @default(0)
+  failedCount       Int                     @default(0)
+  createdIds        Json?                   // { products?: string[], customers?: string[], categoryIds?: string[] }
+  updatedSnapshot   Json?                   // [{ id, entity, prior: { ...overwrittenFields } }]
+  errorReport       Json?                   // [{ row, errors: string[] }]
+  createdById       String?
+  createdAt         DateTime                @default(now())
+  rolledBackAt      DateTime?
+
+  business          Business                @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId        String
+
+  @@index([businessId, createdAt])
+}
+
+enum ImportEntity {
+  PRODUCTS
+  CUSTOMERS
+}
+
+enum ImportBatchStatus {
+  COMPLETED
+  ROLLED_BACK
+}
+
+enum ImportDuplicateStrategy {
+  SKIP
+  MERGE
 }

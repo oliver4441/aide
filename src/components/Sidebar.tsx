@@ -23,6 +23,7 @@ import {
   RotateCcw,
   Clock,
   Landmark,
+  Upload,
   PanelLeftClose,
   PanelLeftOpen,
   type LucideIcon,
@@ -64,6 +65,7 @@ const navSections: NavSection[] = [
       { label: "Suppliers", href: "/dashboard/suppliers", icon: "suppliers", offlineReady: false },
       { label: "Reports", href: "/dashboard/reports", icon: "reports", offlineReady: true },
       { label: "Financials", href: "/dashboard/financials", icon: "financials", offlineReady: false },
+      { label: "Data Import", href: "/dashboard/import", icon: "import", offlineReady: false },
     ],
   },
   {
@@ -88,6 +90,7 @@ const navIcons: Record<string, LucideIcon> = {
   suppliers: Truck,
   reports: BarChart3,
   financials: Landmark,
+  import: Upload,
   settings: Settings,
   calculator: Calculator,
   help: HelpCircle,
@@ -106,6 +109,7 @@ const mobileNavItems = [
 const moreSheetItems = [
   { label: "Reports", href: "/dashboard/reports", icon: "reports" },
   { label: "Financials", href: "/dashboard/financials", icon: "financials" },
+  { label: "Data Import", href: "/dashboard/import", icon: "import" },
   { label: "Customers", href: "/dashboard/customers", icon: "customers" },
   { label: "Invoices", href: "/dashboard/invoices", icon: "invoices" },
   { label: "Suppliers", href: "/dashboard/suppliers", icon: "suppliers" },
