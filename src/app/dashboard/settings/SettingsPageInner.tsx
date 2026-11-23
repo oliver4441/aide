@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
+import Link from "next/link";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 import { useCategories } from "@/hooks/useCategories";
 import db from "@/lib/db";
@@ -558,6 +559,20 @@ export default function SettingsPage() {
             />
           ))}
         </div>
+      </div>
+
+      {/* Organization Hierarchy */}
+      <div className="border border-rule p-6 bg-ground">
+        <h2 className="font-display text-lg font-black text-ink mb-4">Organization Hierarchy</h2>
+        <p className="font-display text-sm text-secondary mb-4">
+          Manage organization, branches, departments, warehouses, terminals and cash drawers
+        </p>
+        <Link
+          href="/dashboard/settings/organization"
+          className="np-btn np-btn--accent"
+        >
+          Open Organization Hierarchy
+        </Link>
       </div>
 
       {/* Danger Zone */}
