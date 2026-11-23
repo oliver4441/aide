@@ -1,22 +1,33 @@
+export type ConflictEntityData = Record<string, unknown> & {
+  updatedAt?: string | number | Date;
+  deviceId?: string;
+};
+
 export interface ConflictInput {
   entityType: 'product' | 'sale';
   entityId: string;
-  clientData: any;
-  serverData: any;
+  clientData: ConflictEntityData;
+  serverData: ConflictEntityData;
   serverMovements?: { productId: string; delta: number; timestamp: string }[];
 }
 
 export interface ConflictResult {
   resolved: boolean;
   resolution: 'client-wins' | 'server-wins' | 'manual-review';
-  mergedData?: any;
+  mergedData?: ConflictEntityData;
   reason?: string;
+}
+
+function parseTimestamp(value: unknown): number {
+  if (value === undefined || value === null) return 0;
+  const ms = new Date(value as string | number | Date).getTime();
+  return Number.isNaN(ms) ? 0 : ms;
 }
 
 export function resolveConflict(input: ConflictInput): ConflictResult {
   if (input.entityType === 'product') {
-    const clientTime = new Date(input.clientData.updatedAt).getTime();
-    const serverTime = new Date(input.serverData.updatedAt).getTime();
+    const clientTime = parseTimestamp(input.clientData.updatedAt);
+    const serverTime = parseTimestamp(input.serverData.updatedAt);
 
     if (clientTime > serverTime) {
       return { resolved: true, resolution: 'client-wins', mergedData: input.clientData };
@@ -25,7 +36,9 @@ export function resolveConflict(input: ConflictInput): ConflictResult {
       return { resolved: true, resolution: 'server-wins', mergedData: input.serverData };
     }
 
-    if (input.clientData.deviceId > input.serverData.deviceId) {
+    const clientDeviceId = String(input.clientData.deviceId ?? '');
+    const serverDeviceId = String(input.serverData.deviceId ?? '');
+    if (clientDeviceId > serverDeviceId) {
       return { resolved: true, resolution: 'client-wins', mergedData: input.clientData };
     }
     return { resolved: true, resolution: 'server-wins', mergedData: input.serverData };
