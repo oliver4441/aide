@@ -20,7 +20,7 @@ Enhanced the `.github/workflows/release-desktop.yml` to include CHANGELOG.md gen
 - Created `/src/app/desktop-changelog/page.tsx` - A dedicated desktop changelog page
 - Updated `ChangelogClient` component:
   - Added `platform` prop to accept "all" | "android" | "desktop" filter
-  - Passes `platform` to fetch correct checksum JSON (`/desktop-checksums.json`)
+  - Uses `platform` to filter releases; checksums always read from `apk-checksums.json` (holds both Android + desktop)
   - Conditionally renders filter tabs based on platform
   - Filters releases correctly based on platform param
 - Platform-specific CSS:
@@ -30,9 +30,7 @@ Enhanced the `.github/workflows/release-desktop.yml` to include CHANGELOG.md gen
 ### 3. Checksum Management
 - Updated `scripts/update-checksums.mjs`:
   - Added optional `--desktop` flag
-  - Writes to `public/desktop-checksums.json` when flag is present
-  - Falls back to `public/apk-checksums.json` when not present
-  - Maintains backward compatibility with non-desktop builds
+  - Unchanged — single `public/apk-checksums.json` holds hashes for both APK and desktop assets (see `_comment` + `desktop-v1.0.0` entry)
 
 ### 4. Asset Processing
 - The release workflow still maintains isolation between Android (`v1.0.x`) and Desktop (`desktop-v*`)
@@ -62,7 +60,7 @@ desktop-v1.0.1 (push tag)
 └── checksums
     ├── Download latest release assets
     ├── Hash with sha256sum (exact bytes of what was uploaded)
-    ├── Merge into public/desktop-checksums.json
+    ├── Merge into public/apk-checksums.json
     └── Commit to master with [skip ci]
 ```
 
