@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { formatMoney } from "@/lib/format";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 import { AIDE_ACCOUNTING_BRANDING } from "@/lib/accountingBranding.mjs";
+import { KENYA_DEFAULTS, buildFinancialCsv } from "@/lib/kenyaLocalization.mjs";
 
 type Tab = "pl" | "balance" | "cashflow" | "trial";
 
@@ -143,9 +144,29 @@ export default function FinancialsPageInner() {
             Financial Statements
           </h1>
           <p className="font-display text-sm text-secondary">
-            Profit & Loss, Balance Sheet, Cash Flow, and Trial Balance
+            Profit & Loss, Balance Sheet, Cash Flow, and Trial Balance · {KENYA_DEFAULTS.timezone} ({business?.currency || KENYA_DEFAULTS.currency})
           </p>
         </div>
+        <button
+          type="button"
+          onClick={() => {
+            const csv = buildFinancialCsv(rows, [
+              { key: "label", label: "Account / Line" },
+              { key: "amount", label: `Amount (${business?.currency || KENYA_DEFAULTS.currency})` },
+            ]);
+            const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `aide-financial-${tab}-${toDate}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+          }}
+          disabled={rows.length === 0}
+          className="px-3 py-1.5 border border-ink text-xs font-display font-bold uppercase tracking-wider hover:bg-ink hover:text-ground disabled:opacity-40"
+        >
+          Export CSV
+        </button>
       </div>
 
       {/* Date Range — inline */}
