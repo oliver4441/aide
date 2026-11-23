@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { formatMoney } from "@/lib/format";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
+import { AIDE_ACCOUNTING_BRANDING } from "@/lib/accountingBranding.mjs";
 
 type Tab = "pl" | "balance" | "cashflow" | "trial";
 
@@ -137,7 +138,7 @@ export default function FinancialsPageInner() {
       {/* Header — ruled */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-rule pb-6">
         <div>
-          <p className="np-kicker mb-1">Accounting</p>
+          <p className="np-kicker mb-1">{AIDE_ACCOUNTING_BRANDING.productName}</p>
           <h1 className="font-display text-2xl md:text-3xl font-black text-ink mb-1">
             Financial Statements
           </h1>
@@ -242,6 +243,19 @@ export default function FinancialsPageInner() {
           </tbody>
         </table>
       </div>
+
+      {/* Legal & AGPL-3.0 Attribution Notice */}
+      <footer className="border-t border-rule pt-4 text-xs text-secondary flex flex-wrap items-center justify-between gap-2">
+        <span>{AIDE_ACCOUNTING_BRANDING.legalNotices.attributionText}</span>
+        <a
+          href={AIDE_ACCOUNTING_BRANDING.legalNotices.sourceUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline hover:text-ink"
+        >
+          Source ({AIDE_ACCOUNTING_BRANDING.legalNotices.license})
+        </a>
+      </footer>
     </div>
   );
 }
