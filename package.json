@@ -12,6 +12,8 @@
     "db:studio": "prisma studio",
     "db:generate": "prisma generate",
     "electron:start": "cd electron && npm start",
+    "desktop:build": "npm run build && rm -rf electron/app electron/.next && mkdir -p electron/app && cp -r .next/standalone/* electron/app/ && mkdir -p electron/app/.next && cp -r .next/static electron/app/.next/static && cp -r public electron/app/public",
+    "desktop:sync": "cd electron && npm run build && capacitor-electron vendor",
     "electron:build:win": "cd electron && npm run build:win",
     "electron:build:mac": "cd electron && npm run build:mac",
     "electron:build:linux": "cd electron && npm run build:linux",
@@ -20,6 +22,9 @@
     "test:release": "node --test scripts/tests/*.test.mjs"
   },
   "dependencies": {
+    "@capacitor/cli": "^8.6.2",
+    "@capacitor/core": "^8.6.2",
+    "@capawesome/capacitor-electron": "^0.2.2",
     "@prisma/client": "^5.14.0",
     "@sentry/nextjs": "8.55.0",
     "@types/qrcode": "^1.5.6",
@@ -35,18 +40,15 @@
     "lucide-react": "^1.49.0",
     "next": "^14.2.0",
     "next-auth": "^4.24.0",
-    "papaparse": "^5.7.1",
     "qrcode": "^1.5.4",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "tailwind-merge": "^2.3.0",
-    "xlsx": "^0.18.5",
     "zod": "^3.23.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20.12.0",
-    "@types/papaparse": "^5.5.2",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
     "autoprefixer": "^10.4.0",
