@@ -22,27 +22,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <DashboardInit />
       <OnboardingFlow />
       <BusinessGate />
-      {/* Top-right utility cluster */}
-      <div className="fixed top-4 right-4 z-[60] flex items-center gap-2">
-        <ThemeToggle />
-        <NotificationBell />
-      </div>
       <Sidebar />
-      <div className="md:ml-[260px] pt-2 pb-24 md:pb-6">
+      <div className="md:ml-[260px] pb-24 md:pb-6">
+        <header className="sticky top-0 z-40 border-b border-rule bg-ground/90 backdrop-blur-sm">
+          <div className="px-4 md:px-10 py-3 max-w-[1400px] mx-auto flex items-center justify-between gap-4">
+            <nav className="text-sm text-secondary flex items-center gap-2 flex-wrap" aria-label="Breadcrumb">
+              <Link href="/" className="hover:text-ink">Home</Link>
+              <span aria-hidden="true">/</span>
+              <span aria-current="page" className="text-ink font-medium">Dashboard</span>
+            </nav>
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <NotificationBell />
+            </div>
+          </div>
+        </header>
         <AdBanner />
-        <div className="p-4 md:px-10 md:pb-10 max-w-[1200px] mx-auto">
-          <nav className="text-sm text-secondary mb-2 flex items-center gap-2 flex-wrap" aria-label="Breadcrumb">
-            <Link href="/" className="hover:text-ink">Home</Link>
-            <span aria-hidden="true">/</span>
-            <span aria-current="page">Dashboard</span>
-          </nav>
+        <div className="p-4 md:px-10 md:py-8 max-w-[1400px] mx-auto">
           {children}
         </div>
       </div>
-      {/* Offline indicator (bottom-left) */}
-      <div className="fixed bottom-4 left-4 z-50 pointer-events-none">
-        <OfflineStatus />
-      </div>
+      {/* Offline indicator removed */}
       <HelpWidget />
       <ReviewPrompt />
       <InstallPrompt />

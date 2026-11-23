@@ -265,7 +265,7 @@ export default function Sidebar() {
 
       {/* Mobile Bottom Nav — ruled, square */}
       <nav
-        className="md:hidden fixed bottom-4 left-4 right-4 z-50"
+        className="md:hidden fixed bottom-4 left-1/2 -translate-x-1/2 w-fit z-50"
         aria-label="Primary navigation"
       >
         <div className="flex items-center justify-between gap-2 border border-rule bg-ground px-3 py-2">
