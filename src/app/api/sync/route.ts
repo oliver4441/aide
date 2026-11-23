@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { BusinessRole, PaymentMethod } from "@prisma/client";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireBusiness, toAuthError } from "@/lib/apiAuth";
 import { resolveConflict, checkStockOversell } from "@/lib/conflicts";
@@ -19,22 +20,38 @@ function parseSinceDate(since: string | null): Date | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
+const syncMutationSchema = z.object({
+  table: z.string().min(1),
+  action: z.string().min(1),
+  recordId: z.string().optional().default(""),
+  data: z.record(z.unknown()).optional(),
+});
+
+const syncBodySchema = z.object({
+  businessId: z.string().nullable().optional(),
+  deviceId: z.string().optional(),
+  mutations: z.array(syncMutationSchema),
+});
+
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { mutations, deviceId } = body;
+    const rawBody = await request.json();
+    const parsedBody = syncBodySchema.safeParse(rawBody);
+    if (!parsedBody.success) {
+      return NextResponse.json(
+        { error: "Invalid sync payload", details: parsedBody.error.flatten() },
+        { status: 400 }
+      );
+    }
+    const { mutations, deviceId } = parsedBody.data;
 
-    const { user, businessId } = await requireBusiness(body?.businessId ?? null, request);
+    const { user, businessId } = await requireBusiness(parsedBody.data.businessId ?? null, request);
     const membership = await prisma.businessMembership.findUnique({
       where: { userId_businessId: { userId: user.id, businessId } },
       select: { role: true },
     });
     if (!membership) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    if (!mutations || !Array.isArray(mutations)) {
-      return NextResponse.json({ error: "mutations array required" }, { status: 400 });
     }
 
     let synced = 0;

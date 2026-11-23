@@ -32,6 +32,9 @@ cp .env.example .env.local
 
 # Run development server
 npm run dev
+
+# Run unit tests
+npm test
 ```
 
 > **Type-checking needs the generated Prisma client.** `npm install` runs
@@ -50,8 +53,7 @@ deployment CI build use `pnpm-lock.yaml` with pnpm pinned in `package.json`. Kee
 both in sync when changing dependencies. After updating the npm lock, run:
 
 ```sh
-npx --yes pnpm@10.34.9 import
-npx --yes pnpm@10.34.9 install --lockfile-only --frozen-lockfile --ignore-scripts
+npm run lock:sync
 ```
 
 CI builds with both npm and a frozen pnpm install, so npm's dependency hoisting

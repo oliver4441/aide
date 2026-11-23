@@ -41,6 +41,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Run unit tests
+        run: npm run test:release
+
       # The app's public pages are all static; DATABASE_URL is only used if a
       # route queries Prisma at build time.
       - name: Build
