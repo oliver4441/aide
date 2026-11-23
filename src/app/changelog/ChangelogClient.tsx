@@ -53,7 +53,8 @@ export default function ChangelogClient({ platform = "all" }: ChangelogClientPro
     (async () => {
       const [list, sums] = await Promise.all([
         fetchAllReleases().catch(() => []),
-        fetch(platform === "desktop" ? "/desktop-checksums.json" : "/apk-checksums.json")
+        // apk-checksums.json holds hashes for both android and desktop assets.
+        fetch("/apk-checksums.json")
           .then((r) => (r.ok ? r.json() : { releases: {} }))
           .catch(() => ({ releases: {} })),
       ]);
