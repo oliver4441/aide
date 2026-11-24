@@ -5,6 +5,8 @@
   "version": "1.0.0",
   "description": "Aide - Offline-first Business Management Platform",
   "main": "build/main.js",
+  "author": "Omix Digital Solutions",
+  "homepage": "https://aide.omixsystems.store",
   "scripts": {
     "build": "tsc",
     "start": "electron .",
