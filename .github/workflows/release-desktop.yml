@@ -54,7 +54,7 @@ jobs:
         run: |
           CAPACITOR_ROOT_DIR=$PWD \
           CAPACITOR_WEB_DIR=$PWD/out \
-          node node_modules/@capawesome/capacitor-electron/dist/cli/index.js update
+          node $PWD/node_modules/@capawesome/capacitor-electron/dist/cli/index.js update
         working-directory: electron
 
       - name: Vendor Electron dependencies
