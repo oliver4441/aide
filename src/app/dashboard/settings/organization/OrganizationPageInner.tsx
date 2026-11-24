@@ -103,7 +103,7 @@ export default function OrganizationPageInner() {
     fetchOrg();
   }, [fetchOrg]);
 
-  const handleSaveOrg = async (e: React.FormEvent) => {
+  const handleSaveOrg = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     setSaving(true);
@@ -132,7 +132,7 @@ export default function OrganizationPageInner() {
     }
   };
 
-  const handleCreateDepartment = async (e: React.FormEvent) => {
+  const handleCreateDepartment = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     const formData = new FormData(e.currentTarget);
@@ -159,7 +159,7 @@ export default function OrganizationPageInner() {
     }
   };
 
-  const handleCreateLocation = async (e: React.FormEvent) => {
+  const handleCreateLocation = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     const formData = new FormData(e.currentTarget);
@@ -186,7 +186,7 @@ export default function OrganizationPageInner() {
     }
   };
 
-  const handleCreateTerminal = async (e: React.FormEvent) => {
+  const handleCreateTerminal = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     const formData = new FormData(e.currentTarget);
@@ -213,7 +213,7 @@ export default function OrganizationPageInner() {
     }
   };
 
-  const handleCreateDrawer = async (e: React.FormEvent) => {
+  const handleCreateDrawer = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     const formData = new FormData(e.currentTarget);

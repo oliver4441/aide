@@ -94,7 +94,7 @@ model Business {
 
   // Inverse sides for optional branch→Business relations (AIDE-02).
   warehouses  Warehouse[]
-  terminals   POSTerminal[]
+  terminals   Terminal[]
   cashDrawers CashDrawer[]
 
   // Double-entry accounting (AIDE-05)
@@ -149,7 +149,7 @@ model Organization {
   departments     Department[]
   warehouses      Warehouse[]
   stockLocations  StockLocation[]
-  terminals       POSTerminal[]
+  terminals       Terminal[]
   cashDrawers     CashDrawer[]
 }
 
@@ -216,14 +216,14 @@ model StockLocation {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
-  terminals      POSTerminal[]
+  terminals      Terminal[]
   @@unique([warehouseId, code])
   @@index([organizationId])
   @@index([warehouseId])
 }
 
 // A POS terminal / checkout lane. Optional branch + stock-location association.
-model POSTerminal {
+model Terminal {
   id             String         @id @default(cuid())
   organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   organizationId String
@@ -257,7 +257,7 @@ model CashDrawer {
   organizationId String
   branch         Business?        @relation(fields: [branchId], references: [id], onDelete: SetNull)
   branchId       String?
-  terminal       POSTerminal?     @relation(fields: [terminalId], references: [id], onDelete: SetNull)
+  terminal       Terminal?       @relation(fields: [terminalId], references: [id], onDelete: SetNull)
   terminalId     String?
   name           String
   code           String?
