@@ -7,6 +7,7 @@ import Pricing from "@/components/landing/Pricing";
 import CtaSection from "@/components/landing/CtaSection";
 import LandingFooter from "@/components/landing/LandingFooter";
 import DownloadSection from "@/components/landing/DownloadSection";
+import ChangelogSection from "@/components/landing/ChangelogSection";
 import type { Metadata } from "next";
 import { SITE_URL } from "@/lib/site";
 
@@ -63,6 +64,7 @@ export default function LandingPage() {
           <Pricing />
           <FaqSection />
           <DownloadSection />
+          <ChangelogSection />
           <CtaSection />
         </main>
         <LandingFooter />
