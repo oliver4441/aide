@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const code = typeof body?.code === "string" ? body.code.trim().toUpperCase() : "";
     const name = typeof body?.name === "string" ? body.name.trim() : "";
-    const description = typeof body?.description === "string" ? body.description.trim() : null;
+    const costCentre = typeof body?.costCentre === "string" ? body.costCentre.trim() : null;
     const parentId = typeof body?.parentId === "string" ? body.parentId : null;
 
     if (!code || !name) {
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
       data: {
         code,
         name,
-        description,
+        costCentre,
         parentId,
         organizationId,
       },

@@ -19,17 +19,17 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const branchId = searchParams.get("branchId");
+    const warehouseId = searchParams.get("warehouseId");
 
     const where: any = { organizationId };
-    if (branchId) where.branchId = branchId;
+    if (warehouseId) where.warehouseId = warehouseId;
 
     const locations = await prisma.stockLocation.findMany({
       where,
       include: {
-        branch: { select: { id: true, name: true } },
+        warehouse: { select: { id: true, name: true } },
       },
-      orderBy: [{ branchId: "asc" }, { code: "asc" }],
+      orderBy: [{ warehouseId: "asc" }, { code: "asc" }],
     });
 
     return NextResponse.json(locations);
@@ -54,26 +54,21 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const code = typeof body?.code === "string" ? body.code.trim().toUpperCase() : "";
     const name = typeof body?.name === "string" ? body.name.trim() : "";
-    const type = typeof body?.type === "string" ? body.type.toUpperCase() : "WAREHOUSE";
-    const branchId = typeof body?.branchId === "string" ? body.branchId : null;
+    const zone = typeof body?.zone === "string" ? body.zone.trim() : null;
+    const warehouseId = typeof body?.warehouseId === "string" ? body.warehouseId : null;
 
     if (!code || !name) {
       return NextResponse.json({ error: "Code and name are required" }, { status: 400 });
     }
 
-    const validTypes = ["WAREHOUSE", "STOCK_ROOM", "SHOP_FLOOR", "OTHER"];
-    if (!validTypes.includes(type)) {
-      return NextResponse.json({ error: "Invalid location type" }, { status: 400 });
-    }
-
-    // Validate branch belongs to same organization
-    if (branchId) {
-      const branch = await prisma.business.findUnique({
-        where: { id: branchId },
+    // Validate warehouse belongs to same organization
+    if (warehouseId) {
+      const warehouse = await prisma.warehouse.findUnique({
+        where: { id: warehouseId },
         select: { organizationId: true },
       });
-      if (!branch || branch.organizationId !== organizationId) {
-        return NextResponse.json({ error: "Invalid branch" }, { status: 400 });
+      if (!warehouse || warehouse.organizationId !== organizationId) {
+        return NextResponse.json({ error: "Invalid warehouse" }, { status: 400 });
       }
     }
 
@@ -81,8 +76,8 @@ export async function POST(request: NextRequest) {
       data: {
         code,
         name,
-        type,
-        branchId,
+        zone,
+        warehouseId,
         organizationId,
       },
     });

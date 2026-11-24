@@ -75,17 +75,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Validate location belongs to same organization (and optionally branch)
+    // Validate location belongs to same organization
     if (locationId) {
       const location = await prisma.stockLocation.findUnique({
         where: { id: locationId },
-        select: { organizationId: true, branchId: true },
+        select: { organizationId: true, warehouseId: true },
       });
       if (!location || location.organizationId !== organizationId) {
         return NextResponse.json({ error: "Invalid stock location" }, { status: 400 });
-      }
-      if (branchId && location.branchId !== branchId) {
-        return NextResponse.json({ error: "Stock location does not belong to selected branch" }, { status: 400 });
       }
     }
 

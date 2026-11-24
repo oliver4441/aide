@@ -29,7 +29,6 @@ export async function GET(request: NextRequest) {
             type: true,
             currency: true,
             taxRate: true,
-            status: true,
             createdAt: true,
           },
         },
@@ -38,7 +37,7 @@ export async function GET(request: NextRequest) {
             id: true,
             code: true,
             name: true,
-            description: true,
+            costCentre: true,
             parentId: true,
             createdAt: true,
           },
@@ -48,9 +47,9 @@ export async function GET(request: NextRequest) {
             id: true,
             code: true,
             name: true,
-            type: true,
-            branchId: true,
-            branch: { select: { id: true, name: true } },
+            zone: true,
+            warehouseId: true,
+            warehouse: { select: { id: true, name: true } },
             createdAt: true,
           },
         },
@@ -93,10 +92,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await requireBusiness(request);
+    const { user, businessId } = await requireBusiness(null, request);
 
     const membership = await prisma.businessMembership.findUnique({
-      where: { userId_businessId: { userId: user.user.id, businessId: user.businessId } },
+      where: { userId_businessId: { userId: user.id, businessId } },
       select: { role: true, business: { select: { organizationId: true } } },
     });
 
@@ -153,7 +152,7 @@ export async function PATCH(request: NextRequest) {
       name?: string;
       legalName?: string;
       baseCurrency?: string;
-      status?: "ACTIVE" | "INACTIVE" | "SUSPENDED";
+      status?: "ACTIVE" | "ARCHIVED";
     } = {};
 
     if (body.name !== undefined) {
@@ -162,7 +161,7 @@ export async function PATCH(request: NextRequest) {
       data.name = name;
     }
     if (body.legalName !== undefined) {
-      data.legalName = String(body.legalName).trim() || null;
+      data.legalName = String(body.legalName).trim() || undefined;
     }
     if (body.baseCurrency !== undefined) {
       const currency = String(body.baseCurrency).trim().toUpperCase();
@@ -171,10 +170,10 @@ export async function PATCH(request: NextRequest) {
     }
     if (body.status !== undefined) {
       const status = String(body.status).toUpperCase();
-      if (!["ACTIVE", "INACTIVE", "SUSPENDED"].includes(status)) {
+      if (!["ACTIVE", "ARCHIVED"].includes(status)) {
         return NextResponse.json({ error: "Invalid status" }, { status: 400 });
       }
-      data.status = status as "ACTIVE" | "INACTIVE" | "SUSPENDED";
+      data.status = status as "ACTIVE" | "ARCHIVED";
     }
 
     if (Object.keys(data).length === 0) {

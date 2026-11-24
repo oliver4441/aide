@@ -65,13 +65,10 @@ export async function PATCH(
       if (body.locationId) {
         const location = await prisma.stockLocation.findUnique({
           where: { id: body.locationId },
-          select: { organizationId: true, branchId: true },
+          select: { organizationId: true, warehouseId: true },
         });
         if (!location || location.organizationId !== organizationId) {
           return NextResponse.json({ error: "Invalid stock location" }, { status: 400 });
-        }
-        if (data.branchId && location.branchId !== data.branchId) {
-          return NextResponse.json({ error: "Stock location does not belong to selected branch" }, { status: 400 });
         }
       }
       data.locationId = body.locationId || null;
