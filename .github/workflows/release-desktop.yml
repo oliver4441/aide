@@ -51,15 +51,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js (root)
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: electron/package-lock.json
+          cache: 'pnpm'
 
-      - name: Install app dependencies
-        run: npm ci
+      # Root deps + Next.js build + copy to electron/app/
+      - name: Install root dependencies
+        run: pnpm install --frozen-lockfile
+        env:
+          DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
+          NEXTAUTH_SECRET: dummy
+          NEXT_PUBLIC_SENTRY_DSN: ""
+          ADMIN_EMAILS: ""
+
+      - name: Build Next.js and stage for Electron
+        run: pnpm run desktop:build
+        env:
+          DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
+          NEXTAUTH_SECRET: dummy
+          NEXT_PUBLIC_SENTRY_DSN: ""
+          ADMIN_EMAILS: ""
 
       # Each packaging target must run on its own OS: a macOS .dmg cannot be
       # produced on Linux, and Windows packaging is most reliable on Windows.
