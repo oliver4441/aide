@@ -107,9 +107,8 @@ export const authOptions: NextAuthOptions = {
       if (account && account.provider === "google" && user) {
         // Google OAuth sign-in — auto-create User + Business on first login
         const email = (user.email || "").toLowerCase().trim();
-        const isAdmin = ADMIN_EMAILS.includes(email);
 
-        if (!isAdmin) {
+        {
           let existingUser = await prisma.user.findUnique({
             where: { email },
             select: {
@@ -119,39 +118,42 @@ export const authOptions: NextAuthOptions = {
           });
 
           if (!existingUser) {
-            // Create user + first business (OWNER membership)
+            // Create user + first business (OWNER membership) in a transaction
             // Create organization first (required by AIDE-02)
-            const org = await prisma.organization.create({
-              data: {
-                name: (user.name || "My Business") + " Org",
-                slug: `org-${Date.now()}`,
-              },
-            });
-            const business = await prisma.business.create({
-              data: {
-                name: (user.name || "My Business"),
-                type: "SHOP",
-                slug: `biz-${Date.now()}`,
-                currency: "KES",
-                taxRate: "16",
-                organizationId: org.id,
-              },
-            });
-            existingUser = await prisma.user.create({
-              data: {
-                email,
-                name: user.name || "Google User",
-                passwordHash: "", // No password for OAuth-only users
-                businesses: {
-                  create: {
-                    businessId: business.id,
-                    role: "OWNER",
+            existingUser = await prisma.$transaction(async (tx) => {
+              const org = await tx.organization.create({
+                data: {
+                  name: (user.name || "My Business") + " Org",
+                  slug: `org-${Date.now()}`,
+                },
+              });
+              const business = await tx.business.create({
+                data: {
+                  name: (user.name || "My Business"),
+                  type: "SHOP",
+                  slug: `biz-${Date.now()}`,
+                  currency: "KES",
+                  taxRate: "16",
+                  organizationId: org.id,
+                },
+              });
+              const newUser = await tx.user.create({
+                data: {
+                  email,
+                  name: user.name || "Google User",
+                  passwordHash: "", // No password for OAuth-only users
+                  businesses: {
+                    create: {
+                      businessId: business.id,
+                      role: "OWNER",
+                    },
                   },
                 },
-              },
-              include: {
-                businesses: { select: { businessId: true } },
-              },
+                include: {
+                  businesses: { select: { businessId: true } },
+                },
+              });
+              return newUser;
             });
           }
 
