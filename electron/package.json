@@ -1,93 +1,21 @@
 {
-  "name": "aide",
-  "version": "1.0.13",
+  "name": "aide-electron",
+  "productName": "Aide",
+  "private": true,
+  "version": "1.0.0",
   "description": "Aide - Offline-first Business Management Platform",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/oliver4441/aide.git"
-  },
-  "main": "./main.js",
+  "main": "build/main.js",
   "scripts": {
+    "build": "tsc",
     "start": "electron .",
-    "build:win": "electron-builder --win --x64",
-    "build:mac": "electron-builder --mac --x64 --arm64",
-    "build:linux": "electron-builder --linux --x64 --arm64"
+    "pack": "npm run build && capacitor-electron vendor && electron-builder --config electron-builder.config.js",
+    "build:win": "npm run pack -- --win --x64",
+    "build:mac": "npm run pack -- --mac --x64 --arm64",
+    "build:linux": "npm run pack -- --linux --x64 --arm64"
   },
-  "keywords": [
-    "business",
-    "pos",
-    "inventory",
-    "offline-first"
-  ],
-  "author": "Omix Systems",
-  "license": "MIT",
   "devDependencies": {
-    "electron": "^28.0.0",
-    "electron-builder": "^24.9.1"
-  },
-  "build": {
-    "appId": "com.omixsystems.aide",
-    "productName": "Aide",
-    "directories": {
-      "output": "dist"
-    },
-    "files": [
-      "main.js",
-      "icon.png",
-      "package.json"
-    ],
-    "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
-      "icon": "icon.png"
-    },
-    "nsis": {
-      "oneClick": false,
-      "perMachine": true,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "shortcutName": "Aide",
-      "uninstallDisplayName": "Aide",
-      "displayLanguageSelector": false,
-      "warningsAsErrors": false
-    },
-    "mac": {
-      "target": [
-        "dmg",
-        "zip"
-      ],
-      "category": "public.app-category.business",
-      "icon": "icon.png"
-    },
-    "linux": {
-      "target": [
-        "deb",
-        "AppImage",
-        "zip"
-      ],
-      "category": "Office",
-      "icon": "icon.png",
-      "description": "Aide is an offline-first business management platform with POS, inventory, and analytics.",
-      "maintainer": "Omix Digital Solutions <omixsystems@gmail.com>",
-      "vendor": "Omix Digital Solutions"
-    },
-    "deb": {
-      "depends": [
-        "libnotify4",
-        "libxtst6",
-        "libnss3",
-        "libxshmfence1",
-        "libasound2"
-      ],
-      "packageCategory": "office"
-    },
-    "publish": null
+    "electron": "^43.0.0",
+    "electron-builder": "^26.0.12",
+    "typescript": "^5.5.0"
   }
 }
