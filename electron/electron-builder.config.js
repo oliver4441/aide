@@ -5,6 +5,7 @@ module.exports = {
   directories: {
     output: 'dist',
     buildResources: 'assets',
+    app: '.',
   },
   files: [
     'build/**/*',
