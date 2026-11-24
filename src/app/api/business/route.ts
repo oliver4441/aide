@@ -105,6 +105,33 @@ export async function PATCH(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const user = await requireUser(request);
+
+    // Defensive: sessions created before the Google auto-provisioning fix can
+    // carry a user id that was never committed to the User table. Ensure the
+    // user exists before creating a membership that references it.
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { id: true },
+    });
+    if (!dbUser) {
+      // Try to recover by email; if that also fails, create the user.
+      let recovered = user.email
+        ? await prisma.user.findUnique({ where: { email: user.email }, select: { id: true } })
+        : null;
+      if (!recovered && user.email) {
+        recovered = await prisma.user.create({
+          data: { email: user.email, name: user.name || "User", passwordHash: "" },
+          select: { id: true },
+        });
+      }
+      if (recovered) {
+        // Rebind the in-memory id so the membership uses the real DB id.
+        user.id = recovered.id;
+      } else {
+        return NextResponse.json({ error: "Could not resolve user account" }, { status: 400 });
+      }
+    }
+
     const body = await request.json();
     const name = String(body?.name || "").trim();
     const type = String(body?.type || "OTHER").toUpperCase();
