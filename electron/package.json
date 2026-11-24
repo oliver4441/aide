@@ -15,6 +15,7 @@
     "build:linux": "npm run pack -- --linux --x64 --arm64"
   },
   "devDependencies": {
+    "@capawesome/capacitor-electron": "^0.2.2",
     "electron": "^43.0.0",
     "electron-builder": "^26.0.12",
     "typescript": "^5.5.0"
