@@ -39,6 +39,8 @@ module.exports = {
     ],
     category: 'public.app-category.business',
     icon: 'assets/icon.icns',
+    sign: false,
+    hardenedRuntime: false,
   },
   dmg: {
     contents: [
