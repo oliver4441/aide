@@ -1,10 +1,6 @@
 name: Desktop App Release
 
 on:
-  # Only build the desktop app when a desktop release tag is pushed or the
-  # workflow is run manually. It used to also fire on EVERY push to master,
-  # which burned a full 3-OS build matrix on routine web/Android commits even
-  # though nothing is published from them.
   push:
     tags:
       - 'desktop-v*'
@@ -19,35 +15,11 @@ permissions:
   contents: write
 
 jobs:
-  build:
-    name: Build ${{ matrix.label }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      # One platform failing should not cancel the others.
-      fail-fast: false
-      matrix:
-        include:
-          - label: Windows
-            os: windows-latest
-            script: build:win
-            artifact: desktop-windows
-            paths: |
-              electron/dist/*.exe
-          - label: Linux
-            os: ubuntu-latest
-            script: build:linux
-            artifact: desktop-linux
-            paths: |
-              electron/dist/*.deb
-              electron/dist/*.AppImage
-          - label: macOS
-            os: macos-latest
-            script: build:mac
-            artifact: desktop-macos
-            paths: |
-              electron/dist/*.dmg
-              electron/dist/*.zip
-
+  # Single job to build Next.js standalone + generate capacitor manifest + vendor deps
+  # Runs on Linux (Ubuntu) — fastest and shell-compatible
+  prepare:
+    name: Prepare Electron app (Next.js + Capacitor)
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -56,13 +28,12 @@ jobs:
         with:
           run_install: false
 
-      - name: Setup Node.js (root)
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'pnpm'
 
-      # Root deps + Next.js build + copy to electron/app/
       - name: Install root dependencies
         run: pnpm install --frozen-lockfile
         env:
@@ -79,73 +50,211 @@ jobs:
           NEXT_PUBLIC_SENTRY_DSN: ""
           ADMIN_EMAILS: ""
 
-      # Each packaging target must run on its own OS: a macOS .dmg cannot be
-      # produced on Linux, and Windows packaging is most reliable on Windows.
+      - name: Generate Capacitor Electron manifest
+        run: |
+          CAPACITOR_ROOT_DIR=$PWD \
+          CAPACITOR_WEB_DIR=$PWD/out \
+          node node_modules/@capawesome/capacitor-electron/dist/cli/index.js update
+        working-directory: electron
+
+      - name: Vendor Electron dependencies
+        run: npm run vendor
+        working-directory: electron
+
+      - name: Upload staged electron app
+        uses: actions/upload-artifact@v4
+        with:
+          name: electron-staged
+          path: electron/
+          if-no-files-found: error
+          retention-days: 30
+
+  # Per-OS packaging jobs — each downloads the pre-staged app and builds
+  build-windows:
+    name: Build Windows
+    needs: prepare
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download staged electron app
+        uses: actions/download-artifact@v4
+        with:
+          name: electron-staged
+          path: electron
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: electron/package-lock.json
+
       - name: Install Electron dependencies
         working-directory: electron
         run: npm ci
 
-      # Code signing (Windows + macOS only). electron-builder reads these env
-      # vars natively. When the secrets are absent (e.g. public forks),
-      # electron-builder builds UNsigned artifacts with a warning rather than
-      # failing the whole matrix.
-      - name: Decode code-signing secrets
-        working-directory: electron
-        if: matrix.os != 'ubuntu-latest'
+      - name: Decode Windows code-signing secret
         shell: bash
         env:
-          CSC_KEY_B64: ${{ secrets.CSC_LINK_B64 }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
           WIN_CSC_KEY_B64: ${{ secrets.WIN_CSC_LINK_B64 }}
           WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
         run: |
-          :>"$RUNNER_TEMP/csc.p12"
           :>"$RUNNER_TEMP/win_csc.p12"
-          if [ -n "$CSC_KEY_B64" ]; then
-            echo "$CSC_KEY_B64" | base64 -d > "$RUNNER_TEMP/csc.p12"
-            echo "CSC_LINK=$RUNNER_TEMP/csc.p12" >> "$GITHUB_ENV"
-            echo "CSC_KEY_PASSWORD=$CSC_KEY_PASSWORD" >> "$GITHUB_ENV"
-          fi
           if [ -n "$WIN_CSC_KEY_B64" ]; then
             echo "$WIN_CSC_KEY_B64" | base64 -d > "$RUNNER_TEMP/win_csc.p12"
             echo "WIN_CSC_LINK=$RUNNER_TEMP/win_csc.p12" >> "$GITHUB_ENV"
             echo "WIN_CSC_KEY_PASSWORD=$WIN_CSC_KEY_PASSWORD" >> "$GITHUB_ENV"
           fi
 
-      - name: Build ${{ matrix.label }} package
+      - name: Build Windows package
         working-directory: electron
-        run: npm run ${{ matrix.script }}
+        run: npm run build:win
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Export the decoded secrets so electron-builder actually signs.
-          CSC_LINK: ${{ env.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ env.CSC_KEY_PASSWORD }}
           WIN_CSC_LINK: ${{ env.WIN_CSC_LINK }}
           WIN_CSC_KEY_PASSWORD: ${{ env.WIN_CSC_KEY_PASSWORD }}
 
-      - name: Assert ${{ matrix.label }} release is signed
+      - name: Assert Windows release is signed
         working-directory: electron
-        if: matrix.os != 'ubuntu-latest'
         shell: bash
         env:
-          EXPECTED_SIGNED: ${{ env.CSC_LINK != '' || env.WIN_CSC_LINK != '' }}
+          EXPECTED_SIGNED: ${{ env.WIN_CSC_LINK != '' }}
         run: |
           if [ "$EXPECTED_SIGNED" = "false" ]; then
-            echo "::warning::Signing secret not configured for ${{ matrix.label }}; publishing an unsigned artifact."
+            echo "::warning::Signing secret not configured for Windows; publishing an unsigned artifact."
           fi
 
-      - name: Upload ${{ matrix.label }} artifacts
+      - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact }}
-          path: ${{ matrix.paths }}
+          name: desktop-windows
+          path: electron/dist/*.exe
+          if-no-files-found: error
+          retention-days: 30
+
+  build-macos:
+    name: Build macOS
+    needs: prepare
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download staged electron app
+        uses: actions/download-artifact@v4
+        with:
+          name: electron-staged
+          path: electron
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: electron/package-lock.json
+
+      - name: Install Electron dependencies
+        working-directory: electron
+        run: npm ci
+
+      - name: Decode macOS code-signing secret
+        shell: bash
+        env:
+          CSC_KEY_B64: ${{ secrets.CSC_LINK_B64 }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        run: |
+          :>"$RUNNER_TEMP/csc.p12"
+          if [ -n "$CSC_KEY_B64" ]; then
+            echo "$CSC_KEY_B64" | base64 -d > "$RUNNER_TEMP/csc.p12"
+            echo "CSC_LINK=$RUNNER_TEMP/csc.p12" >> "$GITHUB_ENV"
+            echo "CSC_KEY_PASSWORD=$CSC_KEY_PASSWORD" >> "$GITHUB_ENV"
+          fi
+
+      - name: Build macOS package
+        working-directory: electron
+        run: npm run build:mac
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_LINK: ${{ env.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ env.CSC_KEY_PASSWORD }}
+
+      - name: Assert macOS release is signed
+        working-directory: electron
+        shell: bash
+        env:
+          EXPECTED_SIGNED: ${{ env.CSC_LINK != '' }}
+        run: |
+          if [ "$EXPECTED_SIGNED" = "false" ]; then
+            echo "::warning::Signing secret not configured for macOS; publishing an unsigned artifact."
+          fi
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-macos
+          path: electron/dist/*.dmg
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload macOS zip artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-macos-zip
+          path: electron/dist/*.zip
+          if-no-files-found: error
+          retention-days: 30
+
+  build-linux:
+    name: Build Linux
+    needs: prepare
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download staged electron app
+        uses: actions/download-artifact@v4
+        with:
+          name: electron-staged
+          path: electron
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: electron/package-lock.json
+
+      - name: Install Electron dependencies
+        working-directory: electron
+        run: npm ci
+
+      - name: Build Linux package
+        working-directory: electron
+        run: npm run build:linux
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-linux
+          path: |
+            electron/dist/*.deb
+            electron/dist/*.AppImage
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Linux zip artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-linux-zip
+          path: electron/dist/*.zip
           if-no-files-found: error
           retention-days: 30
 
   release:
     name: Publish desktop release
-    needs: build
-    # Only publish from a desktop-v* tag, so day-to-day pushes just verify the build.
+    needs: [build-windows, build-macos, build-linux]
     if: startsWith(github.ref, 'refs/tags/desktop-v')
     runs-on: ubuntu-latest
     steps:
@@ -197,20 +306,17 @@ jobs:
           SOURCE_SHA: ${{ steps.mode.outputs.source_sha }}
         run: |
           set -euo pipefail
-          # Get source notes from GitHub API (ordered list format)
           gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes" \
             -f tag_name="$TAG" \
             -f target_commitish="${{ steps.mode.outputs.source_sha }}" \
             --jq .body > "$RUNNER_TEMP/source-notes.md"
 
-          # Create a desktop-specific section appended to the source notes
           {
             echo '## Desktop-specific changes'
             echo ''
             echo 'This is a desktop release of Aide.'
           } > "$RUNNER_TEMP/desktop-notes.md"
 
-          # Combine notes
           cat "$RUNNER_TEMP/desktop-notes.md" "$RUNNER_TEMP/source-notes.md" > "$RUNNER_TEMP/final-notes.md"
 
           echo "changelog=$RUNNER_TEMP/final-notes.md" >> "$GITHUB_OUTPUT"
@@ -218,7 +324,6 @@ jobs:
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          # Distinct from the Android tags (v1.0.x) so releases never collide.
           tag_name: ${{ github.ref_name }}
           name: "Aide Desktop v${{ steps.version.outputs.version }}"
           draft: false
@@ -230,21 +335,16 @@ jobs:
 
   checksums:
     name: Publish SHA-256 checksums
-    needs: [build, release]
-    # !cancelled() because `release` is legitimately skipped outside a tag push,
-    # and a skipped dependency would otherwise skip this job too.
+    needs: [build-windows, build-macos, build-linux, release]
     if: ${{ !cancelled() && (startsWith(github.ref, 'refs/tags/desktop-v') || inputs.checksums_tag != '') }}
     runs-on: ubuntu-latest
     env:
       TAG: ${{ inputs.checksums_tag || github.ref_name }}
     steps:
-      # The checksum file lives on master, not on the tag.
       - uses: actions/checkout@v4
         with:
           ref: master
 
-      # Hash the exact bytes that were uploaded. Downloading them again here is
-      # the only way to be sure the hash matches what users actually download.
       - name: Download the published assets
         run: |
           mkdir -p dist
@@ -257,7 +357,6 @@ jobs:
         run: node scripts/update-checksums.mjs dist "$TAG"
 
       - name: Commit the checksums
-        # Never let a checksum push break a release that already went out.
         continue-on-error: true
         run: |
           git config user.name "github-actions[bot]"
@@ -267,7 +366,5 @@ jobs:
             echo "Checksums unchanged — nothing to commit."
             exit 0
           fi
-          # [skip ci] stops this commit from triggering another desktop build;
-          # Vercel still deploys it, which is what makes the hashes go live.
           git commit -m "chore(checksums): SHA-256 for $TAG [skip ci]"
           git push origin HEAD:master

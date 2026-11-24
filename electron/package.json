@@ -8,7 +8,8 @@
   "scripts": {
     "build": "tsc",
     "start": "electron .",
-    "pack": "npm run build && capacitor-electron vendor && electron-builder --config electron-builder.config.js",
+    "vendor": "capacitor-electron vendor",
+    "pack": "npm run build && npm run vendor && electron-builder --config electron-builder.config.js",
     "build:win": "npm run pack -- --win --x64",
     "build:mac": "npm run pack -- --mac --x64 --arm64",
     "build:linux": "npm run pack -- --linux --x64 --arm64"
