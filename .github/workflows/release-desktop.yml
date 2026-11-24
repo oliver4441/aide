@@ -116,8 +116,6 @@ jobs:
         run: npm run build:win
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          WIN_CSC_LINK: ${{ env.WIN_CSC_LINK }}
-          WIN_CSC_KEY_PASSWORD: ${{ env.WIN_CSC_KEY_PASSWORD }}
 
       - name: Assert Windows release is signed
         working-directory: electron
@@ -179,8 +177,6 @@ jobs:
         run: npm run build:mac
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_LINK: ${{ env.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ env.CSC_KEY_PASSWORD }}
 
       - name: Assert macOS release is signed
         working-directory: electron
