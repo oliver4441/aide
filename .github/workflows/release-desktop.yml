@@ -52,9 +52,9 @@ jobs:
 
       - name: Generate Capacitor Electron manifest
         run: |
-          CAPACITOR_ROOT_DIR=$PWD \
-          CAPACITOR_WEB_DIR=$PWD/out \
-          node $PWD/node_modules/@capawesome/capacitor-electron/dist/cli/index.js update
+          CAPACITOR_ROOT_DIR=${{ github.workspace }} \
+          CAPACITOR_WEB_DIR=${{ github.workspace }}/out \
+          node ${{ github.workspace }}/node_modules/@capawesome/capacitor-electron/dist/cli/index.js update
         working-directory: electron
 
       - name: Vendor Electron dependencies
