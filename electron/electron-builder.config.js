@@ -8,7 +8,7 @@ module.exports = {
   },
   files: [
     'build/**/*',
-    'app/**/*',
+    'next/**/*',
     'generated/**/*',
     'assets/**/*',
     'package.json',
