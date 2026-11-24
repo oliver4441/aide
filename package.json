@@ -12,7 +12,7 @@
     "db:studio": "prisma studio",
     "db:generate": "prisma generate",
     "electron:start": "cd electron && npm start",
-    "desktop:build": "npm run build && rm -rf electron/app electron/.next && mkdir -p electron/app && cp -r .next/standalone/* electron/app/ && mkdir -p electron/app/.next && cp -r .next/static electron/app/.next/static && cp -r public electron/app/public",
+    "desktop:build": "npm run build && rm -rf electron/next electron/.next && mkdir -p electron/next && cp -r .next/standalone/* electron/next/ && mkdir -p electron/next/.next && cp -r .next/static electron/next/.next/static && cp -r public electron/next/public",
     "desktop:sync": "cd electron && npm run build && capacitor-electron vendor",
     "electron:build:win": "cd electron && npm run build:win",
     "electron:build:mac": "cd electron && npm run build:mac",

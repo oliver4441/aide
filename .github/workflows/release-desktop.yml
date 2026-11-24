@@ -53,7 +53,7 @@ jobs:
       - name: Generate Capacitor Electron manifest
         run: |
           CAPACITOR_ROOT_DIR=${{ github.workspace }} \
-          CAPACITOR_WEB_DIR=${{ github.workspace }}/out \
+          CAPACITOR_WEB_DIR=${{ github.workspace }}/electron/next \
           node ${{ github.workspace }}/node_modules/@capawesome/capacitor-electron/dist/cli/index.js update
         working-directory: electron
 
