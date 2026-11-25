@@ -27,27 +27,23 @@ jobs:
         with:
           # Match the configured Vercel runtime, not an end-of-life Node release.
           node-version: '24'
-          cache: 'npm'
 
-      - name: Validate Vercel's frozen dependency lock
-        run: npx --yes pnpm@10.34.9 install --lockfile-only --frozen-lockfile --ignore-scripts
-
-      - name: Install dependencies
-        run: npm ci
+      - name: Install dependencies from the frozen lock
+        run: npx --yes pnpm@10.34.9 install --frozen-lockfile
 
       - name: Type-check
-        run: npx tsc --noEmit
+        run: npx --yes pnpm@10.34.9 exec tsc --noEmit
 
       - name: Lint
-        run: npm run lint
+        run: npx --yes pnpm@10.34.9 run lint
 
       - name: Run unit tests
-        run: npm run test:release
+        run: npx --yes pnpm@10.34.9 run test:release
 
       # The app's public pages are all static; DATABASE_URL is only used if a
       # route queries Prisma at build time.
       - name: Build
-        run: npm run build
+        run: npx --yes pnpm@10.34.9 run build
         env:
           NEXT_TELEMETRY_DISABLED: "1"
 
