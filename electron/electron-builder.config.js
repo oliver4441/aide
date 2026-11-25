@@ -42,13 +42,6 @@ module.exports = {
     sign: false,
     hardenedRuntime: false,
   },
-  dmg: {
-    contents: [
-      { x: 130, y: 220, type: 'link', path: '/Applications' },
-      { x: 410, y: 220, type: 'file', path: '${productName}.app' }
-    ],
-    window: { width: 540, height: 380 }
-  },
   linux: {
     target: [
       'deb',
