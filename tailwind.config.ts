@@ -29,47 +29,40 @@ const config: Config = {
   darkMode: "class",
   content: ["./src/**/*.{js,ts,jsx,tsx,mdx}"],
   theme: {
-    colors: {
-      // Newsprint palette — no semantic tokens, no plum/ocean/forest/sunset
-      ground: "var(--dp-color-ground)",
-      ink: "var(--dp-color-ink)",
-      secondary: "var(--dp-color-secondary)",
-      rule: "var(--dp-color-rule)",
-      accent: "var(--dp-color-accent)",
-
-      // Keep functional colors for errors/success (not thematic)
-      error: "#ba1a1a",
-      "error-container": "#ffe0d6",
-      success: "#10b981",
-      warning: "#f59e0b",
-      danger: "#e11d48",
-    },
-    fontFamily: {
-      display: ["var(--dp-typography-display)", "Georgia", "serif"],
-      reading: ["var(--dp-typography-reading)", "Georgia", "serif"],
-    },
-    fontSize: {
-      body: ["20px", { lineHeight: "1.3" }],
-      "reading-compact": ["19px", { lineHeight: "1.3" }],
-      label: ["12px", { lineHeight: "1.2", letterSpacing: "0.09em" }],
-      control: ["15px", { lineHeight: "1.2" }],
-    },
-    borderRadius: {
-      none: "0",
-      control: "var(--dp-radius-control)",
-    },
-    boxShadow: {
-      // Newsprint uses flat, square style — no shadows
-      none: "none",
-    },
-    transitionProperty: {
-      none: "none",
-    },
-    screens: {
-      wp: "700px",
-      np: "1100px",
-    },
     extend: {
+      colors: {
+        ground: "rgb(var(--dp-color-ground-rgb) / <alpha-value>)",
+        surface: "rgb(var(--dp-color-surface-rgb) / <alpha-value>)",
+        ink: "rgb(var(--dp-color-ink-rgb) / <alpha-value>)",
+        secondary: "rgb(var(--dp-color-secondary-rgb) / <alpha-value>)",
+        muted: "rgb(var(--dp-color-muted-rgb) / <alpha-value>)",
+        rule: "rgb(var(--dp-color-rule-rgb) / <alpha-value>)",
+        accent: "rgb(var(--dp-color-accent-rgb) / <alpha-value>)",
+
+        // Keep functional colors for errors/success (not thematic)
+        error: "#ba1a1a",
+        "error-container": "#ffe0d6",
+        success: "#10b981",
+        warning: "#f59e0b",
+        danger: "#e11d48",
+      },
+      fontFamily: {
+        display: ["var(--dp-typography-display)", "sans-serif"],
+        reading: ["var(--dp-typography-reading)", "sans-serif"],
+      },
+      fontSize: {
+        body: ["16px", { lineHeight: "1.55" }],
+        "reading-compact": ["15px", { lineHeight: "1.5" }],
+        label: ["12px", { lineHeight: "1.2", letterSpacing: "0.09em" }],
+        control: ["15px", { lineHeight: "1.2" }],
+      },
+      borderRadius: {
+        control: "var(--dp-radius-control)",
+      },
+      screens: {
+        wp: "700px",
+        np: "1100px",
+      },
       spacing: {
         column: "var(--dp-spacing-column)",
         story: "var(--dp-spacing-story)",

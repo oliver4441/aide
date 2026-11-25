@@ -55,9 +55,9 @@ export const metadata: Metadata = {
   },
   other: {
     "mobile-web-app-capable": "yes",
-    "msapplication-TileColor": "#a3231d",
+    "msapplication-TileColor": "#0e1012",
     "msapplication-tap-highlight": "no",
-    "theme-color": "#a3231d",
+    "theme-color": "#0e1012",
   },
 };
 
@@ -66,7 +66,7 @@ export const viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#a3231d",
+  themeColor: "#0e1012",
 };
 
 // Sign-in is email + password handled by NextAuth (see src/lib/auth.ts).
@@ -75,31 +75,27 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <head>
-        <meta name="theme-color" id="theme-color" content="#14130f" />
+        <meta name="theme-color" id="theme-color" content="#0e1012" />
         {/*
-          Runs before the body paints. The dark edition is the default: the
-          class is already on <html> in the server mark-up, and the only thing
-          that removes it is a visitor who explicitly chose Light with the
-          toggle (localStorage["aide-theme"] === "light"). System preference is
-          deliberately ignored — dark unless you say otherwise. The meta tag is
-          rewritten too so the phone's status bar matches.
+          Runs before the body paints. Dark mode is forced site-wide:
+          html.dark and color-scheme: dark are always applied regardless of
+          localStorage or system preference.
         */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){var e=document.documentElement,d=true;try{d=localStorage.getItem("aide-theme")!=="light";}catch(_){}e.classList.toggle("dark",d);e.style.colorScheme=d?"dark":"light";var m=document.getElementById("theme-color");if(m)m.setAttribute("content",d?"#14130f":"#a3231d");})();`,
+            __html: `(function(){var e=document.documentElement;e.classList.add("dark");e.style.colorScheme="dark";var m=document.getElementById("theme-color");if(m)m.setAttribute("content","#0e1012");})();`,
           }}
         />
         <link rel="icon" type="image/jpeg" href="/logo.jpg" />
         <link rel="apple-touch-icon" href="/logo.jpg" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..800;1,400..800&family=Source+Serif+4:ital,opsz,wght@0,8..60,200..900;1,8..60,200..900&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Host+Grotesk:ital,wght@0,300..800;1,300..800&display=swap" rel="stylesheet" />
         <meta name="application-name" content="Aide" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Aide" />
-        <meta name="theme-color" content="#a3231d" />
-        <meta name="msapplication-TileColor" content="#a3231d" />
+        <meta name="msapplication-TileColor" content="#0e1012" />
         <meta name="msapplication-tap-highlight" content="no" />
         <link rel="manifest" href="/manifest.webmanifest" />
         <script

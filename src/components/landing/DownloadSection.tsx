@@ -176,9 +176,9 @@ function PlatformCard({ platform }: { platform: (typeof platforms)[number] }) {
 
 export default function DownloadSection() {
   return (
-    <section id="download" className="border-t border-rule border-b border-rule py-16">
+    <section id="download" className="border-t border-rule py-14 sm:py-16 lg:py-20">
       <Container wide>
-        <div className="text-center max-w-2xl mx-auto mb-4">
+        <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-12">
           <h2 className="font-display text-3xl md:text-4xl font-black text-ink mb-4">
             Choose how you run Aide
           </h2>

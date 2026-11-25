@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { LANDING_FAQS, FAQS } from "@/lib/faqs";
 import Container from "@/components/ui/Container";
 
@@ -14,49 +15,69 @@ const faqJsonLd = {
   })),
 };
 
+const visibleFaqs = LANDING_FAQS.slice(0, 6);
+
 export default function FaqSection() {
-  const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   const toggle = (i: number) => {
     setOpenIndex(openIndex === i ? null : i);
   };
 
   return (
-    <section id="faq" className="border-t border-rule border-b border-rule">
-      <Container>
+    <section id="faq" className="border-t border-rule py-14 sm:py-16 lg:py-20">
+      <Container wide>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
         />
 
-        <div className="mx-auto mb-12 max-w-2xl text-center">
-          <h2 className="font-display text-3xl md:text-4xl font-black text-ink mb-4">
-            Frequently Asked Questions
+        <div className="mx-auto mb-10 max-w-xl text-center sm:mb-12">
+          <p className="mb-4 font-display text-[10px] font-medium uppercase tracking-[.16em] text-accent">
+            Common questions
+          </p>
+          <h2 className="font-display text-3xl font-semibold tracking-[-.05em] text-ink sm:text-4xl">
+            Frequently asked questions
           </h2>
-          <p className="font-reading text-secondary text-lg">
-            Everything you need to know about Aide.
+          <p className="mt-4 font-reading text-sm leading-6 text-secondary sm:text-[15px]">
+            Everything you need to know about selling offline, syncing and receipts.
           </p>
         </div>
 
-        <div className="mx-auto max-w-2xl space-y-1 font-display">
-          {LANDING_FAQS.map((faq, i) => {
+        <div className="mx-auto max-w-3xl divide-y divide-rule rounded-xl border border-rule bg-surface">
+          {visibleFaqs.map((faq, i) => {
             const isOpen = openIndex === i;
             return (
-              <details key={faq.question} className="np-disclosure" open={isOpen}>
-                <summary onClick={() => toggle(i)}>{faq.question}</summary>
-                <div className="font-reading text-secondary">
-                  {faq.answer}
-                </div>
-              </details>
+              <div key={faq.question} className="px-6 sm:px-8">
+                <button
+                  type="button"
+                  onClick={() => toggle(i)}
+                  aria-expanded={isOpen}
+                  className="flex w-full items-center justify-between gap-4 py-5 text-left font-display text-sm font-semibold text-ink transition hover:text-accent sm:text-base"
+                >
+                  <span>{faq.question}</span>
+                  <span
+                    aria-hidden="true"
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-rule font-display text-sm text-secondary"
+                  >
+                    {isOpen ? "−" : "+"}
+                  </span>
+                </button>
+                {isOpen && (
+                  <div className="pb-6 pr-8 font-reading text-sm leading-6 text-secondary sm:text-[15px]">
+                    {faq.answer}
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
 
-        <p className="mt-8 text-center font-display text-sm text-secondary">
-          Still stuck?{" "}
-          <a href="/help" className="font-black text-ink underline-offset-4 hover:underline">
+        <p className="mt-8 text-center font-reading text-sm text-secondary">
+          Still have questions?{" "}
+          <Link href="/help" className="font-display font-semibold text-ink underline-offset-4 hover:text-accent hover:underline">
             Visit the Help Centre
-          </a>
+          </Link>
         </p>
       </Container>
     </section>

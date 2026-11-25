@@ -1,34 +1,34 @@
-"use client";
-
 import Link from "next/link";
 import Container from "@/components/ui/Container";
 
 export default function CtaSection() {
   return (
-    <section className="border-t border-rule border-b border-rule py-16">
-      <Container>
-        <div className="border border-rule p-8 md:p-16 text-center">
-          <img
-            src="/logo.jpg"
-            alt="Aide logo"
-            className="w-16 h-16 md:w-20 md:h-20 mx-auto mb-5 object-cover border border-rule"
-          />
-          <h2 className="font-display text-3xl md:text-4xl font-black text-ink mb-4">
-            Ready to take control?
-          </h2>
-          <p className="font-reading text-secondary text-lg mb-8 max-w-xl mx-auto">
-            Join hundreds of businesses streamlining their operations with Aide. No credit card required.
+    <section className="w-full bg-[#f5f6f7] py-20 text-[#0e1012] sm:py-24">
+      <Container wide>
+        <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
+          <p className="mb-4 font-display text-[10px] font-medium uppercase tracking-[.16em] text-[#2e5bff]">
+            Ready when you are
           </p>
-          <Link
-            href="/login"
-            className="inline-flex items-center gap-2 np-btn np-btn--accent font-display font-black px-8 py-4"
-          >
-            Get Started Free
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-            </svg>
-          </Link>
-          <p className="font-reading text-xs text-secondary mt-4">14-day free trial &bull; Cancel anytime</p>
+          <h2 className="font-display text-3xl font-semibold leading-tight tracking-[-.05em] text-[#0e1012] sm:text-5xl">
+            Run your counter without waiting on the network.
+          </h2>
+          <p className="mt-4 max-w-xl font-reading text-base leading-7 text-[#4a525d]">
+            Open Aide in your browser or install it on your device in minutes. No credit card required to start.
+          </p>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <Link
+              href="/login"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-[#2e5bff] px-7 py-3.5 font-display text-sm font-semibold text-white transition hover:brightness-110"
+            >
+              Start free <span aria-hidden="true">↗</span>
+            </Link>
+            <Link
+              href="/downloads"
+              className="inline-flex items-center justify-center rounded-full border border-[#cfd5de] px-7 py-3.5 font-display text-sm font-medium text-[#0e1012] transition hover:bg-[#e6e9ee]"
+            >
+              Download app
+            </Link>
+          </div>
         </div>
       </Container>
     </section>

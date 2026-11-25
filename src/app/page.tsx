@@ -2,12 +2,13 @@ import LandingNav from "@/components/landing/LandingNav";
 import Hero from "@/components/landing/Hero";
 import SocialProof from "@/components/landing/SocialProof";
 import Features from "@/components/landing/Features";
-import FaqSection from "@/components/landing/FaqSection";
+import Process from "@/components/landing/Process";
+import Testimonials from "@/components/landing/Testimonials";
 import Pricing from "@/components/landing/Pricing";
+import FaqSection from "@/components/landing/FaqSection";
+import DownloadSection from "@/components/landing/DownloadSection";
 import CtaSection from "@/components/landing/CtaSection";
 import LandingFooter from "@/components/landing/LandingFooter";
-import DownloadSection from "@/components/landing/DownloadSection";
-import ChangelogSection from "@/components/landing/ChangelogSection";
 import type { Metadata } from "next";
 import { SITE_URL } from "@/lib/site";
 
@@ -61,10 +62,11 @@ export default function LandingPage() {
           <Hero />
           <SocialProof />
           <Features />
+          <Process />
+          <Testimonials />
           <Pricing />
           <FaqSection />
           <DownloadSection />
-          <ChangelogSection />
           <CtaSection />
         </main>
         <LandingFooter />

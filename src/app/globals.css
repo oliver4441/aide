@@ -4,36 +4,47 @@
 
 @layer base {
   :root {
-    --dp-color-ground: #f3efe5;
-    --dp-color-ink: #191916;
-    --dp-color-secondary: #2b2a27;
-    --dp-color-rule: #9b978e;
-    --dp-color-accent: #a3231d;
+    color-scheme: dark;
 
-    --dp-typography-display: "Newsprint Display", Georgia, serif;
-    --dp-typography-reading: "Newsprint Reading", Georgia, serif;
-    --dp-typography-body: 20px;
-    --dp-typography-reading-compact: 19px;
+    --dp-color-ground: #0e1012;
+    --dp-color-ground-rgb: 14 16 18;
+    --dp-color-surface: #14161a;
+    --dp-color-surface-rgb: 20 22 26;
+    --dp-color-ink: #f5f6f7;
+    --dp-color-ink-rgb: 245 246 247;
+    --dp-color-secondary: #aab1ba;
+    --dp-color-secondary-rgb: 170 177 186;
+    --dp-color-muted: #7c8591;
+    --dp-color-muted-rgb: 124 133 145;
+    --dp-color-rule: #262b33;
+    --dp-color-rule-rgb: 38 43 51;
+    --dp-color-accent: #2e5bff;
+    --dp-color-accent-rgb: 46 91 255;
+
+    --dp-typography-display: "Host Grotesk", sans-serif;
+    --dp-typography-reading: "Host Grotesk", sans-serif;
+    --dp-typography-body: 16px;
+    --dp-typography-reading-compact: 15px;
     --dp-typography-label: 12px;
     --dp-typography-control: 15px;
-    --dp-typography-label-weight: 650;
-    --dp-typography-display-weight: 900;
-    --dp-typography-body-leading: 1.3;
+    --dp-typography-label-weight: 600;
+    --dp-typography-display-weight: 600;
+    --dp-typography-body-leading: 1.55;
     --dp-typography-control-leading: 1.2;
     --dp-typography-label-tracking: 0.09em;
 
     --dp-spacing-column: 24px;
     --dp-spacing-story: 22px;
 
-    --dp-radius-control: 0;
+    --dp-radius-control: 9999px;
     --dp-border-hairline: 1px;
     --dp-border-section: 4px;
     --dp-border-focus: 2px;
-    --dp-motion-transition: none;
+    --dp-motion-transition: 150ms ease;
   }
 
   body {
-    font-family: var(--dp-typography-reading), Georgia, serif;
+    font-family: var(--dp-typography-reading), sans-serif;
     background: var(--dp-color-ground);
     color: var(--dp-color-ink);
     line-height: var(--dp-typography-body-leading);
@@ -41,7 +52,7 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: var(--dp-typography-display), Georgia, serif;
+    font-family: var(--dp-typography-display), sans-serif;
     font-weight: var(--dp-typography-display-weight);
     color: var(--dp-color-ink);
     margin-top: 0;
@@ -82,16 +93,16 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border: var(--dp-border-hairline) solid var(--dp-color-ink);
+    border: var(--dp-border-hairline) solid var(--dp-color-rule);
     border-radius: var(--dp-radius-control);
     padding: 10px 18px;
-    font-family: var(--dp-typography-display), Georgia, serif;
+    font-family: var(--dp-typography-display), sans-serif;
     font-size: var(--dp-typography-control);
     font-weight: var(--dp-typography-label-weight);
     color: var(--dp-color-ink);
-    background: var(--dp-color-ground);
+    background: var(--dp-color-surface);
     cursor: pointer;
-    transition: none;
+    transition: var(--dp-motion-transition);
   }
 
   .np-btn:hover {
@@ -106,19 +117,21 @@
 
   .np-btn--accent {
     border-color: var(--dp-color-accent);
-    color: var(--dp-color-accent);
+    background: var(--dp-color-accent);
+    color: #ffffff;
   }
 
   .np-btn--accent:hover {
+    filter: brightness(1.1);
     background: var(--dp-color-accent);
-    color: var(--dp-color-ground);
+    color: #ffffff;
   }
 
   /* Ruled question rows — native disclosures */
   .np-disclosure > summary {
     cursor: pointer;
-    font-family: var(--dp-typography-display), Georgia, serif;
-    font-weight: 650;
+    font-family: var(--dp-typography-display), sans-serif;
+    font-weight: 600;
     font-size: var(--dp-typography-control);
     letter-spacing: var(--dp-typography-label-tracking);
     padding: var(--dp-spacing-story) 0;
@@ -173,8 +186,8 @@
 
 @media (max-width: 700px) {
   :root {
-    --dp-typography-body: 18px;
-    --dp-typography-reading-compact: 17px;
+    --dp-typography-body: 16px;
+    --dp-typography-reading-compact: 15px;
     --dp-spacing-column: 14px;
     --dp-spacing-story: 16px;
   }
