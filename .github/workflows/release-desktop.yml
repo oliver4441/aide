@@ -291,36 +291,34 @@ jobs:
           set -euo pipefail
           echo "source_sha=${SOURCE_SHA}" >> "$GITHUB_OUTPUT"
 
-      - name: Fetch GitHub API releases for changelog source references
-        id: releases
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPOSITORY: ${{ github.repository }}
-        run: |
-          gh api "repos/$REPOSITORY/releases?per_page=100" > "$RUNNER_TEMP/releases.json"
-          echo "releases_json=$RUNNER_TEMP/releases.json" >> "$GITHUB_OUTPUT"
-
       - name: Generate release notes
         id: notes
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
           SOURCE_SHA: ${{ steps.mode.outputs.source_sha }}
+        continue-on-error: true
         run: |
-          set -euo pipefail
-          gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes" \
+          set -uo pipefail
+          if gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes" \
             -f tag_name="$TAG" \
-            -f target_commitish="${{ steps.mode.outputs.source_sha }}" \
-            --jq .body > "$RUNNER_TEMP/source-notes.md"
-
-          {
-            echo '## Desktop-specific changes'
-            echo ''
-            echo 'This is a desktop release of Aide.'
-          } > "$RUNNER_TEMP/desktop-notes.md"
-
-          cat "$RUNNER_TEMP/desktop-notes.md" "$RUNNER_TEMP/source-notes.md" > "$RUNNER_TEMP/final-notes.md"
-
+            -f target_commitish="$SOURCE_SHA" \
+            --jq .body > "$RUNNER_TEMP/source-notes.md" 2>/dev/null; then
+            {
+              echo '## Desktop-specific changes'
+              echo ''
+              echo 'This is a desktop release of Aide.'
+            } > "$RUNNER_TEMP/desktop-notes.md"
+            cat "$RUNNER_TEMP/desktop-notes.md" "$RUNNER_TEMP/source-notes.md" > "$RUNNER_TEMP/final-notes.md"
+          else
+            {
+              echo '## Desktop-specific changes'
+              echo ''
+              echo 'This is a desktop release of Aide.'
+              echo ''
+              echo 'See the Git history for the full list of changes since the previous desktop release.'
+            } > "$RUNNER_TEMP/final-notes.md"
+          fi
           echo "changelog=$RUNNER_TEMP/final-notes.md" >> "$GITHUB_OUTPUT"
 
       - name: Upload to GitHub Release
