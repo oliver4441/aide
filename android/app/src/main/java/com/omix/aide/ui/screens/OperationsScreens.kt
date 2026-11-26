@@ -44,6 +44,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -211,6 +212,7 @@ fun ProductLookupScreen(
 fun ReceiveGoodsScreen(operationsViewModel: OperationsViewModel) {
     val uiState by operationsViewModel.uiState.collectAsState()
     val context = uiState.activeContext
+    val focusManager = LocalFocusManager.current
 
     var selectedProductId by remember { mutableStateOf<String?>(null) }
     var supplierName by remember { mutableStateOf("") }
@@ -339,6 +341,7 @@ fun ReceiveGoodsScreen(operationsViewModel: OperationsViewModel) {
 
                     Button(
                         onClick = {
+                            focusManager.clearFocus()
                             val prod = selectedProduct ?: matchingProducts.firstOrNull()
                             val qty = quantityReceived.trim().toIntOrNull() ?: 0
                             if (prod != null) {
@@ -744,6 +747,7 @@ fun TasksScreen(
 fun ShiftsScreen(operationsViewModel: OperationsViewModel) {
     val uiState by operationsViewModel.uiState.collectAsState()
     val context = uiState.activeContext
+    val focusManager = LocalFocusManager.current
     val openShift = uiState.openShift
     val canOpen = context.hasPermission(MobilePermission.SHIFT_OPEN)
     val canClose = context.hasPermission(MobilePermission.SHIFT_CLOSE)
@@ -815,6 +819,7 @@ fun ShiftsScreen(operationsViewModel: OperationsViewModel) {
                             )
                             Button(
                                 onClick = {
+                                    focusManager.clearFocus()
                                     val amount = openingFloatInput.trim().toDoubleOrNull() ?: 0.0
                                     operationsViewModel.openShift(amount)
                                 },

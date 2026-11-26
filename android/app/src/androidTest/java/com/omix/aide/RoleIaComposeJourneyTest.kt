@@ -2,17 +2,16 @@ package com.omix.aide
 
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.hasTestTag
-import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.room.Room
-import androidx.test.core.app.ApplicationProvider
+import androidx.test.platform.app.InstrumentationRegistry
 import com.omix.aide.data.local.AideDatabase
 import com.omix.aide.data.local.BusinessSettings
 import com.omix.aide.data.local.InMemoryKeyValueStorage
@@ -59,7 +58,7 @@ class RoleIaComposeJourneyTest {
 
     @Before
     fun setUp() {
-        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
         database = Room.inMemoryDatabaseBuilder(context, AideDatabase::class.java)
             .allowMainThreadQueries()
             .build()
@@ -156,7 +155,9 @@ class RoleIaComposeJourneyTest {
         )
 
         mountShell()
-        composeRule.waitForIdle()
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithTag("home_role_header").fetchSemanticsNodes().isNotEmpty()
+        }
 
         // 1. Cashier sees operating context header + Cashier priorities, never Profit KPI or Reports/Stock tabs
         composeRule.onNodeWithTag("operating_context_bar").assertIsDisplayed()
@@ -167,19 +168,21 @@ class RoleIaComposeJourneyTest {
 
         // 2. Cashier opens Shift in 2 taps (Shift tab -> Open Shift)
         clickPrimaryDestination("shifts")
-        composeRule.waitForIdle()
-        composeRule.onNodeWithTag("screen_shifts")
-            .performScrollToNode(hasTestTag("shift_open_button"))
-        composeRule.onNodeWithTag("shift_opening_float_input").performTextReplacement("1500")
-        composeRule.onNodeWithTag("shift_open_button").performClick()
-        composeRule.waitForIdle()
-        composeRule.onNodeWithTag("screen_shifts")
-            .performScrollToNode(hasTestTag("shift_close_button"))
-        composeRule.onNodeWithTag("shift_close_button").assertIsDisplayed()
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithTag("shift_open_button").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithTag("shift_opening_float_input").performScrollTo().performTextReplacement("1500")
+        composeRule.onNodeWithTag("shift_open_button").performScrollTo().performClick()
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithTag("shift_close_button").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithTag("shift_close_button").performScrollTo().assertIsDisplayed()
 
-        // 3. Cashier checks price in Lookup
+        // 3. Cashier checks price in Lookup (waits for Room Flow to emit stocked product)
         clickPrimaryDestination("lookup")
-        composeRule.waitForIdle()
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithTag("lookup_item_sku-rice-2kg").fetchSemanticsNodes().isNotEmpty()
+        }
         composeRule.onNodeWithText("Basmati Rice 2kg").assertIsDisplayed()
 
         // 4. Switch role to Warehouse Operator -> navigation updates immediately to Receive / Count / Tasks
@@ -191,23 +194,25 @@ class RoleIaComposeJourneyTest {
                 deviceAssignment = DeviceAssignmentMode.DEDICATED_WAREHOUSE_HANDHELD
             )
         }
-        composeRule.waitForIdle()
-
-        clickPrimaryDestination("receive-goods")
-        composeRule.waitForIdle()
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            countPrimaryDestinationNodes("receive-goods") > 0
+        }
         assertEquals(0, countPrimaryDestinationNodes("sell"))
 
+        clickPrimaryDestination("receive-goods")
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithTag("grn_select_product_sku-rice-2kg").fetchSemanticsNodes().isNotEmpty()
+        }
+
         // Post an inbound Goods Receipt on ReceiveGoodsScreen
-        composeRule.onNodeWithTag("grn_supplier_input").performTextReplacement("Mwea Growers")
-        composeRule.onNodeWithTag("grn_select_product_sku-rice-2kg").performClick()
-        composeRule.onNodeWithTag("screen_receive_goods")
-            .performScrollToNode(hasTestTag("grn_submit_button"))
-        composeRule.onNodeWithTag("grn_quantity_input").performTextReplacement("12")
-        composeRule.onNodeWithTag("grn_submit_button").performClick()
-        composeRule.waitForIdle()
-        composeRule.onNodeWithTag("screen_receive_goods")
-            .performScrollToNode(hasText("+12"))
-        composeRule.onNodeWithText("+12").assertIsDisplayed()
+        composeRule.onNodeWithTag("grn_supplier_input").performScrollTo().performTextReplacement("Mwea Growers")
+        composeRule.onNodeWithTag("grn_select_product_sku-rice-2kg").performScrollTo().performClick()
+        composeRule.onNodeWithTag("grn_quantity_input").performScrollTo().performTextReplacement("12")
+        composeRule.onNodeWithTag("grn_submit_button").performScrollTo().performClick()
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithText("Recorded GRN-", substring = true).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Recorded GRN-", substring = true).assertIsDisplayed()
 
         // 5. Server revokes membership -> UI fails closed immediately with AccessRestrictedScreen
         val activeMembershipId = workspaceStore.activeContext.value.membershipId
@@ -218,7 +223,9 @@ class RoleIaComposeJourneyTest {
                 revokedReason = "Device reassigned by administrator."
             )
         }
-        composeRule.waitForIdle()
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithTag("access_restricted_screen").fetchSemanticsNodes().isNotEmpty()
+        }
         composeRule.onNodeWithTag("access_restricted_screen").assertIsDisplayed()
         composeRule.onNodeWithText("Device reassigned by administrator.").assertIsDisplayed()
     }

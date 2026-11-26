@@ -395,11 +395,19 @@ fun AideAppShell(
         Screen.Onboarding.route,
         Screen.ThemePicker.route
     )
+    val hasDedicatedBackTopBar = currentRoute in setOf(
+        Screen.Customers.route,
+        Screen.Expenses.route,
+        Screen.Reports.route,
+        Screen.Settings.route,
+        Screen.Calculator.route,
+        Screen.Receipt.route
+    )
     val isWideScreen = LocalConfiguration.current.screenWidthDp >= 600
     val primaryRoutes = remember(roleNav) { roleNav.primaryDestinations.map { it.route }.toSet() }
     val showPrimaryNavigation = !isSetupScreen &&
-        !roleNav.isAccessBlocked &&
-        (currentRoute in primaryRoutes || currentRoute == Screen.More.route)
+        !hasDedicatedBackTopBar &&
+        !roleNav.isAccessBlocked
 
     LaunchedEffect(currentRoute) {
         if (currentRoute == Screen.Home.route) {
