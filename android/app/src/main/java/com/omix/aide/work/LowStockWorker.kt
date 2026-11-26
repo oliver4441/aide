@@ -5,6 +5,8 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.omix.aide.data.local.AideDatabase
 import com.omix.aide.data.local.LocalBusinessStore
+import com.omix.aide.data.local.WorkspaceContextStore
+import com.omix.aide.domain.ia.MobilePermission
 import com.omix.aide.notifications.AideChannel
 import com.omix.aide.notifications.AideRoute
 import com.omix.aide.notifications.NotificationEngine
@@ -23,7 +25,11 @@ class LowStockWorker(
 
     override suspend fun doWork(): Result {
         val context = applicationContext
-        val businessId = LocalBusinessStore(context).getBusinessId()
+        val activeContext = WorkspaceContextStore.readActiveContext(context)
+        if (!activeContext.hasPermission(MobilePermission.PRODUCT_READ)) {
+            return Result.success()
+        }
+        val businessId = activeContext.businessId.ifBlank { LocalBusinessStore(context).getBusinessId() }
         val db = AideDatabase.getDatabase(context)
 
         val low = db.productDao().getLowStockProductsOnce(businessId)
@@ -42,14 +48,24 @@ class LowStockWorker(
             "${product.name} · ${product.quantity} $unit left"
         }
         val extra = if (ordered.size > 1) " and ${ordered.size - 1} more" else ""
+        val targetRoute = when {
+            activeContext.hasAnyPermission(MobilePermission.PRODUCT_CREATE, MobilePermission.PRODUCT_UPDATE) ->
+                AideRoute.STOCK
+            activeContext.hasPermission(MobilePermission.STOCK_COUNT_PERFORM) ->
+                AideRoute.COUNT
+            activeContext.hasPermission(MobilePermission.GOODS_RECEIVE) ->
+                AideRoute.RECEIVE
+            else ->
+                AideRoute.LOOKUP
+        }
 
         NotificationEngine.emit(
             context = context,
             channel = AideChannel.INVENTORY,
             title = if (low.size == 1) "Low stock" else "${low.size} items low in stock",
-            message = "${ordered.first().name}${extra} — tap to restock",
-            route = AideRoute.STOCK,
-            eventId = "low_stock_${NotificationEngine.dayKey()}",
+            message = "${ordered.first().name}${extra} — tap to inspect",
+            route = targetRoute,
+            eventId = "low_stock_${businessId.take(8)}_${NotificationEngine.dayKey()}",
             detailLines = lines,
             summaryLine = "${low.size} item${if (low.size == 1) "" else "s"} at or below the low-stock level"
         )

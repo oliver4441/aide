@@ -11,24 +11,18 @@ design language, not a database.
 
 ---
 
-## First run
+## First run & Workspace Onboarding
 
-A new install opens a **welcome screen** (`ui/screens/WelcomeScreen.kt`): the brand
-mark, one line on what the app is, and four points it can actually keep — sales,
-low-stock alerts, the closing-time summary, and "no account, no signal, export a
-copy from Settings". *Get started* moves on to the theme picker; *Skip to the app*
-sets the default theme and goes straight in.
+A new install opens a **welcome screen** (`ui/screens/WelcomeScreen.kt`) followed by
+**workspace onboarding** (`ui/screens/WorkspaceOnboardingScreen.kt`, 3 concise steps):
+1. **Business & Operating Location** — Organization, business/branch, stockroom/warehouse, and POS terminal/till name.
+2. **Role & Permissions** — Choose the assigned employee persona (`Owner / Admin`, `Branch Manager`, `Cashier`, `Warehouse Operator`, `Receiving Clerk`, `Inventory Controller`, or `Accountant`) with an explicit preview of allowed tabs and permissions.
+3. **Device Assignment & Offline Rules** — Personal/owner device, shared branch phone, dedicated POS terminal, or warehouse handheld, plus clear disclosure that records live locally per business workspace until exported or synchronized.
 
-Seen-ness is remembered separately from setup completion (`welcome_seen` in
-`aide_business`), so closing the app on the theme picker returns to the picker
-rather than replaying the introduction.
-
-The screen has depth: the brand mark is a disc that turns on its own axis
-(`rotationY`, 6.5 s a revolution) inside a halo that does not turn, so the mark
-still reads when the disc is edge-on; the copy, the four points and the buttons
-follow it in on one staggered timeline, and the points sit on a slightly tilted
-plane. Every one of these is skipped when the phone has animations switched off
-(`ui/components/Motion.kt`), and the final layout is identical either way.
+Existing installs upgrading from earlier versions skip blocking onboarding automatically:
+their existing `businessId` and `businessName` map to an `Owner / Admin` workspace with
+no orphaned data and no forced re-learning (`data/local/WorkspaceContextStore.kt`).
+*Skip to the app* on Welcome sets Owner defaults and goes straight in.
 
 ## Look and feel
 
@@ -39,23 +33,64 @@ plane. Every one of these is skipped when the phone has animations switched off
   `secondaryContainer` and their `on*` pairs are mixed from the chosen accent
   over the surface (`ui/theme/Theme.kt`), so picking Plum, Teal or Amber re-tints
   the welcome mark, the badges, the selected rail pill and the dashboard's
-  warning card. They used to be left undefined and fell back to Material's
-  baseline purple.
-- **The rail floats.** It is inset from the edges with a 24 dp radius rather than
-  ruling a full-height slab down the side of the screen, so the app background
-  shows around it.
+  warning card.
 
-## Navigation
+## Role-Based Information Architecture & Navigation
 
-- **Collapsible left rail** (`ui/components/AideNavRail.kt`) is the primary
-  navigation: brand mark at the top, four destinations (Home, Sell, Stock, More),
-  `76dp` icons-only or `208dp` with labels, and a chevron to switch between the
-  two. Collapsed by default on phones, expanded from `600dp` up; the choice
-  survives rotation.
-- **Notification bell** in the top bar, with a red unread badge fed by
-  `notified_events.read` (`ui/components/NotificationCenter.kt`).
-- Sub-screens (Customers, Expenses, Reports, Settings, Calculator, Receipt) are
-  pushed from More or from a sale, and use the system back gesture.
+Full persona journeys and permission matrices live in
+[Android Role-Based IA](architecture/android-role-ia.md).
+
+- **Persistent Operating Context Bar** (`ui/components/OperatingContextHeader.kt`) sits at
+  the top of every operational screen showing the active `Branch · Org · Warehouse/Till`
+  and role badge, plus the notification bell.
+- **Permission-Driven Primary Navigation** (`domain/ia/RoleNavigationResolver.kt`,
+  mirrored on the backend in `src/lib/mobileNavigation.mjs` and
+  `GET /api/mobile/navigation-context`):
+  - **Owner / Admin**: `Home · Sell · Stock · Workspace`
+  - **Branch Manager**: `Home · Tasks · Sell · Workspace`
+  - **Cashier**: `Home · Sell · Lookup · Shift`
+  - **Warehouse Operator**: `Home · Receive · Count · Tasks`
+  - **Receiving Clerk**: `Home · Receive · Lookup · Tasks`
+  - **Inventory Controller**: `Home · Stock · Count · Workspace`
+  - **Accountant**: `Home · Reports · Expenses · Workspace`
+- **Adaptive Layout** — Compact phones (`< 600dp`) use a 4-destination bottom
+  `NavigationBar`; tablets and landscape layouts (`>= 600dp`) use `AideNavRail`
+  driven by the same resolved role destinations.
+- **Role-Specific Compact Home (`HomeScreen`)** — Shows role-relevant KPIs,
+  permission-filtered quick actions, tap-to-resolve operational alerts, and
+  role-scoped recent activity. Sales/profit figures and 7-day revenue charts are
+  never shown to roles without `SALE_READ` / `REPORT_READ`.
+- **Grouped Workspace Hub (`WorkspaceScreen` in `MoreScreen.kt`)** — Replaces the
+  flat catch-all More list with logical groups (*Store & Warehouse Operations*,
+  *Customers & Finance*, *Workspace & Device*), rendering only permitted modules.
+- **Multi-Membership Context Switcher (`ContextSwitcherSheet`)** — Supports users
+  with multiple business/branch memberships and roles without leaking data across
+  `businessId` partitions or silently switching context. Switching while a POS cart
+  has items prompts explicit confirmation before clearing the cart.
+- **Graceful Access Denial (`AccessRestrictedScreen`)** — Unauthorized routes or
+  revoked/narrowed memberships fail closed immediately and strip unauthorized
+  in-screen controls.
+
+## Daily Task Workflows (`OperationsScreens.kt`, `OperationsViewModel`)
+
+- **Scan / Search Product (`ProductLookupScreen`)** — Read-only price and shelf-stock
+  lookup by name or SKU; hides unit buying cost unless permitted and offers one-tap
+  *Sell* handoff for cashiers.
+- **Receive Goods (`ReceiveGoodsScreen`)** — Records supplier deliveries as Goods
+  Received Notes (`GRN-*`) scoped to the active branch/warehouse and increments
+  local product stock.
+- **Count Stock (`StockCountScreen`)** — Records physical shelf/bin counts (`CNT-*`),
+  computes system variance, reconciles directly when the role holds
+  `STOCK_ADJUST_CREATE`, or automatically submits a variance approval request for
+  manager review.
+- **Assigned Tasks (`TasksScreen`)** — Role-scoped daily checklist with priority
+  badges and one-tap navigation into the target task screen.
+- **Cashier Shifts (`ShiftsScreen`)** — Opens till shifts with starting float on the
+  active terminal, tracks cash sales during the shift, and closes/reconciles
+  counted drawer cash with variance calculation.
+- **Approvals (`ApprovalsScreen`)** — Frontline staff submit price-override, refund,
+  or stock-variance requests (`APPROVAL_REQUEST`); managers and owners review and
+  approve/reject (`APPROVAL_DECIDE`) with separation-of-duties enforcement.
 
 ## Selling (`SellScreen`, `SellViewModel`)
 
@@ -213,25 +248,37 @@ post.
 
 Stated explicitly so the docs, the UI copy and the app agree:
 
-- No cloud sync, no multi-device, no account or sign-in.
-- No multi-business switching — one business per install.
-- No staff accounts, roles or permissions.
-- No barcode scanning (search only) and no camera-based product capture.
-- No discounts, no split or partial payments — one payment method per sale.
-- No direct Bluetooth or ESC/POS thermal-printer integration (receipt sharing via Android text share sheet is supported).
-- No remote push notifications: alerts are local and only arrive while the app is
-  installed and notifications are permitted.
-- No customer statement or ledger beyond the stored balance.
+- **Offline-first local workspace storage**: operational records (products, sales,
+  shifts, GRNs, cycle counts, tasks, approvals, customers, expenses) are stored in
+  Room and local workspace preferences partitioned by `businessId`. Background
+  bidirectional cloud sync is not yet wired in the standalone APK (tracked under
+  the sync engine milestone); meanwhile `GET /api/mobile/navigation-context`
+  defines the authoritative server role/permission contract.
+- No camera barcode decoding yet (SKU/text search and hardware keyboard-wedge
+  scanners work in Lookup, Sell, Receive Goods, and Count Stock).
+- No split or partial payments on POS checkout — one payment method per sale;
+  price overrides route through manager approval requests.
+- No direct Bluetooth or ESC/POS thermal-printer integration (receipt sharing via
+  Android text share sheet is supported).
+- No remote push notifications: alerts are local (`LowStockWorker` and
+  `DailySummaryWorker`), respect the active role's permissions (for example,
+  daily financial summaries never expose profit when the active role lacks
+  `REPORT_READ`), and only arrive while the app is installed and notifications
+  are permitted.
 - No cloud backup: the JSON export is a file on the phone and nothing uploads it.
 
 ## Where it lives
 
 | Concern | File |
 |---|---|
+| Role IA models & resolver | `domain/ia/RoleIaModels.kt`, `domain/ia/RoleNavigationResolver.kt`, `src/lib/mobileNavigation.mjs` |
+| Multi-membership & operations stores | `data/local/WorkspaceContextStore.kt`, `data/local/OperationsStore.kt` |
+| Operating context bar & switcher | `ui/components/OperatingContextHeader.kt`, `ui/screens/WorkspaceOnboardingScreen.kt` |
+| Daily task screens | `ui/screens/OperationsScreens.kt`, `ui/screens/HomeScreen.kt`, `ui/screens/MoreScreen.kt` |
 | Navigation rail, bell | `ui/components/AideNavRail.kt`, `ui/components/NotificationCenter.kt` |
 | Notification posting, channels, styles | `notifications/AideNotifications.kt` |
 | Dedupe + log | `notifications/NotificationEngine.kt` |
 | Chimes | `notifications/AideSounds.kt`, `res/raw/*.wav` |
 | Background jobs | `work/AideWorkScheduler.kt`, `work/LowStockWorker.kt`, `work/DailySummaryWorker.kt` |
 | Settings + schedule | `data/local/SettingsStore.kt`, `ui/screens/SettingsScreen.kt` |
-| Home figures | `ui/viewmodel/HomeViewModel.kt`, `ui/viewmodel/SaleTimeline.kt` |
+| Context-reactive ViewModels | `ui/viewmodel/{Home,Sell,Stock,Customer,Expense,Report,Operations}ViewModel.kt` |

@@ -27,9 +27,9 @@
 -keep class com.omix.aide.ui.viewmodel.** { *; }
 
 # Keep data models used in UI state or JSON serialization
+-keep class com.omix.aide.domain.ia.** { *; }
 -keep class com.omix.aide.data.repository.** { *; }
--keep class com.omix.aide.data.local.LocalBusinessStore** { *; }
--keep class com.omix.aide.data.local.SettingsStore** { *; }
+-keep class com.omix.aide.data.local.** { *; }
 
 # AndroidX Compose & Lifecycle
 -keep class androidx.compose.** { *; }

@@ -51,7 +51,23 @@ fun SellScreen(
     var isGridView by remember { mutableStateOf(false) }
     val haptic = rememberAideHaptics()
 
+    if (!uiState.canCreateSale) {
+        Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+            AideEmptyState(
+                message = "Checkout is disabled for your current role in ${uiState.operatingLocationLabel}."
+            )
+        }
+        return
+    }
+
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        Text(
+            text = "Register · ${uiState.operatingLocationLabel}",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,

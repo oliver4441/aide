@@ -78,7 +78,7 @@ fun ExpensesScreen(
             }
         },
         floatingActionButton = {
-            if (!uiState.isLoading) {
+            if (!uiState.isLoading && uiState.canCreateExpense) {
                 ExtendedFloatingActionButton(
                     onClick = { expenseViewModel.setAddOpen(true) },
                     icon = { Icon(Icons.Default.Add, contentDescription = null) },
@@ -115,8 +115,10 @@ fun ExpensesScreen(
                 item {
                     AideEmptyState(
                         message = "No expenses recorded yet.",
-                        actionLabel = "Add the first one",
-                        onAction = { expenseViewModel.setAddOpen(true) }
+                        actionLabel = if (uiState.canCreateExpense) "Add the first one" else null,
+                        onAction = if (uiState.canCreateExpense) {
+                            { expenseViewModel.setAddOpen(true) }
+                        } else null
                     )
                 }
             } else {
@@ -151,15 +153,17 @@ fun ExpensesScreen(
                                     fontWeight = FontWeight.Bold,
                                     color = DangerRed
                                 )
-                                IconButton(
-                                    onClick = { expenseViewModel.deleteExpense(expense.id) },
-                                    modifier = Modifier.height(48.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.Delete,
-                                        contentDescription = "Delete expense",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                if (uiState.canCreateExpense) {
+                                    IconButton(
+                                        onClick = { expenseViewModel.deleteExpense(expense.id) },
+                                        modifier = Modifier.height(48.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = "Delete expense",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
                                 }
                             }
                         }

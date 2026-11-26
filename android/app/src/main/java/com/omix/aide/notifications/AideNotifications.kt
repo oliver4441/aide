@@ -42,12 +42,19 @@ enum class AideRoute(val route: String, val screen: String) {
     DASHBOARD("dashboard", "home"),
     SELL("sell", "sell"),
     STOCK("stock", "stock"),
-    MORE("more", "more");
+    LOOKUP("lookup", "lookup"),
+    RECEIVE("receive-goods", "receive-goods"),
+    COUNT("stock-count", "stock-count"),
+    TASKS("tasks", "tasks"),
+    SHIFTS("shifts", "shifts"),
+    APPROVALS("approvals", "approvals"),
+    REPORTS("reports", "reports"),
+    MORE("more", "workspace");
 
     companion object {
         fun fromRoute(route: String?): AideRoute? {
             if (route == null) return null
-            return entries.firstOrNull { it.route == route }
+            return entries.firstOrNull { it.route == route || it.screen == route }
         }
     }
 }

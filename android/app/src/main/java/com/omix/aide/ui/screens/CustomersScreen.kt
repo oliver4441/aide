@@ -71,7 +71,7 @@ fun CustomersScreen(
             }
         },
         floatingActionButton = {
-            if (!uiState.isLoading) {
+            if (!uiState.isLoading && uiState.canCreateCustomer) {
                 ExtendedFloatingActionButton(
                     onClick = { customerViewModel.setAddOpen(true) },
                     icon = { Icon(Icons.Default.Add, contentDescription = null) },
@@ -118,8 +118,8 @@ fun CustomersScreen(
                     } else {
                         "No customers match \"${uiState.searchQuery}\"."
                     },
-                    actionLabel = if (uiState.searchQuery.isBlank()) "Add a customer" else null,
-                    onAction = if (uiState.searchQuery.isBlank()) {
+                    actionLabel = if (uiState.searchQuery.isBlank() && uiState.canCreateCustomer) "Add a customer" else null,
+                    onAction = if (uiState.searchQuery.isBlank() && uiState.canCreateCustomer) {
                         { customerViewModel.setAddOpen(true) }
                     } else {
                         null
@@ -165,15 +165,17 @@ fun CustomersScreen(
                                         )
                                     }
                                 }
-                                IconButton(
-                                    onClick = { customerViewModel.deleteCustomer(customer.id) },
-                                    modifier = Modifier.height(48.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.Delete,
-                                        contentDescription = "Delete customer",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                if (uiState.canDeleteCustomer) {
+                                    IconButton(
+                                        onClick = { customerViewModel.deleteCustomer(customer.id) },
+                                        modifier = Modifier.height(48.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = "Delete customer",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
                                 }
                             }
                         }
