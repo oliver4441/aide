@@ -6,7 +6,9 @@ import androidx.work.WorkerParameters
 import com.omix.aide.data.local.AideDatabase
 import com.omix.aide.data.local.LocalBusinessStore
 import com.omix.aide.data.local.SettingsStore
+import com.omix.aide.data.local.WorkspaceContextStore
 import com.omix.aide.data.local.converters.asMoney
+import com.omix.aide.domain.ia.MobilePermission
 import com.omix.aide.notifications.AideChannel
 import com.omix.aide.notifications.AideRoute
 import com.omix.aide.notifications.NotificationEngine
@@ -32,7 +34,12 @@ class DailySummaryWorker(
 
     override suspend fun doWork(): Result {
         val context = applicationContext
-        val businessId = LocalBusinessStore(context).getBusinessId()
+        val activeContext = WorkspaceContextStore.readActiveContext(context)
+        if (!activeContext.hasPermission(MobilePermission.REPORT_READ)) {
+            // Only roles authorized for financial reports receive profit/revenue summaries.
+            return Result.success()
+        }
+        val businessId = activeContext.businessId.ifBlank { LocalBusinessStore(context).getBusinessId() }
         val db = AideDatabase.getDatabase(context)
 
         // The owner can change the currency in Settings; the summary used to
@@ -42,14 +49,16 @@ class DailySummaryWorker(
         val today = db.saleDao().getSalesSince(businessId, startOfTodayIso())
 
         if (today.isEmpty()) {
-            NotificationEngine.emit(
-                context = context,
-                channel = AideChannel.REPORTS,
-                title = "No sales recorded today",
-                message = "Nothing has been rung up yet. Open Aide to add today's sales before you close.",
-                route = AideRoute.SELL,
-                eventId = "daily_zero_${NotificationEngine.dayKey()}"
-            )
+            if (activeContext.hasPermission(MobilePermission.SALE_CREATE)) {
+                NotificationEngine.emit(
+                    context = context,
+                    channel = AideChannel.REPORTS,
+                    title = "No sales recorded today",
+                    message = "Nothing has been rung up yet. Open Aide to add today's sales before you close.",
+                    route = AideRoute.SELL,
+                    eventId = "daily_zero_${businessId.take(8)}_${NotificationEngine.dayKey()}"
+                )
+            }
             return Result.success()
         }
 
@@ -74,11 +83,11 @@ class DailySummaryWorker(
         NotificationEngine.emit(
             context = context,
             channel = AideChannel.REPORTS,
-            title = "Today's summary",
+            title = "Today's summary · ${activeContext.branchName}",
             message = "${today.size} sale${if (today.size == 1) "" else "s"} · " +
                 "$currency ${formatAmount(total)} revenue · $currency ${formatAmount(profit)} profit",
             route = AideRoute.DASHBOARD,
-            eventId = "daily_summary_${NotificationEngine.dayKey()}",
+            eventId = "daily_summary_${businessId.take(8)}_${NotificationEngine.dayKey()}",
             detailLines = lines,
             summaryLine = "$currency ${formatAmount(total)} taken today"
         )

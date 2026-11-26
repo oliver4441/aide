@@ -175,8 +175,8 @@ fun WelcomeScreen(
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    text = "Sell, keep stock and see the day's takings — on one phone, " +
-                        "with no internet needed.",
+                    text = "Task-focused daily workflows for shop owners, cashiers, warehouse " +
+                        "teams and accountants — ready offline on this device.",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -220,8 +220,8 @@ fun WelcomeScreen(
                     )
                     WelcomePoint(
                         icon = Icons.Rounded.Lock,
-                        title = "No account, no signal",
-                        detail = "Everything stays on this phone. Export a copy from Settings whenever you like.",
+                        title = "Role-scoped & stored on this device",
+                        detail = "Set your branch, role and terminal. Data stays local on this phone; export a copy from Settings anytime.",
                         reveal = band(0.60f)
                     )
                 }

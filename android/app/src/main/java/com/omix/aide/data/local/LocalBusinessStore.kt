@@ -31,6 +31,21 @@ class LocalBusinessStore(context: Context) {
         }
     }
 
+    /**
+     * Updates the active business id and display name when an employee
+     * explicitly switches membership context.
+     */
+    fun setActiveBusiness(id: String, name: String) {
+        val trimmedId = id.trim()
+        if (trimmedId.isEmpty()) return
+        val editor = prefs.edit().putString(KEY_BUSINESS_ID, trimmedId)
+        val trimmedName = name.trim()
+        if (trimmedName.isNotEmpty()) {
+            editor.putString(KEY_BUSINESS_NAME, trimmedName)
+        }
+        editor.apply()
+    }
+
     fun hasCompletedSetup(): Boolean = prefs.getBoolean(KEY_SETUP_DONE, false)
 
     /**

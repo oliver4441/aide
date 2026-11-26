@@ -58,11 +58,13 @@ fun StockScreen(
 
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { stockViewModel.setAddProductOpen(true) },
-                containerColor = MaterialTheme.colorScheme.primary
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Product")
+            if (uiState.canCreateProduct) {
+                FloatingActionButton(
+                    onClick = { stockViewModel.setAddProductOpen(true) },
+                    containerColor = MaterialTheme.colorScheme.primary
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Add Product")
+                }
             }
         }
     ) { paddingValues ->
@@ -129,8 +131,8 @@ fun StockScreen(
                     } else {
                         "No products in inventory."
                     },
-                    actionLabel = if (uiState.products.isEmpty()) "+ Add Product" else null,
-                    onAction = if (uiState.products.isEmpty()) {
+                    actionLabel = if (uiState.products.isEmpty() && uiState.canCreateProduct) "+ Add Product" else null,
+                    onAction = if (uiState.products.isEmpty() && uiState.canCreateProduct) {
                         { stockViewModel.setAddProductOpen(true) }
                     } else null
                 )
@@ -139,7 +141,11 @@ fun StockScreen(
                     items(displayedProducts, key = { it.id }) { product ->
                         StockProductCard(
                             product = product,
-                            onClick = { stockViewModel.setEditingProduct(product) }
+                            onClick = {
+                                if (uiState.canUpdateProduct) {
+                                    stockViewModel.setEditingProduct(product)
+                                }
+                            }
                         )
                     }
                 }
@@ -169,12 +175,14 @@ fun StockScreen(
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold
                     )
-                    IconButton(onClick = { stockViewModel.deleteProduct(editingProduct.id) }) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Delete product",
-                            tint = DangerRed
-                        )
+                    if (uiState.canDeleteProduct) {
+                        IconButton(onClick = { stockViewModel.deleteProduct(editingProduct.id) }) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete product",
+                                tint = DangerRed
+                            )
+                        }
                     }
                 }
 

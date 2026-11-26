@@ -23,11 +23,14 @@ import com.omix.aide.data.local.LocalBusinessStore
 import com.omix.aide.data.local.SettingsStore
 import com.omix.aide.data.local.ThemeMode
 import com.omix.aide.data.local.converters.asMoney
+import com.omix.aide.domain.ia.MobilePermission
+import com.omix.aide.domain.ia.OperatingContext
 import com.omix.aide.notifications.AideChannel
 import com.omix.aide.notifications.NotificationPrefs
 import com.omix.aide.theme.Palette
 import com.omix.aide.ui.components.AideCard
 import com.omix.aide.ui.components.AideLocalOnlyBanner
+import com.omix.aide.ui.components.OperatingLocationNotice
 import com.omix.aide.work.AideWorkScheduler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -43,11 +46,19 @@ fun SettingsScreen(
     database: com.omix.aide.data.local.AideDatabase,
     businessId: String,
     onBack: () -> Unit,
-    onSettingsChanged: (BusinessSettings) -> Unit = {}
+    onSettingsChanged: (BusinessSettings) -> Unit = {},
+    activeContext: OperatingContext? = null,
+    onOpenContextSwitcher: (() -> Unit)? = null,
+    onOpenOnboardingGuide: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val initial = remember { SettingsStore.read(context) }
+    val canUpdateSettings = activeContext?.hasPermission(MobilePermission.SETTINGS_UPDATE) ?: true
+    val canExport = activeContext?.hasAnyPermission(
+        MobilePermission.SETTINGS_UPDATE,
+        MobilePermission.REPORT_EXPORT
+    ) ?: true
 
     var businessName by remember { mutableStateOf(initial.businessName) }
     var currency by remember { mutableStateOf(initial.currency) }
@@ -87,43 +98,72 @@ fun SettingsScreen(
                 .padding(16.dp)
         ) {
             AideLocalOnlyBanner()
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(12.dp))
 
-            Text("Business profile", style = MaterialTheme.typography.titleLarge)
-            Spacer(Modifier.height(8.dp))
-            AideCard {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    OutlinedTextField(
-                        value = businessName,
-                        onValueChange = { businessName = it; saved = false },
-                        label = { Text("Business name") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    OutlinedTextField(
-                        value = currency,
-                        onValueChange = { currency = it; saved = false },
-                        label = { Text("Currency") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    OutlinedTextField(
-                        value = taxRate,
-                        onValueChange = { taxRate = it.filter { c -> c.isDigit() || c == '.' }; saved = false },
-                        label = { Text("VAT rate (%)") },
-                        placeholder = { Text("0") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    OutlinedTextField(
-                        value = receiptFooter,
-                        onValueChange = { receiptFooter = it; saved = false },
-                        label = { Text("Receipt footer") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+            if (activeContext != null) {
+                OperatingLocationNotice(
+                    context = activeContext,
+                    actionSummary = "Active Workspace & Role (${activeContext.role.title})"
+                )
+                Spacer(Modifier.height(10.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (onOpenContextSwitcher != null) {
+                        OutlinedButton(
+                            onClick = onOpenContextSwitcher,
+                            modifier = Modifier.weight(1f).height(44.dp)
+                        ) {
+                            Text("Switch Role / Branch")
+                        }
+                    }
+                    if (onOpenOnboardingGuide != null) {
+                        OutlinedButton(
+                            onClick = onOpenOnboardingGuide,
+                            modifier = Modifier.weight(1f).height(44.dp)
+                        ) {
+                            Text("Setup Guide")
+                        }
+                    }
+                }
+                Spacer(Modifier.height(16.dp))
+            }
+
+            if (canUpdateSettings) {
+                Text("Business profile", style = MaterialTheme.typography.titleLarge)
+                Spacer(Modifier.height(8.dp))
+                AideCard {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        OutlinedTextField(
+                            value = businessName,
+                            onValueChange = { businessName = it; saved = false },
+                            label = { Text("Business name") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(10.dp))
+                        OutlinedTextField(
+                            value = currency,
+                            onValueChange = { currency = it; saved = false },
+                            label = { Text("Currency") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(10.dp))
+                        OutlinedTextField(
+                            value = taxRate,
+                            onValueChange = { taxRate = it.filter { c -> c.isDigit() || c == '.' }; saved = false },
+                            label = { Text("VAT rate (%)") },
+                            placeholder = { Text("0") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(10.dp))
+                        OutlinedTextField(
+                            value = receiptFooter,
+                            onValueChange = { receiptFooter = it; saved = false },
+                            label = { Text("Receipt footer") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
             }
 
@@ -299,58 +339,62 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            Button(
-                onClick = {
-                    val trimmedName = businessName.trim()
-                    if (trimmedName.isNotEmpty()) {
-                        LocalBusinessStore(context).setBusinessName(trimmedName)
-                    }
-                    val settings = BusinessSettings(
-                        businessName = trimmedName,
-                        currency = currency.trim().ifBlank { "KSh" },
-                        taxRate = taxRate.toDoubleOrNull() ?: 0.0,
-                        receiptFooter = receiptFooter.trim(),
-                        accent = accent,
-                        themeMode = themeMode,
-                        soundsEnabled = soundsEnabled,
-                        summaryHour = summaryHour,
-                        summaryMinute = 0
-                    )
-                    SettingsStore.write(context, settings)
-                    Palette.write(context, accent)
-                    if (notificationsOn) {
-                        AideWorkScheduler.scheduleDailySummary(context, summaryHour, 0)
-                    }
-                    onSettingsChanged(settings)
-                    saved = true
-                },
-                modifier = Modifier.fillMaxWidth().height(48.dp)
-            ) {
-                Text(if (saved) "Saved" else "Save changes")
+            if (canUpdateSettings) {
+                Button(
+                    onClick = {
+                        val trimmedName = businessName.trim()
+                        if (trimmedName.isNotEmpty()) {
+                            LocalBusinessStore(context).setBusinessName(trimmedName)
+                        }
+                        val settings = BusinessSettings(
+                            businessName = trimmedName,
+                            currency = currency.trim().ifBlank { "KSh" },
+                            taxRate = taxRate.toDoubleOrNull() ?: 0.0,
+                            receiptFooter = receiptFooter.trim(),
+                            accent = accent,
+                            themeMode = themeMode,
+                            soundsEnabled = soundsEnabled,
+                            summaryHour = summaryHour,
+                            summaryMinute = 0
+                        )
+                        SettingsStore.write(context, settings)
+                        Palette.write(context, accent)
+                        if (notificationsOn) {
+                            AideWorkScheduler.scheduleDailySummary(context, summaryHour, 0)
+                        }
+                        onSettingsChanged(settings)
+                        saved = true
+                    },
+                    modifier = Modifier.fillMaxWidth().height(48.dp)
+                ) {
+                    Text(if (saved) "Saved" else "Save changes")
+                }
+
+                Spacer(Modifier.height(10.dp))
             }
 
-            Spacer(Modifier.height(10.dp))
+            if (canExport) {
+                OutlinedButton(
+                    onClick = {
+                        scope.launch {
+                            exportData(context, database, businessId)
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().height(48.dp)
+                ) {
+                    Icon(Icons.Default.Backup, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Export data")
+                }
 
-            OutlinedButton(
-                onClick = {
-                    scope.launch {
-                        exportData(context, database, businessId)
-                    }
-                },
-                modifier = Modifier.fillMaxWidth().height(48.dp)
-            ) {
-                Icon(Icons.Default.Backup, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text("Export data")
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "Uninstalling the app deletes everything on this device. Export a copy " +
+                        "of your products and sales before you do.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
-
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = "Uninstalling the app deletes everything on this device. Export a copy " +
-                    "of your products and sales before you do.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
         }
     }
 }

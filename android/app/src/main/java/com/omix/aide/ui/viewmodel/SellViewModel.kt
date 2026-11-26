@@ -2,15 +2,25 @@ package com.omix.aide.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.omix.aide.data.local.BusinessSettings
+import com.omix.aide.data.local.converters.asMoney
 import com.omix.aide.data.local.entities.ProductEntity
 import com.omix.aide.data.local.entities.SaleItemEntity
 import com.omix.aide.data.repository.ProductRepository
-import com.omix.aide.data.local.BusinessSettings
-import com.omix.aide.data.local.converters.asMoney
-import com.omix.aide.data.local.converters.toScaledMoney
 import com.omix.aide.data.repository.SaleRepository
+import com.omix.aide.domain.ia.EmployeeRole
+import com.omix.aide.domain.ia.MobilePermission
+import com.omix.aide.domain.ia.OperatingContext
+import com.omix.aide.domain.ia.RoleNavigationResolver
 import com.omix.aide.ui.vatOn
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 data class CartItem(
@@ -25,6 +35,8 @@ data class SellUiState(
     val paymentMethod: String = "CASH",
     val amountPaid: String = "",
     val lastCompletedSaleId: String? = null,
+    val operatingLocationLabel: String = "Main Branch",
+    val canCreateSale: Boolean = true,
     val error: String? = null
 ) {
     val subtotal: Double get() = cart.sumOf { it.product.sellingPrice.asMoney() * it.quantity }
@@ -32,10 +44,11 @@ data class SellUiState(
     val profit: Double get() = subtotal - totalCost
 }
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class SellViewModel(
     private val productRepository: ProductRepository,
     private val saleRepository: SaleRepository,
-    private val businessId: String,
+    private val contextFlow: StateFlow<OperatingContext>,
     /**
      * Read at the moment a sale is completed rather than held as a field, so
      * changing the VAT rate in Settings takes effect on the next sale without
@@ -44,12 +57,45 @@ class SellViewModel(
     private val settingsProvider: () -> BusinessSettings = { BusinessSettings() }
 ) : ViewModel() {
 
+    constructor(
+        productRepository: ProductRepository,
+        saleRepository: SaleRepository,
+        businessId: String,
+        settingsProvider: () -> BusinessSettings = { BusinessSettings() }
+    ) : this(
+        productRepository = productRepository,
+        saleRepository = saleRepository,
+        contextFlow = MutableStateFlow(
+            OperatingContext(
+                membershipId = "mem-$businessId",
+                organizationId = "org-$businessId",
+                organizationName = "My Business",
+                businessId = businessId,
+                businessName = "My Business",
+                role = EmployeeRole.OWNER_ADMIN
+            )
+        ),
+        settingsProvider = settingsProvider
+    )
+
     private val _searchQuery = MutableStateFlow("")
     private val _cart = MutableStateFlow<List<CartItem>>(emptyList())
     private val _paymentMethod = MutableStateFlow("CASH")
     private val _amountPaid = MutableStateFlow("")
     private val _lastSaleId = MutableStateFlow<String?>(null)
     private val _error = MutableStateFlow<String?>(null)
+    private var lastObservedBusinessId: String = contextFlow.value.businessId
+
+    init {
+        viewModelScope.launch {
+            contextFlow.collect { ctx ->
+                if (ctx.businessId != lastObservedBusinessId || !ctx.hasPermission(MobilePermission.SALE_CREATE)) {
+                    lastObservedBusinessId = ctx.businessId
+                    clearTransientCheckoutState()
+                }
+            }
+        }
+    }
 
     private val _inputsFlow = combine(
         _searchQuery,
@@ -67,42 +113,79 @@ class SellViewModel(
         Pair(saleId, err)
     }
 
-    val uiState: StateFlow<SellUiState> = combine(
-        productRepository.getProducts(businessId),
-        _inputsFlow,
-        _statusFlow
-    ) { products, inputs, status ->
-        val query = inputs.val1
-        val cart = inputs.val2
-        val method = inputs.val3
-        val paid = inputs.val4
-        val saleId = status.first
-        val err = status.second
-
-        val filtered = if (query.isBlank()) products else products.filter { p ->
-            p.name.lowercase().contains(query.lowercase()) || (p.sku?.lowercase()?.contains(query.lowercase()) == true)
+    val uiState: StateFlow<SellUiState> = contextFlow.flatMapLatest { ctx ->
+        val canSell = ctx.hasPermission(MobilePermission.SALE_CREATE)
+        val productsSource = if (canSell || ctx.hasPermission(MobilePermission.PRODUCT_READ)) {
+            productRepository.getProducts(ctx.businessId)
+        } else {
+            flowOf(emptyList())
         }
+        combine(
+            productsSource,
+            _inputsFlow,
+            _statusFlow
+        ) { products, inputs, status ->
+            val query = inputs.val1
+            val cart = if (canSell) {
+                inputs.val2.filter { it.product.businessId == ctx.businessId }
+            } else {
+                emptyList()
+            }
+            val method = inputs.val3
+            val paid = inputs.val4
+            val saleId = status.first
+            val err = status.second
 
-        SellUiState(
-            products = filtered,
-            cart = cart,
-            searchQuery = query,
-            paymentMethod = method,
-            amountPaid = paid,
-            lastCompletedSaleId = saleId,
-            error = err
-        )
+            val filtered = if (query.isBlank()) products else products.filter { p ->
+                p.name.lowercase().contains(query.lowercase()) ||
+                    (p.sku?.lowercase()?.contains(query.lowercase()) == true)
+            }
+
+            SellUiState(
+                products = filtered,
+                cart = cart,
+                searchQuery = query,
+                paymentMethod = method,
+                amountPaid = paid,
+                lastCompletedSaleId = saleId,
+                operatingLocationLabel = ctx.operatingLocationLabel,
+                canCreateSale = canSell,
+                error = err
+            )
+        }
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
-        initialValue = SellUiState()
+        initialValue = SellUiState(
+            operatingLocationLabel = contextFlow.value.operatingLocationLabel,
+            canCreateSale = contextFlow.value.hasPermission(MobilePermission.SALE_CREATE)
+        )
     )
+
+    fun hasActiveCartItems(): Boolean = _cart.value.isNotEmpty()
+
+    fun clearTransientCheckoutState() {
+        _cart.value = emptyList()
+        _amountPaid.value = ""
+        _searchQuery.value = ""
+        _error.value = null
+    }
 
     fun setSearchQuery(query: String) {
         _searchQuery.value = query
     }
 
     fun addToCart(product: ProductEntity) {
+        val ctx = contextFlow.value
+        val auth = RoleNavigationResolver.authorizeOperation(
+            ctx,
+            MobilePermission.SALE_CREATE,
+            product.businessId
+        )
+        if (!auth.allowed) {
+            _error.value = auth.reason
+            return
+        }
         val current = _cart.value.toMutableList()
         val index = current.indexOfFirst { it.product.id == product.id }
         if (index >= 0) {
@@ -151,7 +234,14 @@ class SellViewModel(
     }
 
     fun completeSale(onSuccess: (String) -> Unit) {
-        val currentCart = _cart.value
+        val ctx = contextFlow.value
+        val auth = RoleNavigationResolver.authorizeOperation(ctx, MobilePermission.SALE_CREATE)
+        if (!auth.allowed) {
+            _error.value = auth.reason ?: "Not authorized to record sales."
+            return
+        }
+
+        val currentCart = _cart.value.filter { it.product.businessId == ctx.businessId }
         if (currentCart.isEmpty()) {
             _error.value = "Cart is empty"
             return
@@ -185,14 +275,17 @@ class SellViewModel(
 
             try {
                 // Prices are VAT-inclusive, so the VAT portion is extracted
-                // from the charged total rather than added on top. The customer
-                // pays exactly `total`; the sale records how much of it was tax
-                // so Reports can show a correct VAT line.
+                // from the charged total rather than added on top.
                 val taxRate = settingsProvider().taxRate
                 val vat = vatOn(total, taxRate)
+                val cashierAttribution = buildString {
+                    append(ctx.employeeName.ifBlank { ctx.role.shortBadge })
+                    append(" · ")
+                    append(ctx.terminalName?.takeIf { it.isNotBlank() } ?: ctx.branchName)
+                }
 
                 val sale = saleRepository.createSale(
-                    businessId = businessId,
+                    businessId = ctx.businessId,
                     items = saleItems,
                     total = total,
                     cost = cost,
@@ -201,7 +294,8 @@ class SellViewModel(
                     change = change,
                     tax = vat,
                     taxRate = taxRate,
-                    paymentMethod = _paymentMethod.value
+                    paymentMethod = _paymentMethod.value,
+                    cashier = cashierAttribution
                 )
 
                 _cart.value = emptyList()
