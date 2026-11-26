@@ -42,9 +42,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -91,7 +93,7 @@ class RoleIaUsabilityJourneyTest {
     }
 
     @Test
-    fun coreCashierJourneyMeasuresFastCompletionZeroErrorRateAndHidesFinancialProfit() = runTest {
+    fun coreCashierJourneyMeasuresFastCompletionZeroErrorRateAndHidesFinancialProfit() = runTest(testDispatcher) {
         val env = TestWorkspaceEnvironment()
         val cashierMembership = env.workspaceStore.addMembership(
             employeeName = "Grace Wanjiku",
@@ -116,10 +118,12 @@ class RoleIaUsabilityJourneyTest {
             quantity = 30
         )
 
-        val homeCollector = backgroundScope.launch { env.homeViewModel.uiState.collect {} }
-        val sellCollector = backgroundScope.launch { env.sellViewModel.uiState.collect {} }
-        val opsCollector = backgroundScope.launch { env.operationsViewModel.uiState.collect {} }
-        val reportCollector = backgroundScope.launch { env.reportViewModel.uiState.collect {} }
+        val unconfined = UnconfinedTestDispatcher(testScheduler)
+        val homeCollector = backgroundScope.launch(unconfined) { env.homeViewModel.uiState.collect {} }
+        val sellCollector = backgroundScope.launch(unconfined) { env.sellViewModel.uiState.collect {} }
+        val opsCollector = backgroundScope.launch(unconfined) { env.operationsViewModel.uiState.collect {} }
+        val reportCollector = backgroundScope.launch(unconfined) { env.reportViewModel.uiState.collect {} }
+        advanceUntilIdle()
 
         val startedNs = System.nanoTime()
         var steps = 0
@@ -217,7 +221,7 @@ class RoleIaUsabilityJourneyTest {
     }
 
     @Test
-    fun coreWarehouseJourneyReceivesGoodsLogsVarianceApprovalAndCompletesChecklistWithZeroErrors() = runTest {
+    fun coreWarehouseJourneyReceivesGoodsLogsVarianceApprovalAndCompletesChecklistWithZeroErrors() = runTest(testDispatcher) {
         val env = TestWorkspaceEnvironment()
         env.workspaceStore.addMembership(
             employeeName = "David Otieno",
@@ -241,8 +245,10 @@ class RoleIaUsabilityJourneyTest {
             quantity = 10
         )
 
-        val homeCollector = backgroundScope.launch { env.homeViewModel.uiState.collect {} }
-        val opsCollector = backgroundScope.launch { env.operationsViewModel.uiState.collect {} }
+        val unconfined = UnconfinedTestDispatcher(testScheduler)
+        val homeCollector = backgroundScope.launch(unconfined) { env.homeViewModel.uiState.collect {} }
+        val opsCollector = backgroundScope.launch(unconfined) { env.operationsViewModel.uiState.collect {} }
+        advanceUntilIdle()
 
         val startedNs = System.nanoTime()
         var steps = 0
@@ -320,7 +326,7 @@ class RoleIaUsabilityJourneyTest {
     }
 
     @Test
-    fun managerJourneyApprovesTeamRequestAndContextSwitchClearsStaleDataAcrossTenants() = runTest {
+    fun managerJourneyApprovesTeamRequestAndContextSwitchClearsStaleDataAcrossTenants() = runTest(testDispatcher) {
         val env = TestWorkspaceEnvironment()
 
         // Branch A: Cashier submits approval request + Branch A has products & sales
@@ -374,10 +380,12 @@ class RoleIaUsabilityJourneyTest {
             quantity = 40
         )
 
-        val homeCollector = backgroundScope.launch { env.homeViewModel.uiState.collect {} }
-        val sellCollector = backgroundScope.launch { env.sellViewModel.uiState.collect {} }
-        val stockCollector = backgroundScope.launch { env.stockViewModel.uiState.collect {} }
-        val opsCollector = backgroundScope.launch { env.operationsViewModel.uiState.collect {} }
+        val unconfined = UnconfinedTestDispatcher(testScheduler)
+        val homeCollector = backgroundScope.launch(unconfined) { env.homeViewModel.uiState.collect {} }
+        val sellCollector = backgroundScope.launch(unconfined) { env.sellViewModel.uiState.collect {} }
+        val stockCollector = backgroundScope.launch(unconfined) { env.stockViewModel.uiState.collect {} }
+        val opsCollector = backgroundScope.launch(unconfined) { env.operationsViewModel.uiState.collect {} }
+        advanceUntilIdle()
 
         // Cashier submits an override request in Branch A
         assertEquals(cashierBranchA.membershipId, env.workspaceStore.activeContext.value.membershipId)
@@ -606,10 +614,10 @@ private class FakeSaleDao : SaleDao {
     private val items = MutableStateFlow<List<SaleItemEntity>>(emptyList())
 
     override fun getSalesWithItems(businessId: String): Flow<List<SaleWithItems>> =
-        sales.map { list ->
-            list.filter { it.businessId == businessId }
+        combine(sales, items) { salesList, itemsList ->
+            salesList.filter { it.businessId == businessId }
                 .sortedByDescending { it.createdAt }
-                .map { s -> SaleWithItems(s, items.value.filter { it.saleId == s.id }) }
+                .map { s -> SaleWithItems(s, itemsList.filter { it.saleId == s.id }) }
         }
 
     override suspend fun getSaleWithItemsById(saleId: String): SaleWithItems? {
