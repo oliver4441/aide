@@ -379,7 +379,8 @@ class WorkspaceContextStore(
                     } else {
                         role.defaultPermissions
                     }
-                    val businessId = obj.optString("businessId").ifBlank { continue }
+                    val businessId = obj.optString("businessId")
+                    if (businessId.isBlank()) continue
                     val businessName = obj.optString("businessName", "My Business")
                     add(
                         WorkspaceMembership(

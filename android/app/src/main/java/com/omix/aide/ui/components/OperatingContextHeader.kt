@@ -160,6 +160,7 @@ fun OperatingContextBar(
 @Composable
 fun OperatingLocationNotice(
     context: OperatingContext,
+    actionSummary: String? = null,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -179,7 +180,15 @@ fun OperatingLocationNotice(
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(
-                text = "${context.role.title} · ${context.syncMode.badgeLabel}",
+                text = buildString {
+                    if (!actionSummary.isNullOrBlank()) {
+                        append(actionSummary)
+                        append(" · ")
+                    }
+                    append(context.role.title)
+                    append(" · ")
+                    append(context.syncMode.badgeLabel)
+                },
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -196,7 +205,7 @@ fun AccessRestrictedScreen(
     context: OperatingContext,
     reason: String,
     onReturnHome: (() -> Unit)?,
-    onOpenContextSwitcher: () -> Unit,
+    onOpenContextSwitcher: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Column(
