@@ -2,6 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   IMPORT_LIMITS,
+  IMPORT_ENTITIES,
+  isImportEntity,
+  fieldDefsFor,
   FIELD_DEFS,
   autoDetectMapping,
   buildDryRun,
@@ -192,4 +195,69 @@ test('dry-run rows carry the provided-field list for merge safety', () => {
   });
   const row = dry.rows[0];
   assert.deepEqual(row.provided.sort(), ['name', 'sellingPrice']); // blank SKU not "provided"
+});
+
+// ── AIDE-22: historical sales import ──────────────────────────────────────
+test('sales entity is registered with its field definitions', () => {
+  assert.equal(IMPORT_ENTITIES.includes('sales'), true);
+  assert.equal(isImportEntity('sales'), true);
+  const keys = fieldDefsFor('sales').map((d) => d.key);
+  assert.ok(keys.includes('date') && keys.includes('reference') && keys.includes('itemName'));
+  assert.ok(keys.includes('paymentMethod') && keys.includes('unitPrice'));
+});
+
+test('sales normalize M-Pesa / mobile money / card payment aliases', () => {
+  const base = { date: '2025-03-14', itemName: 'Coffee', quantity: '1', unitPrice: '100' };
+  for (const [value, expected] of [
+    ['M-Pesa', 'MOBILE_MONEY'], ['mpesa', 'MOBILE_MONEY'], ['Mobile Money', 'MOBILE_MONEY'],
+    ['Cash', 'CASH'], ['Card', 'CARD'], ['Visa', 'CARD'], ['other', 'OTHER'],
+  ]) {
+    const r = validateRowData('sales', { ...base, paymentMethod: value });
+    assert.deepEqual(r.errors, [], `unexpected errors for ${value}: ${r.errors.join(', ')}`);
+    assert.equal(r.data.paymentMethod, expected);
+  }
+});
+
+test('sales normalize ISO and DD/MM/YYYY dates, reject invalid dates', () => {
+  const ok = (d) => validateRowData('sales', { date: d, itemName: 'x', quantity: '1', unitPrice: '1' });
+  assert.equal(ok('2025-03-14').data.date, '2025-03-14');
+  assert.equal(ok('14/03/2025').data.date, '2025-03-14');
+  assert.equal(ok('2025-13-01').errors.length, 1);
+  assert.equal(ok('not a date').errors.length, 1);
+});
+
+test('sales compute exact totals/cost/profit from qty x price + tax', () => {
+  const r = validateRowData('sales', {
+    date: '2025-03-14', reference: 'RCP-001', itemName: 'Coffee beans',
+    quantity: '2', unitPrice: '850', costPrice: '600', tax: '16', paymentMethod: 'M-Pesa',
+  });
+  assert.deepEqual(r.errors, []);
+  assert.equal(r.data.total, '1716.0000');
+  assert.equal(r.data.cost, '1200.0000');
+  assert.equal(r.data.profit, '500.0000');
+  assert.equal(r.data.paid, '1716.0000');
+  assert.equal(r.data.change, '0.0000');
+  assert.equal(dedupeKey('sales', r.data), 'ref:rcp-001');
+});
+
+test('sales dry-run detects receipt-number duplicates', () => {
+  const dry = buildDryRun({
+    entity: 'sales',
+    headers: ['date', 'receipt', 'item', 'qty', 'price', 'payment method'],
+    rows: [
+      ['2025-03-14', 'RCP-1', 'Coffee', '1', '100', 'Cash'],
+      ['2025-03-15', 'rcp-1', 'Tea', '2', '50', 'Cash'],
+    ],
+    mapping: { date: 0, reference: 1, itemName: 2, quantity: 3, unitPrice: 4, paymentMethod: 5 },
+  });
+  assert.equal(dry.ok, true);
+  assert.equal(dry.validCount, 1);
+  assert.equal(dry.duplicateCount, 1);
+  assert.equal(dry.rows[1].status, 'duplicate');
+});
+
+test('sales validation rejects empty item name and negative price', () => {
+  const bad = validateRowData('sales', { date: '2025-03-14', itemName: '', quantity: '1', unitPrice: '-5' });
+  assert.ok(bad.errors.some((e) => e.includes('Item name is required')));
+  assert.ok(bad.errors.some((e) => e.includes('Unit price must not be negative')));
 });

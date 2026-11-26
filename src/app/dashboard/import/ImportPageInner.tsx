@@ -17,6 +17,7 @@ import {
   ArrowRight,
   XCircle,
   FileText,
+  Receipt,
 } from "lucide-react";
 import { formatDate } from "@/lib/format";
 import { parseImportFile, type ParseResult } from "@/lib/importParse";
@@ -27,7 +28,7 @@ import {
 } from "@/lib/importEngine.mjs";
 import { cn } from "@/lib/utils";
 
-type Entity = "products" | "customers";
+type Entity = "products" | "customers" | "sales";
 type Tab = "new" | "history";
 type Step = "entity" | "file" | "map" | "review" | "done";
 
@@ -70,7 +71,7 @@ interface CommitResponse {
 interface ImportBatchRecord {
   id: string;
   fileName: string;
-  entity: "PRODUCTS" | "CUSTOMERS";
+  entity: "PRODUCTS" | "CUSTOMERS" | "SALES";
   status: "COMPLETED" | "ROLLED_BACK";
   duplicateStrategy: "SKIP" | "MERGE";
   totalRows: number;
@@ -104,6 +105,13 @@ const ENTITY_OPTIONS: Array<{
     description: "Customer records with contact details, codes and credit limits.",
     fields: "name · customer code · email · phone · address · city · credit limit",
     icon: Users,
+  },
+  {
+    key: "sales",
+    title: "Sales history",
+    description: "Historical sales with date, receipt number, payment method and line items. Append-only — duplicates are skipped.",
+    fields: "date · receipt · customer · payment method · item · qty · price · cost · tax",
+    icon: Receipt,
   },
 ];
 
@@ -328,7 +336,8 @@ export default function ImportPageInner() {
       const blocked = Array.isArray(data?.blocked) ? data.blocked.length : 0;
       setRollbackSummary(
         `Rolled back ${rollbackTarget.fileName}: deleted ${data?.deletedProducts ?? 0} products, ` +
-          `${data?.deletedCustomers ?? 0} customers and ${data?.deletedCategories ?? 0} empty categories; ` +
+          `${data?.deletedCustomers ?? 0} customers, ${data?.deletedSales ?? 0} sales and ` +
+          `${data?.deletedCategories ?? 0} empty categories; ` +
           `restored ${data?.restored ?? 0} merged record(s).` +
           (blocked ? ` ${blocked} record(s) were kept because they are in use.` : "")
       );

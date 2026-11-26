@@ -29,6 +29,21 @@ export function isDuplicateStrategy(value: unknown): value is "skip" | "merge" {
  * customer code, then phone, then email, then name).
  */
 async function fetchDbIndex(businessId: string, entity: string) {
+  if (entity === "sales") {
+    const sales = await prisma.sale.findMany({
+      where: { businessId },
+      select: { id: true, notes: true },
+    });
+    const byKey = new Map<string, { id: string }>();
+    for (const sale of sales) {
+      const match = String(sale.notes ?? "").match(/^Receipt:\s*([^\n]+)/i);
+      if (match && match[1]) {
+        const k = `ref:${match[1].trim().toLowerCase()}`;
+        if (!byKey.has(k)) byKey.set(k, { id: sale.id });
+      }
+    }
+    return byKey;
+  }
   if (entity === "products") {
     const products = await prisma.product.findMany({
       where: { businessId },
@@ -166,6 +181,24 @@ interface CustomerRowData {
   creditLimit: string | null;
 }
 
+interface SaleRowData {
+  date: string;
+  reference: string | null;
+  customer: string | null;
+  paymentMethod: "CASH" | "MOBILE_MONEY" | "CARD" | "OTHER";
+  itemName: string;
+  quantity: number;
+  unitPrice: string;
+  costPrice: string;
+  tax: string;
+  notes: string | null;
+  total: string;
+  cost: string;
+  profit: string;
+  paid: string;
+  change: string;
+}
+
 function normalizeCategoryName(name: string) {
   return name.trim().toLowerCase();
 }
@@ -236,6 +269,7 @@ export async function commitImport(
       const createdProductIds: string[] = [];
       const createdCustomerIds: string[] = [];
       const createdCategoryIds: string[] = [];
+      const createdSaleIds: string[] = [];
       const updatedSnapshot: Array<{ id: string; entity: string; prior: Record<string, unknown> }> = [];
       const errorReport: Array<{ row: number; errors: string[] }> = [];
 
@@ -364,6 +398,39 @@ export async function commitImport(
               createdProductIds.push(created.id);
               createdCount++;
             }
+          } else if (analysis.entity === "sales") {
+            const data = row.data as SaleRowData;
+            if (plan.action === "update") { skippedCount++; return; }
+            const createdAt = new Date(`${data.date}T12:00:00.000Z`);
+            const notes = data.reference
+              ? `Receipt: ${data.reference}${data.customer ? `\nCustomer: ${data.customer}` : ""}${data.notes ? `\n${data.notes}` : ""}`
+              : [data.customer, data.notes].filter(Boolean).join(" — ") || null;
+            const created = await tx.sale.create({
+              data: {
+                businessId,
+                createdAt,
+                total: data.total,
+                cost: data.cost,
+                profit: data.profit,
+                paid: data.paid,
+                change: data.change,
+                tax: data.tax ?? "0.0000",
+                taxRate: "0",
+                paymentMethod: data.paymentMethod ?? "CASH",
+                notes,
+                items: {
+                  create: [{
+                    name: data.itemName,
+                    quantity: data.quantity ?? 1,
+                    price: data.unitPrice,
+                    cost: data.costPrice ?? "0.0000",
+                  }],
+                },
+              },
+              select: { id: true },
+            });
+            createdSaleIds.push(created.id);
+            createdCount++;
           } else {
             // customers
             const data = row.data as CustomerRowData;
@@ -460,6 +527,7 @@ export async function commitImport(
           createdIds: {
             products: createdProductIds,
             customers: createdCustomerIds,
+            sales: createdSaleIds,
             categoryIds: createdCategoryIds,
           },
           updatedSnapshot,
@@ -508,11 +576,13 @@ export async function rollbackImport(businessId: string, batchId: string) {
   const productIds: string[] = Array.isArray(created.products) ? created.products : [];
   const customerIds: string[] = Array.isArray(created.customers) ? created.customers : [];
   const categoryIds: string[] = Array.isArray(created.categoryIds) ? created.categoryIds : [];
+  const saleIds: string[] = Array.isArray(created.sales) ? created.sales : [];
 
   const outcome = await prisma.$transaction(
     async (tx: any) => {
       let deletedProducts = 0;
       let deletedCustomers = 0;
+      let deletedSales = 0;
       const blocked: Array<{ entity: string; id: string }> = [];
       let restored = 0;
 
@@ -554,8 +624,19 @@ export async function rollbackImport(businessId: string, batchId: string) {
         }).catch(() => blocked.push({ entity: "customers", id }));
       };
 
+      const tryDeleteSale = async (id: string) => {
+        await withSavepoint(tx, async () => {
+          // Delete items first (SaleItem has no cascade from Sale in some setups).
+          await tx.saleItem.deleteMany({ where: { saleId: id } });
+          const res = await tx.sale.deleteMany({ where: { id, businessId } });
+          if (res.count > 0) deletedSales += res.count;
+          else blocked.push({ entity: "sales", id });
+        }).catch(() => blocked.push({ entity: "sales", id }));
+      };
+
       for (const id of productIds) await tryDeleteProduct(id);
       for (const id of customerIds) await tryDeleteCustomer(id);
+      for (const id of saleIds) await tryDeleteSale(id);
 
       for (const entry of snapshot) {
         const table = entry.entity === "PRODUCTS" ? tx.product : entry.entity === "CUSTOMERS" ? tx.customer : null;
@@ -588,6 +669,7 @@ export async function rollbackImport(businessId: string, batchId: string) {
       return {
         deletedProducts,
         deletedCustomers,
+        deletedSales,
         deletedCategories,
         restored,
         blocked,
@@ -627,6 +709,12 @@ export async function requireImportRole(
         : mode === "delete"
         ? Permission.PRODUCT_DELETE
         : Permission.PRODUCT_READ
+      : normalized === "sales"
+      ? mode === "write"
+        ? Permission.SALE_CREATE
+        : mode === "delete"
+        ? Permission.SALE_DELETE
+        : Permission.SALE_READ
       : mode === "write"
       ? Permission.CUSTOMER_CREATE
       : mode === "delete"

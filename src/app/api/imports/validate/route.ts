@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 /**
  * POST /api/imports/validate — dry run.
  *
- * Body: { entity: "products"|"customers", headers: string[], rows: any[][],
+ * Body: { entity: "products"|"customers"|"sales", headers: string[], rows: any[][],
  *         mapping: Record<string, number|null>, businessId?: string }
  *
  * Never writes. Returns per-row status (ok | duplicate | error | empty),
