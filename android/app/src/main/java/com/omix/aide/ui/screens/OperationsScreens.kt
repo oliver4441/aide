@@ -7,11 +7,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -37,6 +39,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,6 +48,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -213,6 +217,14 @@ fun ReceiveGoodsScreen(operationsViewModel: OperationsViewModel) {
     val uiState by operationsViewModel.uiState.collectAsState()
     val context = uiState.activeContext
     val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(uiState.feedbackMessage, uiState.errorMessage) {
+        if (uiState.feedbackMessage != null || uiState.errorMessage != null) {
+            listState.scrollToItem(0)
+        }
+    }
 
     var selectedProductId by remember { mutableStateOf<String?>(null) }
     var supplierName by remember { mutableStateOf("") }
@@ -231,8 +243,10 @@ fun ReceiveGoodsScreen(operationsViewModel: OperationsViewModel) {
         ?: uiState.products.firstOrNull { it.id == selectedProductId }
 
     LazyColumn(
+        state = listState,
         modifier = Modifier
             .fillMaxSize()
+            .imePadding()
             .padding(16.dp)
             .testTag("screen_receive_goods"),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -342,6 +356,7 @@ fun ReceiveGoodsScreen(operationsViewModel: OperationsViewModel) {
                     Button(
                         onClick = {
                             focusManager.clearFocus()
+                            keyboardController?.hide()
                             val prod = selectedProduct ?: matchingProducts.firstOrNull()
                             val qty = quantityReceived.trim().toIntOrNull() ?: 0
                             if (prod != null) {
@@ -437,6 +452,13 @@ fun StockCountScreen(operationsViewModel: OperationsViewModel) {
     val uiState by operationsViewModel.uiState.collectAsState()
     val context = uiState.activeContext
     val canDirectAdjust = context.hasPermission(MobilePermission.STOCK_ADJUST_CREATE)
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(uiState.feedbackMessage, uiState.errorMessage) {
+        if (uiState.feedbackMessage != null || uiState.errorMessage != null) {
+            listState.scrollToItem(0)
+        }
+    }
 
     var selectedProductId by remember { mutableStateOf<String?>(null) }
     var countedQty by remember { mutableStateOf("") }
@@ -454,8 +476,10 @@ fun StockCountScreen(operationsViewModel: OperationsViewModel) {
         ?: uiState.products.firstOrNull { it.id == selectedProductId }
 
     LazyColumn(
+        state = listState,
         modifier = Modifier
             .fillMaxSize()
+            .imePadding()
             .padding(16.dp)
             .testTag("screen_stock_count"),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -748,6 +772,8 @@ fun ShiftsScreen(operationsViewModel: OperationsViewModel) {
     val uiState by operationsViewModel.uiState.collectAsState()
     val context = uiState.activeContext
     val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val listState = rememberLazyListState()
     val openShift = uiState.openShift
     val canOpen = context.hasPermission(MobilePermission.SHIFT_OPEN)
     val canClose = context.hasPermission(MobilePermission.SHIFT_CLOSE)
@@ -756,9 +782,17 @@ fun ShiftsScreen(operationsViewModel: OperationsViewModel) {
     var closingCashInput by remember { mutableStateOf("") }
     var closingNote by remember { mutableStateOf("") }
 
+    LaunchedEffect(uiState.feedbackMessage, uiState.errorMessage) {
+        if (uiState.feedbackMessage != null || uiState.errorMessage != null) {
+            listState.scrollToItem(0)
+        }
+    }
+
     LazyColumn(
+        state = listState,
         modifier = Modifier
             .fillMaxSize()
+            .imePadding()
             .padding(16.dp)
             .testTag("screen_shifts"),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -820,6 +854,7 @@ fun ShiftsScreen(operationsViewModel: OperationsViewModel) {
                             Button(
                                 onClick = {
                                     focusManager.clearFocus()
+                                    keyboardController?.hide()
                                     val amount = openingFloatInput.trim().toDoubleOrNull() ?: 0.0
                                     operationsViewModel.openShift(amount)
                                 },

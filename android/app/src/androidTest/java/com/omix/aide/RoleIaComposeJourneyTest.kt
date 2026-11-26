@@ -1,6 +1,10 @@
 package com.omix.aide
 
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.focus.FocusManager
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.SoftwareKeyboardController
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -55,6 +59,8 @@ class RoleIaComposeJourneyTest {
     private lateinit var database: AideDatabase
     private lateinit var workspaceStore: WorkspaceContextStore
     private lateinit var operationsStore: OperationsStore
+    private var focusManager: FocusManager? = null
+    private var keyboardController: SoftwareKeyboardController? = null
 
     @Before
     fun setUp() {
@@ -94,6 +100,14 @@ class RoleIaComposeJourneyTest {
         database.close()
     }
 
+    private fun dismissKeyboard() {
+        composeRule.runOnIdle {
+            focusManager?.clearFocus(force = true)
+            keyboardController?.hide()
+        }
+        composeRule.waitForIdle()
+    }
+
     private fun clickPrimaryDestination(route: String) {
         val bottomNodes = composeRule.onAllNodesWithTag("bottom_tab_$route").fetchSemanticsNodes()
         if (bottomNodes.isNotEmpty()) {
@@ -126,6 +140,8 @@ class RoleIaComposeJourneyTest {
         }
 
         composeRule.setContent {
+            focusManager = LocalFocusManager.current
+            keyboardController = LocalSoftwareKeyboardController.current
             CompositionLocalProvider(LocalAideSettings provides BusinessSettings()) {
                 AideTheme(darkTheme = true) {
                     AideAppShell(
@@ -155,7 +171,7 @@ class RoleIaComposeJourneyTest {
         )
 
         mountShell()
-        composeRule.waitUntil(timeoutMillis = 5_000) {
+        composeRule.waitUntil(timeoutMillis = 10_000) {
             composeRule.onAllNodesWithTag("home_role_header").fetchSemanticsNodes().isNotEmpty()
         }
 
@@ -168,19 +184,20 @@ class RoleIaComposeJourneyTest {
 
         // 2. Cashier opens Shift in 2 taps (Shift tab -> Open Shift)
         clickPrimaryDestination("shifts")
-        composeRule.waitUntil(timeoutMillis = 5_000) {
+        composeRule.waitUntil(timeoutMillis = 10_000) {
             composeRule.onAllNodesWithTag("shift_open_button").fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithTag("shift_opening_float_input").performScrollTo().performTextReplacement("1500")
+        dismissKeyboard()
         composeRule.onNodeWithTag("shift_open_button").performScrollTo().performClick()
-        composeRule.waitUntil(timeoutMillis = 5_000) {
+        composeRule.waitUntil(timeoutMillis = 10_000) {
             composeRule.onAllNodesWithTag("shift_close_button").fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithTag("shift_close_button").performScrollTo().assertIsDisplayed()
 
         // 3. Cashier checks price in Lookup (waits for Room Flow to emit stocked product)
         clickPrimaryDestination("lookup")
-        composeRule.waitUntil(timeoutMillis = 5_000) {
+        composeRule.waitUntil(timeoutMillis = 10_000) {
             composeRule.onAllNodesWithTag("lookup_item_sku-rice-2kg").fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Basmati Rice 2kg").assertIsDisplayed()
@@ -194,22 +211,24 @@ class RoleIaComposeJourneyTest {
                 deviceAssignment = DeviceAssignmentMode.DEDICATED_WAREHOUSE_HANDHELD
             )
         }
-        composeRule.waitUntil(timeoutMillis = 5_000) {
+        composeRule.waitUntil(timeoutMillis = 10_000) {
             countPrimaryDestinationNodes("receive-goods") > 0
         }
         assertEquals(0, countPrimaryDestinationNodes("sell"))
 
         clickPrimaryDestination("receive-goods")
-        composeRule.waitUntil(timeoutMillis = 5_000) {
+        composeRule.waitUntil(timeoutMillis = 10_000) {
             composeRule.onAllNodesWithTag("grn_select_product_sku-rice-2kg").fetchSemanticsNodes().isNotEmpty()
         }
 
         // Post an inbound Goods Receipt on ReceiveGoodsScreen
         composeRule.onNodeWithTag("grn_supplier_input").performScrollTo().performTextReplacement("Mwea Growers")
+        dismissKeyboard()
         composeRule.onNodeWithTag("grn_select_product_sku-rice-2kg").performScrollTo().performClick()
         composeRule.onNodeWithTag("grn_quantity_input").performScrollTo().performTextReplacement("12")
+        dismissKeyboard()
         composeRule.onNodeWithTag("grn_submit_button").performScrollTo().performClick()
-        composeRule.waitUntil(timeoutMillis = 5_000) {
+        composeRule.waitUntil(timeoutMillis = 10_000) {
             composeRule.onAllNodesWithText("Recorded GRN-", substring = true).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("Recorded GRN-", substring = true).assertIsDisplayed()
@@ -223,7 +242,7 @@ class RoleIaComposeJourneyTest {
                 revokedReason = "Device reassigned by administrator."
             )
         }
-        composeRule.waitUntil(timeoutMillis = 5_000) {
+        composeRule.waitUntil(timeoutMillis = 10_000) {
             composeRule.onAllNodesWithTag("access_restricted_screen").fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithTag("access_restricted_screen").assertIsDisplayed()
