@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 /**
  * POST /api/imports/commit — persist a previously dry-run import.
  *
- * Body: { entity: "products"|"customers", fileName?: string,
+ * Body: { entity: "products"|"customers"|"sales", fileName?: string,
  *         headers: string[], rows: any[][],
  *         mapping: Record<string, number|null>,
  *         duplicateStrategy?: "skip"|"merge", businessId?: string }

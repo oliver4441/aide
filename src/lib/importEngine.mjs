@@ -21,7 +21,7 @@ export const IMPORT_LIMITS = Object.freeze({
   maxNotesLength: 500,
 });
 
-export const IMPORT_ENTITIES = Object.freeze(["products", "customers"]);
+export const IMPORT_ENTITIES = Object.freeze(["products", "customers", "sales"]);
 
 export const DUPLICATE_STRATEGIES = Object.freeze(["skip", "merge"]);
 
@@ -66,6 +66,28 @@ export const FIELD_DEFS = Object.freeze({
       aliases: ["notes", "note", "comment", "comments", "remarks"] },
     { key: "creditLimit", label: "Credit limit", type: "decimal", min: "0", defaultValue: "0.0000",
       aliases: ["credit limit", "creditlimit", "limit", "credit", "max credit"] },
+  ],
+  sales: [
+    { key: "date", label: "Date", type: "date", required: true,
+      aliases: ["date", "sale date", "transaction date", "receipt date", "day", "timestamp", "created at"] },
+    { key: "reference", label: "Receipt number", type: "string", maxLength: 64,
+      aliases: ["receipt", "receipt no", "receipt number", "reference", "ref", "invoice", "invoice no", "sale no", "sale id", "code", "number"] },
+    { key: "customer", label: "Customer", type: "string", maxLength: IMPORT_LIMITS.maxNameLength,
+      aliases: ["customer", "customer name", "client", "buyer", "contact"] },
+    { key: "paymentMethod", label: "Payment method", type: "enum", values: ["CASH", "MOBILE_MONEY", "CARD", "OTHER"], defaultValue: "CASH",
+      aliases: ["payment method", "payment", "method", "pay method", "payment type", "paid by", "tender", "tender type"] },
+    { key: "itemName", label: "Item name", required: true, type: "string", maxLength: IMPORT_LIMITS.maxNameLength,
+      aliases: ["item", "item name", "product", "product name", "description", "service", "goods", "name"] },
+    { key: "quantity", label: "Quantity", type: "int", min: 1, defaultValue: 1,
+      aliases: ["quantity", "qty", "units", "count", "number of items"] },
+    { key: "unitPrice", label: "Unit price", required: true, type: "decimal", min: "0",
+      aliases: ["unit price", "price", "selling price", "sell price", "rate", "amount", "unit cost", "retail price"] },
+    { key: "costPrice", label: "Unit cost", type: "decimal", min: "0", defaultValue: "0.0000",
+      aliases: ["unit cost", "cost", "cost price", "buying price", "buy price", "purchase price"] },
+    { key: "tax", label: "Tax / VAT", type: "decimal", min: "0", defaultValue: "0.0000",
+      aliases: ["tax", "vat", "tax amount", "vat amount"] },
+    { key: "notes", label: "Notes", type: "string", maxLength: IMPORT_LIMITS.maxNotesLength,
+      aliases: ["notes", "note", "comment", "comments", "remarks", "memo"] },
   ],
 });
 
@@ -261,6 +283,11 @@ export function dedupeKey(entity, data) {
     if (data.name) return `name:${String(data.name).trim().toLowerCase()}`;
     return null;
   }
+  if (entity === "sales") {
+    if (data.reference) return `ref:${String(data.reference).trim().toLowerCase()}`;
+    if (data.date && data.itemName) return `sale:${String(data.date).trim()}:${String(data.itemName).trim().toLowerCase()}`;
+    return null;
+  }
   return null;
 }
 
@@ -272,6 +299,52 @@ export function extractRow(mapping, rawRow) {
     out[fieldKey] = rawRow[Number(colIndex)] ?? "";
   }
   return out;
+}
+
+/** Normalise a date cell to YYYY-MM-DD. Accepts ISO and DD/MM/YYYY. */
+function normalizeDate(value) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return null;
+  // yyyy-mm-dd (optionally with time)
+  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T].*)?$/);
+  if (iso) {
+    const [y, m, d] = iso.slice(1).map(Number);
+    return isValidDate(y, m, d) ? `${iso[1]}-${iso[2]}-${iso[3]}` : null;
+  }
+  // d/m/yyyy or dd/mm/yyyy
+  const dmy = raw.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+  if (dmy) {
+    const d = Number(dmy[1]); const m = Number(dmy[2]); const y = Number(dmy[3]);
+    return isValidDate(y, m, d) ? `${dmy[3]}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}` : null;
+  }
+  // m/d/yyyy (US) — only when first component > 12 to avoid ambiguity
+  const mdy = raw.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+  if (mdy) {
+    const a = Number(mdy[1]); const b = Number(mdy[2]); const y = Number(mdy[3]);
+    if (a > 12 && isValidDate(y, b, a)) return `${mdy[3]}-${String(b).padStart(2, "0")}-${String(a).padStart(2, "0")}`;
+  }
+  return null;
+}
+
+function isValidDate(y, m, d) {
+  if (m < 1 || m > 12 || d < 1 || d > 31) return false;
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d;
+}
+
+/** Normalise an enum cell (case/spacing/punctuation insensitive). */
+function normalizeEnum(value, values) {
+  const raw = String(value ?? "").trim().toLowerCase().replace(/[\s-]+/g, "_");
+  // Payment-method aliases seen in real POS exports.
+  const aliases = {
+    cash: "CASH", "mpesa": "MOBILE_MONEY", "m_pesa": "MOBILE_MONEY", "mobile money": "MOBILE_MONEY",
+    "mobile_money": "MOBILE_MONEY", "m-pesa": "MOBILE_MONEY", "mpay": "MOBILE_MONEY",
+    "airtel money": "MOBILE_MONEY", "airtel_money": "MOBILE_MONEY", "card": "CARD", "credit card": "CARD",
+    "debit card": "CARD", "visa": "CARD", "mastercard": "CARD", "other": "OTHER"
+  };
+  if (aliases[raw] && values.includes(aliases[raw])) return aliases[raw];
+  const hit = values.find((v) => String(v).toLowerCase() === raw);
+  return hit ?? values.find((v) => String(v).toLowerCase().replace(/_/g, "") === raw.replace(/_/g, "")) ?? null;
 }
 
 /**
@@ -364,6 +437,24 @@ export function validateRowData(entity, extracted) {
         data[def.key] = value;
         break;
       }
+      case "date": {
+        const value = normalizeDate(raw);
+        if (!value) {
+          errors.push(`${def.label} must be a valid date (YYYY-MM-DD or DD/MM/YYYY)`);
+          continue;
+        }
+        data[def.key] = value;
+        break;
+      }
+      case "enum": {
+        const value = normalizeEnum(raw, def.values ?? []);
+        if (!value) {
+          errors.push(`${def.label} must be one of: ${(def.values ?? []).join(", ")}`);
+          continue;
+        }
+        data[def.key] = value;
+        break;
+      }
       default:
         data[def.key] = String(raw).trim();
     }
@@ -377,6 +468,19 @@ export function validateRowData(entity, extracted) {
     data.isService = data.isService ?? false;
   } else if (entity === "customers") {
     data.creditLimit = data.creditLimit ?? "0.0000";
+  } else if (entity === "sales") {
+    data.quantity = data.quantity ?? 1;
+    data.costPrice = data.costPrice ?? "0.0000";
+    data.tax = data.tax ?? "0.0000";
+    data.paymentMethod = data.paymentMethod ?? "CASH";
+    const qty = Number(data.quantity) || 0;
+    const unitPrice = Number(data.unitPrice) || 0;
+    const unitCost = Number(data.costPrice) || 0;
+    data.total = roundDecimalString((qty * unitPrice + Number(data.tax || 0)).toFixed(4), 4);
+    data.cost = roundDecimalString((qty * unitCost).toFixed(4), 4);
+    data.profit = roundDecimalString(((qty * unitPrice) - (qty * unitCost)).toFixed(4), 4);
+    data.paid = data.total;
+    data.change = "0.0000";
   }
 
   return { data, errors };
