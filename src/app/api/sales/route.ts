@@ -4,34 +4,40 @@ import { prisma } from "@/lib/prisma";
 import { requireBusiness, toAuthError } from "@/lib/apiAuth";
 import { hasPermission, Permission } from "@/lib/rbac";
 import { postSale, seedChartOfAccounts } from "@/lib/accounting/post";
+import { resolveRbacContext, assertPermission } from "@/lib/rbacGuard";
+import { resolveEmployeeScope, ACCESS_SCOPE } from "@/lib/rbacScope.mjs";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
-    const { user, businessId } = await requireBusiness(null, request);
-
-    const membership = await prisma.businessMembership.findUnique({
-      where: { userId_businessId: { userId: user.id, businessId } },
-      select: { role: true },
-    });
-    if (!membership || !hasPermission(membership.role, Permission.SALE_READ)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const ctx = await resolveRbacContext(null, request);
+    assertPermission(ctx, Permission.SALE_READ);
+    const { user, businessId } = ctx;
 
     const { searchParams } = new URL(request.url);
     const limit = Math.min(200, Math.max(1, parseInt(searchParams.get("limit") || "50", 10) || 50));
     const offset = Math.max(0, parseInt(searchParams.get("offset") || "0", 10) || 0);
 
+    // AIDE-03: own-records templates never see anyone else's sales. The
+    // filter is applied server-side; a client cannot widen it by asking.
+    const scope = resolveEmployeeScope(ctx.employee);
+    const where = {
+      businessId,
+      ...(scope === ACCESS_SCOPE.OWN_RECORDS
+        ? { cashierUserId: user.id }
+        : {}),
+    };
+
     const [sales, total] = await Promise.all([
       prisma.sale.findMany({
-        where: { businessId },
+        where,
         include: { items: true },
         orderBy: { createdAt: "desc" },
         take: limit,
         skip: offset,
       }),
-      prisma.sale.count({ where: { businessId } }),
+      prisma.sale.count({ where }),
     ]);
 
     return NextResponse.json({ sales, total });
@@ -153,6 +159,7 @@ export async function POST(request: NextRequest) {
           paymentMethod,
           notes: body.notes ? String(body.notes) : null,
           cashier: user.name || user.email,
+          cashierUserId: user.id,
           businessId,
           items: {
             create: normalizedItems.map((i) => ({

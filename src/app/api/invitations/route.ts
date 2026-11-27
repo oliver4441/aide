@@ -6,6 +6,12 @@ import { hasPermission, hasAnyPermission, Permission, canManageRole } from "@/li
 import { isAdminEmail } from "@/lib/adminEmails";
 import { BusinessRole } from "@prisma/client";
 import { recordAudit } from "@/lib/audit";
+import {
+  ROLE_TEMPLATES,
+  baseRoleForTemplate,
+  canAssignTemplate,
+  resolveTemplateId,
+} from "@/lib/roleTemplates.mjs";
 
 /**
  * AIDE-03: Invitation API.
@@ -36,11 +42,15 @@ export async function POST(request: NextRequest) {
 
     const membership = await prisma.businessMembership.findUnique({
       where: { userId_businessId: { userId: user.id, businessId } },
-      select: { role: true },
+      select: {
+        role: true,
+        employee: { select: { roleTemplate: true } },
+      },
     });
     if (!membership || !hasPermission(membership.role, Permission.EMPLOYEE_INVITE)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
+    const callerTemplate = resolveTemplateId(membership.employee, membership.role);
 
     const body = await request.json();
     const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
@@ -51,8 +61,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Cannot invite a platform admin email" }, { status: 400 });
     }
 
-    const role = (body?.role as BusinessRole) || BusinessRole.STAFF;
-    if (!Object.values(BusinessRole).includes(role)) {
+    // AIDE-03: a named template is authoritative; its coarse base role is
+    // persisted on the membership so existing role checks keep working.
+    const requestedTemplate: keyof typeof ROLE_TEMPLATES | null =
+      typeof body?.roleTemplate === "string" && body.roleTemplate in ROLE_TEMPLATES
+        ? body.roleTemplate
+        : null;
+    if (typeof body?.roleTemplate === "string" && !requestedTemplate) {
+      return NextResponse.json({ error: "Invalid role template" }, { status: 400 });
+    }
+    if (requestedTemplate && !canAssignTemplate(callerTemplate, requestedTemplate)) {
+      return NextResponse.json(
+        { error: "Cannot invite a role at or above your own level" },
+        { status: 403 }
+      );
+    }
+    const targetTemplate = requestedTemplate;
+    const role = (requestedTemplate
+      ? baseRoleForTemplate(requestedTemplate)
+      : ((body?.role as BusinessRole) || BusinessRole.STAFF)) as BusinessRole;
+    if (!role || !Object.values(BusinessRole).includes(role)) {
       return NextResponse.json({ error: "Invalid role" }, { status: 400 });
     }
     if (!canManageRole(membership.role, role)) {
@@ -90,6 +118,7 @@ export async function POST(request: NextRequest) {
         token: generateToken(),
         email,
         role,
+        roleTemplate: targetTemplate,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         businessId,
         invitedById: user.id,
@@ -98,6 +127,7 @@ export async function POST(request: NextRequest) {
         id: true,
         email: true,
         role: true,
+        roleTemplate: true,
         expiresAt: true,
         acceptedAt: true,
         createdAt: true,
@@ -111,8 +141,8 @@ export async function POST(request: NextRequest) {
       action: "invitation.create",
       entityType: "Invitation",
       entityId: invitation.id,
-      summary: `Invited ${email} as ${role}`,
-      metadata: { email, role },
+      summary: `Invited ${email} as ${targetTemplate ?? role}`,
+      metadata: { email, role, roleTemplate: targetTemplate },
       actorId: user.id,
       businessId,
     });
@@ -134,6 +164,7 @@ export async function POST(request: NextRequest) {
           businessId,
           employeeId,
           membershipId: newMembership.id,
+          roleTemplate: targetTemplate,
         },
       });
       // Mark invitation as accepted
@@ -145,8 +176,8 @@ export async function POST(request: NextRequest) {
         action: "membership.create",
         entityType: "BusinessMembership",
         entityId: newMembership.id,
-        summary: `Added ${email} as ${role}`,
-        metadata: { email, role, invitationId: invitation.id },
+        summary: `Added ${email} as ${targetTemplate ?? role}`,
+        metadata: { email, role, roleTemplate: targetTemplate, invitationId: invitation.id },
         actorId: user.id,
         businessId,
       });
@@ -183,6 +214,7 @@ export async function GET(request: NextRequest) {
         id: true,
         email: true,
         role: true,
+        roleTemplate: true,
         expiresAt: true,
         acceptedAt: true,
         createdAt: true,
