@@ -50,16 +50,18 @@ export async function verifyTurnstile(
     return { ok: false, error: "Security check is required. Please try again." };
   }
 
+  // Proxies (Vercel, Cloudflare) send a comma-separated chain; siteverify
+  // expects a single IP. The first entry is the original client.
+  const clientIp = String(remoteIp ?? "").split(",")[0]?.trim();
+  const body = new URLSearchParams({ secret, response: token });
+  if (clientIp) body.set("remoteip", clientIp);
+
   let result: { success?: boolean; action?: string; hostname?: string; error_codes?: string[] };
   try {
     const response = await fetch(VERIFY_URL, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        secret,
-        response: token,
-        remoteip: remoteIp ?? "",
-      }),
+      body,
       signal: AbortSignal.timeout(10_000),
     });
     if (!response.ok) throw new Error(`siteverify ${response.status}`);
