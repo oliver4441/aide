@@ -22,6 +22,7 @@ declare global {
         }
       ) => string;
       reset: (widgetId?: string) => void;
+      remove: (widgetId?: string) => void;
     };
   }
 }
@@ -64,6 +65,7 @@ export default function TurnstileWidget({
   useEffect(() => {
     if (!siteKey || !hostRef.current) return;
 
+    let script: HTMLScriptElement | null = null;
     const render = () => {
       if (!window.turnstile || !hostRef.current || widgetIdRef.current) return;
       widgetIdRef.current = window.turnstile.render(hostRef.current, {
@@ -76,22 +78,27 @@ export default function TurnstileWidget({
       });
     };
 
+    const cleanup = () => {
+      script?.removeEventListener("load", render);
+      if (widgetIdRef.current && window.turnstile) {
+        window.turnstile.remove(widgetIdRef.current);
+      }
+      widgetIdRef.current = undefined;
+    };
+
     if (window.turnstile) {
       render();
-      return;
+      return cleanup;
     }
 
-    const script = document.createElement("script");
+    script = document.createElement("script");
     script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
     script.async = true;
     script.defer = true;
     script.addEventListener("load", render);
     document.head.appendChild(script);
 
-    return () => {
-      script.removeEventListener("load", render);
-      widgetIdRef.current = undefined;
-    };
+    return cleanup;
   }, [siteKey, action, emit]);
 
   useEffect(() => {
@@ -128,11 +135,4 @@ export default function TurnstileWidget({
       <div ref={hostRef} />
     </div>
   );
-}
-
-/** Reset the widget through its form-attached handle. */
-export function resetTurnstile(form: HTMLElement | null) {
-  const host = form?.querySelector<HTMLElement>("[data-turnstile-action] div");
-  const reset = host && (host as any).__resetTurnstile;
-  if (typeof reset === "function") reset();
 }

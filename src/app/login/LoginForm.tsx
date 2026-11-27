@@ -44,22 +44,32 @@ export default function LoginForm() {
     setLoading(true);
 
     if (isSignUp) {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          email,
-          password,
-          businessName: businessName || undefined,
-          captchaToken,
-        }),
-      });
+      try {
+        const res = await fetch("/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name,
+            email,
+            password,
+            businessName: businessName || undefined,
+            captchaToken,
+          }),
+        });
 
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          setLoading(false);
+          setError(data.error || "Could not create your account.");
+          turnstileRef.current?.reset();
+          setCaptchaToken(null);
+          return;
+        }
+      } catch {
         setLoading(false);
-        setError(data.error || "Could not create your account.");
+        setError("Could not create your account. Please try again.");
+        turnstileRef.current?.reset();
+        setCaptchaToken(null);
         return;
       }
     }
