@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { isAdminEmail } from "@/lib/adminEmails";
+import { verifyTurnstile } from "@/lib/turnstile";
 
 export const dynamic = "force-dynamic";
 
@@ -49,11 +50,20 @@ async function uniqueOrgSlug(name: string): Promise<string> {
 }
 
 export async function POST(request: NextRequest) {
-  let body: { name?: string; email?: string; password?: string; businessName?: string };
+  let body: { name?: string; email?: string; password?: string; businessName?: string; captchaToken?: string };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+
+  const captcha = await verifyTurnstile(
+    body.captchaToken,
+    "signup",
+    request.headers.get("x-forwarded-for")
+  );
+  if (!captcha.ok) {
+    return NextResponse.json({ error: captcha.error ?? "Security check failed" }, { status: 400 });
   }
 
   const name = (body.name || "").trim();
