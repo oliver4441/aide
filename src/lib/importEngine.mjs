@@ -191,6 +191,26 @@ export function roundDecimalString(input, scale = 4) {
   return `${negative ? "-" : ""}${intPart}.${keep.join("")}`;
 }
 
+const DECIMAL_UNITS = 10n ** 4n;
+
+/** Convert a canonical decimal string to integer ten-thousandths. */
+function decimalUnits(value) {
+  const canonical = roundDecimalString(String(value ?? "0"), 4);
+  const negative = canonical.startsWith("-");
+  const [whole, fraction = "0000"] = canonical.replace("-", "").split(".");
+  const units = BigInt(whole) * DECIMAL_UNITS + BigInt(fraction.padEnd(4, "0"));
+  return negative ? -units : units;
+}
+
+/** Convert integer ten-thousandths back to a canonical 4dp decimal string. */
+function unitsToDecimal(units) {
+  const negative = units < 0n;
+  const abs = negative ? -units : units;
+  const whole = abs / DECIMAL_UNITS;
+  const fraction = abs % DECIMAL_UNITS;
+  return `${negative ? "-" : ""}${whole}.${fraction.toString().padStart(4, "0")}`;
+}
+
 /** Strip common currency symbols, codes, thousands separators and spaces. */
 function normalizeNumericCell(value) {
   return String(value ?? "")
@@ -317,12 +337,6 @@ function normalizeDate(value) {
     const d = Number(dmy[1]); const m = Number(dmy[2]); const y = Number(dmy[3]);
     return isValidDate(y, m, d) ? `${dmy[3]}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}` : null;
   }
-  // m/d/yyyy (US) — only when first component > 12 to avoid ambiguity
-  const mdy = raw.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
-  if (mdy) {
-    const a = Number(mdy[1]); const b = Number(mdy[2]); const y = Number(mdy[3]);
-    if (a > 12 && isValidDate(y, b, a)) return `${mdy[3]}-${String(b).padStart(2, "0")}-${String(a).padStart(2, "0")}`;
-  }
   return null;
 }
 
@@ -337,10 +351,9 @@ function normalizeEnum(value, values) {
   const raw = String(value ?? "").trim().toLowerCase().replace(/[\s-]+/g, "_");
   // Payment-method aliases seen in real POS exports.
   const aliases = {
-    cash: "CASH", "mpesa": "MOBILE_MONEY", "m_pesa": "MOBILE_MONEY", "mobile money": "MOBILE_MONEY",
-    "mobile_money": "MOBILE_MONEY", "m-pesa": "MOBILE_MONEY", "mpay": "MOBILE_MONEY",
-    "airtel money": "MOBILE_MONEY", "airtel_money": "MOBILE_MONEY", "card": "CARD", "credit card": "CARD",
-    "debit card": "CARD", "visa": "CARD", "mastercard": "CARD", "other": "OTHER"
+    cash: "CASH", mpesa: "MOBILE_MONEY", m_pesa: "MOBILE_MONEY", mobile_money: "MOBILE_MONEY",
+    mpay: "MOBILE_MONEY", airtel_money: "MOBILE_MONEY", card: "CARD", credit_card: "CARD",
+    debit_card: "CARD", visa: "CARD", mastercard: "CARD", other: "OTHER"
   };
   if (aliases[raw] && values.includes(aliases[raw])) return aliases[raw];
   const hit = values.find((v) => String(v).toLowerCase() === raw);
@@ -473,12 +486,12 @@ export function validateRowData(entity, extracted) {
     data.costPrice = data.costPrice ?? "0.0000";
     data.tax = data.tax ?? "0.0000";
     data.paymentMethod = data.paymentMethod ?? "CASH";
-    const qty = Number(data.quantity) || 0;
-    const unitPrice = Number(data.unitPrice) || 0;
-    const unitCost = Number(data.costPrice) || 0;
-    data.total = roundDecimalString((qty * unitPrice + Number(data.tax || 0)).toFixed(4), 4);
-    data.cost = roundDecimalString((qty * unitCost).toFixed(4), 4);
-    data.profit = roundDecimalString(((qty * unitPrice) - (qty * unitCost)).toFixed(4), 4);
+    const qty = BigInt(data.quantity ?? 1);
+    const revenueUnits = qty * decimalUnits(data.unitPrice ?? "0.0000");
+    const totalCostUnits = qty * decimalUnits(data.costPrice ?? "0.0000");
+    data.total = unitsToDecimal(revenueUnits + decimalUnits(data.tax ?? "0.0000"));
+    data.cost = unitsToDecimal(totalCostUnits);
+    data.profit = unitsToDecimal(revenueUnits - totalCostUnits);
     data.paid = data.total;
     data.change = "0.0000";
   }
