@@ -561,6 +561,17 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {/* AIDE-03: Team & Access */}
+      <div className="border border-rule p-6 bg-ground">
+        <h2 className="font-display text-lg font-black text-ink mb-4">Team &amp; Access</h2>
+        <p className="font-display text-sm text-secondary mb-4">
+          Invite teammates, assign job-function roles, limit their data scope and revoke access.
+        </p>
+        <Link href="/dashboard/settings/team" className="np-btn np-btn--accent">
+          Manage Team
+        </Link>
+      </div>
+
       {/* Organization Hierarchy */}
       <div className="border border-rule p-6 bg-ground">
         <h2 className="font-display text-lg font-black text-ink mb-4">Organization Hierarchy</h2>
