@@ -4,6 +4,8 @@ import GoogleProvider from "next-auth/providers/google"
 import { prisma } from "./prisma"
 import bcrypt from "bcryptjs"
 import { verifyTurnstile } from "./turnstile"
+import admin from "./firebaseAdmin"
+import { recordAudit } from "./audit"
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "kipkiruigideon890@gmail.com")
   .split(",")
@@ -62,6 +64,14 @@ export const authOptions: NextAuthOptions = {
             select: { id: true },
           })
 
+          await recordAudit({
+            action: "auth.login",
+            entityType: "Admin",
+            entityId: admin.id,
+            summary: `Admin ${admin.email} signed in`,
+            metadata: { email: admin.email, provider: "credentials" },
+          })
+
           return {
             id: admin.id,
             email: admin.email,
@@ -94,6 +104,16 @@ export const authOptions: NextAuthOptions = {
 
         const isValid = await bcrypt.compare(credentials.password, user.passwordHash)
         if (!isValid) throw new Error("Invalid credentials")
+
+        await recordAudit({
+          action: "auth.login",
+          entityType: "User",
+          entityId: user.id,
+          summary: `User ${user.email} signed in`,
+          metadata: { email: user.email, provider: "credentials" },
+          actorId: user.id,
+          businessId: user.businesses[0]?.businessId ?? null,
+        })
 
         return {
           id: user.id,

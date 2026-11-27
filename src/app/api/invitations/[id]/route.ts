@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireBusiness, requireUser, toAuthError } from "@/lib/apiAuth";
 import { hasPermission, Permission } from "@/lib/rbac";
+import { recordAudit } from "@/lib/audit";
 
 /**
  * AIDE-03: Invitation detail operations.
@@ -84,6 +85,16 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       return NextResponse.json({ error: outcome.conflict }, { status: 409 });
     }
 
+    await recordAudit({
+      action: "membership.create",
+      entityType: "Employee",
+      entityId: outcome.employee.id,
+      summary: `Accepted invitation as ${invitation.role}`,
+      metadata: { role: invitation.role, invitationId: invitation.id, userId: user.id },
+      actorId: user.id,
+      businessId,
+    });
+
     return NextResponse.json({
       invitation: {
         id: invitation.id,
@@ -113,7 +124,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
     const invitation = await prisma.invitation.findUnique({
       where: { id: params.id },
-      select: { businessId: true, acceptedAt: true },
+      select: { businessId: true, acceptedAt: true, email: true, role: true },
     });
 
     if (!invitation) {
@@ -130,6 +141,16 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
     await prisma.invitation.delete({
       where: { id: params.id },
+    });
+
+    await recordAudit({
+      action: "invitation.revoke",
+      entityType: "Invitation",
+      entityId: params.id,
+      summary: `Revoked invitation for ${invitation.email}`,
+      metadata: { email: invitation.email, role: invitation.role },
+      actorId: user.id,
+      businessId,
     });
 
     return NextResponse.json({ success: true });

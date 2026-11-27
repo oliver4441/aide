@@ -30,7 +30,7 @@
 | AUTH-08 | Role-based access (Owner/Manager/Staff) | ✅ | N/A | ✅ | AIDE-03 | Permission-based enforcement on all employee/invitation routes |
 | AUTH-09 | Employee invitation flow | ✅ | N/A | ✅ | AIDE-03 | POST /api/invitations creates invite; PATCH accepts |
 | AUTH-10 | Access revocation / deprovisioning | ✅ | N/A | ✅ | AIDE-03 | DELETE /api/employees/[id] removes membership |
-| AUTH-11 | Audit log of auth events | ❌ | N/A | ❌ | AIDE-19 | Login, role change, revoke |
+| AUTH-11 | Audit log of auth events | ✅ | N/A | ✅ | AIDE-19 | Append-only `AuditEvent`; login, role change, revoke; `GET /api/audit-events` |
 
 ---
 
@@ -160,8 +160,8 @@
 | ACC-07 | Balance Sheet | ✅ | ❌ | 🟡 | AIDE-07 | Assets = Liabilities + Equity, retained earnings |
 | ACC-08 | Cash Flow Statement | ✅ | ❌ | 🟡 | AIDE-07 | Operating, investing, financing activities |
 | ACC-09 | Accounting periods (open/close) | ✅ | ❌ | 🟡 | AIDE-07 | Period CRUD, close/lock controls, role-gated |
-| ACC-10 | Year-end closing | ❌ | ❌ | ❌ | AIDE-07 | |
-| ACC-11 | Fixed assets / depreciation | ❌ | ❌ | ❌ | AIDE-07 | |
+| ACC-10 | Year-end closing | ✅ | ❌ | 🟡 | AIDE-07 | `POST /api/periods/year-end`; zeroes P&L, transfers net to Retained Earnings |
+| ACC-11 | Fixed assets / depreciation | ✅ | ❌ | 🟡 | AIDE-07 | Asset register; monthly straight-line run posts Dr 5500 / Cr 1510 (`POST /api/fixed-assets/depreciation`) |
 | ACC-12 | Bank reconciliation | ❌ | ❌ | ❌ | AIDE-16 | |
 | ACC-13 | Multi-currency | ❌ | ❌ | ❌ | AIDE-14 | |
 | ACC-14 | Consolidated accounts (multi-entity) | ❌ | ❌ | ❌ | AIDE-14 | |

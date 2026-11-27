@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireBusiness, toAuthError } from "@/lib/apiAuth";
 import { hasPermission, hasAnyPermission, Permission, canManageRole } from "@/lib/rbac";
 import { BusinessRole } from "@prisma/client";
+import { recordAudit } from "@/lib/audit";
 
 /**
  * AIDE-03: Employee detail operations.
@@ -116,6 +117,15 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
         where: { id: employee.membershipId },
         data: { role: newRole },
       });
+      await recordAudit({
+        action: "membership.role_change",
+        entityType: "Employee",
+        entityId: employee.id,
+        summary: `Role ${employee.membership.role} -> ${newRole}`,
+        metadata: { from: employee.membership.role, to: newRole, userId: employee.userId },
+        actorId: user.id,
+        businessId,
+      });
     }
 
     if (body?.isActive !== undefined) {
@@ -123,6 +133,15 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       await prisma.employee.update({
         where: { id: params.id },
         data: updateData,
+      });
+      await recordAudit({
+        action: body.isActive ? "employee.activate" : "employee.deactivate",
+        entityType: "Employee",
+        entityId: employee.id,
+        summary: body.isActive ? "Employee activated" : "Employee deactivated",
+        metadata: { userId: employee.userId },
+        actorId: user.id,
+        businessId,
       });
     }
 
@@ -196,6 +215,16 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     // Delete membership (cascades employee via onDelete)
     await prisma.businessMembership.delete({
       where: { id: employee.membershipId },
+    });
+
+    await recordAudit({
+      action: "membership.revoke",
+      entityType: "Employee",
+      entityId: employee.id,
+      summary: "Employee access revoked",
+      metadata: { role: employee.membership.role, userId: employee.userId },
+      actorId: user.id,
+      businessId,
     });
 
     return NextResponse.json({ success: true });

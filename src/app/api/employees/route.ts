@@ -5,6 +5,7 @@ import { requireBusiness, toAuthError } from "@/lib/apiAuth";
 import { hasPermission, hasAnyPermission, Permission, canManageRole } from "@/lib/rbac";
 import { isAdminEmail } from "@/lib/adminEmails";
 import { BusinessRole } from "@prisma/client";
+import { recordAudit } from "@/lib/audit";
 
 /**
  * AIDE-03: Employee management API.
@@ -155,7 +156,7 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      return tx.employee.create({
+      const employee = await tx.employee.create({
         data: {
           userId: newUser.id,
           businessId,
@@ -167,6 +168,18 @@ export async function POST(request: NextRequest) {
           membership: { select: { role: true } },
         },
       });
+
+      await recordAudit({
+        action: "membership.create",
+        entityType: "Employee",
+        entityId: employee.id,
+        summary: `Added ${email} as ${role}`,
+        metadata: { email, role },
+        actorId: user.id,
+        businessId,
+      });
+
+      return employee;
     });
 
     return NextResponse.json(employee, { status: 201 });
@@ -174,3 +187,4 @@ export async function POST(request: NextRequest) {
     return toAuthError(err);
   }
 }
+

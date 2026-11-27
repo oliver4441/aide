@@ -5,6 +5,7 @@ import { requireBusiness, toAuthError } from "@/lib/apiAuth";
 import { hasPermission, hasAnyPermission, Permission, canManageRole } from "@/lib/rbac";
 import { isAdminEmail } from "@/lib/adminEmails";
 import { BusinessRole } from "@prisma/client";
+import { recordAudit } from "@/lib/audit";
 
 /**
  * AIDE-03: Invitation API.
@@ -105,6 +106,51 @@ export async function POST(request: NextRequest) {
         business: { select: { name: true } },
       },
     });
+
+    await recordAudit({
+      action: "invitation.create",
+      entityType: "Invitation",
+      entityId: invitation.id,
+      summary: `Invited ${email} as ${role}`,
+      metadata: { email, role },
+      actorId: user.id,
+      businessId,
+    });
+
+    // If user exists, create membership and employee immediately
+    if (existingUser) {
+      const newMembership = await prisma.businessMembership.create({
+        data: {
+          userId: existingUser.id,
+          businessId,
+          role,
+        },
+      });
+      const employeeCount = await prisma.employee.count({ where: { businessId } });
+      const employeeId = `EMP-${(employeeCount + 1).toString().padStart(3, "0")}`;
+      await prisma.employee.create({
+        data: {
+          userId: existingUser.id,
+          businessId,
+          employeeId,
+          membershipId: newMembership.id,
+        },
+      });
+      // Mark invitation as accepted
+      await prisma.invitation.update({
+        where: { id: invitation.id },
+        data: { acceptedAt: new Date(), acceptedBy: existingUser.id },
+      });
+      await recordAudit({
+        action: "membership.create",
+        entityType: "BusinessMembership",
+        entityId: newMembership.id,
+        summary: `Added ${email} as ${role}`,
+        metadata: { email, role, invitationId: invitation.id },
+        actorId: user.id,
+        businessId,
+      });
+    }
 
     return NextResponse.json(invitation, { status: 201 });
   } catch (err) {
