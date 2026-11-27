@@ -5,8 +5,12 @@ import { useProducts } from "@/hooks/useProducts";
 import { useSales } from "@/hooks/useSales";
 import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 import { formatMoney } from "@/lib/format";
+import {
+  add, compare, multiply, subtract, taxInclusive, changeDue, roundTo,
+} from "@/lib/money.mjs";
+import type { SaleRecord, SaleItemRecord } from "@/lib/db";
 import { printReceipt } from "@/components/receipt/PrintReceipt";
-import { ProductRecord, SaleRecord, SaleItemRecord } from "@/lib/db";
+import { ProductRecord } from "@/lib/db";
 
 interface CartItem {
   productId: string;
@@ -86,18 +90,27 @@ export default function POSPage() {
     }
   };
 
-  const totalNum = cart.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0);
-  const costNum = cart.reduce((sum, item) => sum + Number(item.cost) * item.quantity, 0);
-  const paid = parseFloat(paidAmount) || 0;
-  const change = paid - totalNum;
-
-  const total = totalNum.toFixed(4);
-  const cost = costNum.toFixed(4);
-  const taxRateNum = Number(business?.taxRate) || 0;
-  const taxNum = taxRateNum > 0 ? totalNum - totalNum / (1 + taxRateNum / 100) : 0;
+  // AIDE-04: amounts are stored as decimal strings; all money math stays on a
+  // fixed 4dp BigInt grid so 0.1 + 0.2 and large balances stay exact.
+  const totalUnits = cart.reduce(
+    (sum, item) => add(sum, multiply(item.price, item.quantity)),
+    "0.0000"
+  );
+  const costUnits = cart.reduce(
+    (sum, item) => add(sum, multiply(item.cost, item.quantity)),
+    "0.0000"
+  );
+  const paid = paidAmount || "0";
+  const taxRate = String(business?.taxRate ?? 0);
+  const total = totalUnits;
+  const cost = costUnits;
+  const tax = taxInclusive(total, taxRate);
+  const profit = subtract(total, cost);
+  const change = changeDue(paid, total);
+  const enoughPaid = compare(paid, total) >= 0;
 
   const checkout = async () => {
-    if (totalNum === 0 || paid < totalNum) return;
+    if (compare(total, "0") === 0 || !enoughPaid) return;
     setProcessing(true);
 
     try {
@@ -113,11 +126,11 @@ export default function POSPage() {
         businessId,
         total,
         cost,
-        profit: (totalNum - costNum).toFixed(4),
-        paid: paid.toFixed(4),
-        change: Math.max(0, change).toFixed(4),
-        tax: taxNum.toFixed(4),
-        taxRate: taxRateNum.toFixed(4),
+        profit,
+        paid: paid,
+        change,
+        tax,
+        taxRate: taxRate,
         paymentMethod,
         deviceId,
         syncStatus: "pending",
@@ -130,8 +143,8 @@ export default function POSPage() {
         productId: c.productId,
         name: c.name,
         quantity: c.quantity,
-        price: Number(c.price).toFixed(4),
-        cost: Number(c.cost).toFixed(4),
+        price: c.price,
+        cost: c.cost,
       }));
 
       await createSale(sale, items);
@@ -305,7 +318,7 @@ export default function POSPage() {
 
                 <button
                   onClick={() => {
-                    setPaidAmount(totalNum.toFixed(2));
+                    setPaidAmount(roundTo(total, 2));
                     setShowCheckout(true);
                   }}
                   disabled={cart.length === 0}
@@ -344,7 +357,7 @@ export default function POSPage() {
               />
             </div>
 
-            {paid >= totalNum && (
+            {enoughPaid && (
               <div className="text-center text-sm font-display">
                 <span className="text-secondary">Change: </span>
                 <span className="text-success font-black">{formatMoney(change)}</span>
@@ -360,7 +373,7 @@ export default function POSPage() {
               </button>
               <button
                 onClick={checkout}
-                disabled={paid < totalNum || processing}
+                disabled={!enoughPaid || processing}
                 className="flex-1 px-4 py-3 border border-accent bg-accent text-ground font-display text-sm font-black hover:bg-ground hover:text-accent disabled:opacity-40"
               >
                 {processing ? "Processing…" : "Complete Sale"}
