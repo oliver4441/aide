@@ -261,3 +261,26 @@ test('sales validation rejects empty item name and negative price', () => {
   assert.ok(bad.errors.some((e) => e.includes('Item name is required')));
   assert.ok(bad.errors.some((e) => e.includes('Unit price must not be negative')));
 });
+
+test('sales totals stay exact at quantities where binary floats drift', () => {
+  const r = validateRowData('sales', {
+    date: '2025-03-14', itemName: 'Bulk rice',
+    quantity: '100000', unitPrice: '0.1450', costPrice: '0.1000', tax: '0.0000',
+  });
+  assert.deepEqual(r.errors, []);
+  assert.equal(r.data.total, '14500.0000');
+  assert.equal(r.data.cost, '10000.0000');
+  assert.equal(r.data.profit, '4500.0000');
+});
+
+test('sales accept card aliases with spaces after normalisation', () => {
+  for (const [value, expected] of [
+    ['Credit Card', 'CARD'], ['Debit Card', 'CARD'], ['M-Pesa', 'MOBILE_MONEY'],
+  ]) {
+    const r = validateRowData('sales', {
+      date: '2025-03-14', itemName: 'Coffee', quantity: '1', unitPrice: '100', paymentMethod: value,
+    });
+    assert.deepEqual(r.errors, []);
+    assert.equal(r.data.paymentMethod, expected);
+  }
+});

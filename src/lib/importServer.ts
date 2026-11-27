@@ -515,7 +515,7 @@ export async function commitImport(
         data: {
           businessId,
           fileName,
-          entity: analysis.entity === "products" ? "PRODUCTS" : "CUSTOMERS",
+          entity: analysis.entity === "products" ? "PRODUCTS" : analysis.entity === "sales" ? "SALES" : "CUSTOMERS",
           status: "COMPLETED",
           duplicateStrategy: strategy === "merge" ? "MERGE" : "SKIP",
           mapping: mappingForRecord,
