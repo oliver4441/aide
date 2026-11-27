@@ -5,6 +5,7 @@ import { verifyToken } from "./mobileAuth";
 import { verifyReplayToken } from "./internalAuth";
 import { prisma } from "./prisma";
 import { selectAccessible } from "./accessSelect.mjs";
+import { isEmployeeActive } from "./rbacScope.mjs";
 
 export type SessionUser = {
   id: string;
@@ -138,6 +139,19 @@ export async function requireBusiness(
   }
 
   const businessId = selectAccessible(requestedBusinessId, businessIds) ?? businessIds[0];
+
+  // AIDE-03: offboarding/suspension is enforced server-side on every route
+  // that resolves a business. Deleting the membership already removes access;
+  // setting Employee.isActive = false must revoke it just as surely, even if
+  // the caller replays an old session cookie or bearer token.
+  const employee = await prisma.employee.findUnique({
+    where: { userId_businessId: { userId: user.id, businessId } },
+    select: { isActive: true },
+  });
+  if (!isEmployeeActive(employee)) {
+    throw new ForbiddenError("Employee access is suspended");
+  }
+
   return { user, businessId, businessIds };
 }
 

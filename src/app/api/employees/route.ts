@@ -6,6 +6,12 @@ import { hasPermission, hasAnyPermission, Permission, canManageRole } from "@/li
 import { isAdminEmail } from "@/lib/adminEmails";
 import { BusinessRole } from "@prisma/client";
 import { recordAudit } from "@/lib/audit";
+import {
+  ROLE_TEMPLATES,
+  baseRoleForTemplate,
+  canAssignTemplate,
+  resolveTemplateId,
+} from "@/lib/roleTemplates.mjs";
 
 /**
  * AIDE-03: Employee management API.
@@ -42,7 +48,18 @@ export async function GET(request: NextRequest) {
     const employees = await prisma.employee.findMany({
       where,
       orderBy: { createdAt: "desc" },
-      include: {
+      select: {
+        id: true,
+        employeeId: true,
+        isActive: true,
+        createdAt: true,
+        roleTemplate: true,
+        scopeType: true,
+        branchId: true,
+        departmentId: true,
+        warehouseId: true,
+        terminalId: true,
+        ownRecordsOnly: true,
         user: {
           select: { id: true, email: true, name: true, phone: true },
         },
@@ -64,11 +81,12 @@ export async function POST(request: NextRequest) {
 
     const callerMembership = await prisma.businessMembership.findUnique({
       where: { userId_businessId: { userId: user.id, businessId } },
-      select: { role: true },
+      select: { role: true, employee: { select: { roleTemplate: true } } },
     });
     if (!callerMembership || !hasPermission(callerMembership.role, Permission.EMPLOYEE_MANAGE)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
+    const callerTemplate = resolveTemplateId(callerMembership.employee, callerMembership.role);
 
     const body = await request.json();
     const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
@@ -81,13 +99,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Cannot assign a platform admin email as an employee" }, { status: 400 });
     }
 
-    const role = (body?.role as BusinessRole) || BusinessRole.STAFF;
-    if (!Object.values(BusinessRole).includes(role)) {
+    // AIDE-03: a named template drives the permission set; the coarse base
+    // role is stored on the membership so existing checks remain valid.
+    const requestedTemplate: keyof typeof ROLE_TEMPLATES | null =
+      typeof body?.roleTemplate === "string" && body.roleTemplate in ROLE_TEMPLATES
+        ? body.roleTemplate
+        : null;
+    if (typeof body?.roleTemplate === "string" && !requestedTemplate) {
+      return NextResponse.json({ error: "Invalid role template" }, { status: 400 });
+    }
+    if (requestedTemplate && !canAssignTemplate(callerTemplate, requestedTemplate)) {
+      return NextResponse.json(
+        { error: "Cannot assign a role at or above your own level" },
+        { status: 403 }
+      );
+    }
+    const role = (requestedTemplate
+      ? baseRoleForTemplate(requestedTemplate)
+      : ((body?.role as BusinessRole) || BusinessRole.STAFF)) as BusinessRole;
+    if (!role || !Object.values(BusinessRole).includes(role)) {
       return NextResponse.json({ error: "Invalid role" }, { status: 400 });
     }
     if (!canManageRole(callerMembership.role, role)) {
       return NextResponse.json({ error: "Cannot assign a role equal to or higher than your own" }, { status: 403 });
     }
+
+    // Optional scope assignments. Values are validated against the canonical
+    // scope vocabulary; a null template means legacy coarse-role behaviour.
+    const scopeType = typeof body?.scopeType === "string" ? body.scopeType.toUpperCase() : null;
+    const ownRecordsOnly = Boolean(body?.ownRecordsOnly);
 
     const existingUser = await prisma.user.findUnique({
       where: { email },
@@ -121,6 +161,9 @@ export async function POST(request: NextRequest) {
             businessId,
             employeeId,
             membershipId: membership.id,
+            roleTemplate: requestedTemplate,
+            scopeType,
+            ownRecordsOnly,
           },
           include: {
             user: { select: { id: true, email: true, name: true } },
@@ -162,6 +205,9 @@ export async function POST(request: NextRequest) {
           businessId,
           employeeId,
           membershipId: newMembership.id,
+          roleTemplate: requestedTemplate,
+          scopeType,
+          ownRecordsOnly,
         },
         include: {
           user: { select: { id: true, email: true, name: true } },
@@ -173,8 +219,8 @@ export async function POST(request: NextRequest) {
         action: "membership.create",
         entityType: "Employee",
         entityId: employee.id,
-        summary: `Added ${email} as ${role}`,
-        metadata: { email, role },
+        summary: `Added ${email} as ${requestedTemplate ?? role}`,
+        metadata: { email, role, roleTemplate: requestedTemplate, scopeType, ownRecordsOnly },
         actorId: user.id,
         businessId,
       });

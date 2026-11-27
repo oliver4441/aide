@@ -75,6 +75,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
           businessId,
           employeeId: generateEmployeeId(employeeCount),
           membershipId: membership.id,
+          roleTemplate: invitation.roleTemplate,
         },
       });
 
@@ -89,8 +90,13 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       action: "membership.create",
       entityType: "Employee",
       entityId: outcome.employee.id,
-      summary: `Accepted invitation as ${invitation.role}`,
-      metadata: { role: invitation.role, invitationId: invitation.id, userId: user.id },
+      summary: `Accepted invitation as ${invitation.roleTemplate ?? invitation.role}`,
+      metadata: {
+        role: invitation.role,
+        roleTemplate: invitation.roleTemplate,
+        invitationId: invitation.id,
+        userId: user.id,
+      },
       actorId: user.id,
       businessId,
     });
