@@ -3,6 +3,7 @@ import CredentialsProvider from "next-auth/providers/credentials"
 import GoogleProvider from "next-auth/providers/google"
 import { prisma } from "./prisma"
 import bcrypt from "bcryptjs"
+import { verifyTurnstile } from "./turnstile"
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "kipkiruigideon890@gmail.com")
   .split(",")
@@ -27,11 +28,18 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        captchaToken: { label: "Security check", type: "text" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
           throw new Error("Invalid credentials")
         }
+
+        const captcha = await verifyTurnstile(
+          (credentials as any).captchaToken,
+          "login"
+        )
+        if (!captcha.ok) throw new Error(captcha.error ?? "Security check failed")
 
         const email = credentials.email.toLowerCase().trim()
         const isAdmin = ADMIN_EMAILS.includes(email)

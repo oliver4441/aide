@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Circle } from "lucide-react";
 import UiButton from "@/components/ui/UiButton";
+import TurnstileWidget, { type TurnstileHandle } from "@/components/ui/TurnstileWidget";
 
 type Mode = "signin" | "signup";
 
@@ -20,6 +21,8 @@ export default function LoginForm() {
   const [businessName, setBusinessName] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileHandle | null>(null);
   const router = useRouter();
 
   const isSignUp = mode === "signup";
@@ -30,6 +33,11 @@ export default function LoginForm() {
 
     if (isSignUp && password.length < 8) {
       setError("Password must be at least 8 characters.");
+      return;
+    }
+
+    if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !captchaToken) {
+      setError("Please complete the security check.");
       return;
     }
 
@@ -44,6 +52,7 @@ export default function LoginForm() {
           email,
           password,
           businessName: businessName || undefined,
+          captchaToken,
         }),
       });
 
@@ -55,13 +64,29 @@ export default function LoginForm() {
       }
     }
 
+    let loginToken = captchaToken;
+    if (isSignUp && turnstileRef.current) {
+      turnstileRef.current.reset();
+      loginToken = await turnstileRef.current.nextToken();
+      setCaptchaToken(loginToken);
+    }
+
+    if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !loginToken) {
+      setLoading(false);
+      setError("Security check expired. Please sign in again.");
+      return;
+    }
+
     const result = await signIn("credentials", {
       email,
       password,
+      captchaToken: loginToken ?? "",
       redirect: false,
     });
 
     setLoading(false);
+    turnstileRef.current?.reset();
+    setCaptchaToken(null);
 
     if (result?.error) {
       setError("Invalid email or password.");
@@ -174,6 +199,12 @@ export default function LoginForm() {
               />
             </div>
 
+            <TurnstileWidget
+              action={isSignUp ? "signup" : "login"}
+              onToken={setCaptchaToken}
+              handleRef={turnstileRef}
+            />
+
             <UiButton
               type="submit"
               disabled={loading}
@@ -210,6 +241,8 @@ export default function LoginForm() {
               onClick={() => {
                 setMode(isSignUp ? "signin" : "signup");
                 setError("");
+                setCaptchaToken(null);
+                turnstileRef.current?.reset();
               }}
               className="text-sm font-bold text-secondary hover:text-ink hover:underline"
             >
