@@ -1,12 +1,13 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { SITE_URL } from "@/lib/site";
 import { ArrowLeft } from "lucide-react";
+import { SITE_URL, COMPANY_NAME, COMPANY_URL, SUPPORT_EMAIL } from "@/lib/site";
+import LandingFooter from "@/components/landing/LandingFooter";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
   description:
-    "The terms that govern your use of Aide, the offline-first POS and business management app from Omix Digital Solutions. Covers your account, acceptable use, your data, payments, liability and termination.",
+    "The terms that govern your use of Aide, the offline-first POS, inventory and accounting app from Omix Digital Solutions. Covers your account, team roles, your data, payments, liability and termination.",
   alternates: { canonical: `${SITE_URL}/terms` },
   openGraph: {
     title: "Terms of Service — Aide",
@@ -21,69 +22,120 @@ export const metadata: Metadata = {
   },
 };
 
-const UPDATED = "30 September 2026";
+const UPDATED = "28 November 2026";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="mt-8">
-      <h2 className="font-display text-xl font-black text-ink">{title}</h2>
-      <div className="mt-2 space-y-3 text-[17px] leading-[1.7] text-secondary">{children}</div>
+    <section className="mt-10 border-t border-rule pt-8">
+      <h2 className="font-display text-xl font-bold tracking-tight text-ink">{title}</h2>
+      <div className="mt-3 space-y-3 font-reading text-[16px] leading-[1.7] text-secondary">
+        {children}
+      </div>
     </section>
   );
 }
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-ground">
-      <header className="border-b border-rule bg-ground sticky top-0 z-30">
-        <div className="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <img src="/logo.jpg" alt="Aide logo" className="w-8 h-8 object-cover" />
-            <span className="text-lg font-bold text-accent font-display">Aide</span>
-          </Link>
+    <div className="min-h-screen bg-ground text-ink">
+      <header className="sticky top-0 z-40 border-b border-rule bg-ground/90 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-4xl items-center justify-between px-5 md:px-8">
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-secondary hover:text-ink"
+            aria-label="Aide home"
+            className="font-display text-[22px] font-bold tracking-[-0.06em] text-ink no-underline hover:no-underline"
           >
-            <ArrowLeft className="w-4 h-4" /> Back to home
+            Aide<span className="text-accent">.</span>
           </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/docs"
+              className="hidden rounded-full px-3.5 py-2 font-display text-[13px] text-secondary transition hover:text-ink sm:inline-flex"
+            >
+              Docs
+            </Link>
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1.5 rounded-full border border-rule px-4 py-2 font-display text-[13px] font-medium text-ink transition hover:border-ink/40"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Back to home
+            </Link>
+          </div>
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-6 py-12">
-        <h1 className="font-display text-3xl md:text-4xl font-black text-ink">Terms of Service</h1>
-        <p className="mt-2 text-sm text-secondary">Last updated: {UPDATED}</p>
-        <p className="mt-4 text-secondary">
-          These Terms govern your use of Aide, the offline-first point-of-sale,
-          inventory and reporting software provided by Omix Digital Solutions (&quot;Aide&quot;, &quot;the
-          Service&quot;). By creating an account or using Aide, you agree to these Terms. If
-          you do not agree, please do not use the Service.
+      <main className="mx-auto max-w-3xl px-5 py-12 md:px-8 md:py-16">
+        <p className="font-display text-xs font-semibold uppercase tracking-[0.12em] text-accent">
+          Legal
         </p>
+        <h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-ink md:text-4xl">
+          Terms of Service
+        </h1>
+        <p className="mt-2 text-sm text-muted">Last updated: {UPDATED}</p>
+
+        <p className="mt-5 font-reading text-[16px] leading-[1.7] text-secondary">
+          These Terms govern your use of Aide, the offline-first point-of-sale,
+          inventory, and business accounting software provided by {COMPANY_NAME}{" "}
+          (&quot;Aide&quot;, &quot;the Service&quot;). By creating an account or using
+          Aide, you agree to these Terms. If you do not agree, please do not use the
+          Service.
+        </p>
+
+        <div className="mt-8 rounded-2xl border border-rule bg-surface p-6">
+          <h2 className="font-display text-base font-bold text-ink">Key points</h2>
+          <ul className="mt-3 list-disc space-y-2 pl-5 font-reading text-[15px] leading-relaxed text-secondary">
+            <li>
+              You own 100% of the business data you enter or import into Aide.
+            </li>
+            <li>
+              Aide is a recording and management tool, not a licensed accountant or tax
+              adviser — verify your tax, import, and year-end figures.
+            </li>
+            <li>
+              The native Android app is local-only: back up your data before uninstalling.
+            </li>
+          </ul>
+        </div>
 
         <Section title="1. The Service">
           <p>
-            Aide lets a business record products, take sales, produce receipts, track
-            stock and generate reports. It is available as an installable web
-            application (PWA), a native Android app, and a Windows desktop app. Aide is
-            currently provided <strong>free of charge</strong> while it is in beta.
+            Aide lets a business record products, import historical records, manage
+            customers and suppliers, take sales, track shifts and refunds, issue invoices
+            and receipts, manage team roles, and generate financial reports. It is
+            available as an installable web application (PWA), a native Android app, and
+            desktop apps for Windows, macOS, and Linux. Aide is currently provided{" "}
+            <strong className="text-ink">free of charge</strong> while in beta.
           </p>
         </Section>
 
-        <Section title="2. Accounts">
-          <ul className="list-disc pl-5 space-y-1.5">
-            <li>You must be at least 18 years old and legally able to enter a contract.</li>
-            <li>You are responsible for keeping your sign-in credentials confidential and for all activity under your account.</li>
-            <li>You must provide accurate registration details and keep them current.</li>
-            <li>Tell us promptly if you suspect unauthorised access to your account.</li>
+        <Section title="2. Accounts and team access">
+          <ul className="list-disc space-y-2 pl-5">
+            <li>
+              You must be at least 18 years old and legally able to enter a contract.
+            </li>
+            <li>
+              You are responsible for keeping your sign-in credentials (email/password or
+              Google account) confidential and for all activity under your account.
+            </li>
+            <li>
+              If you invite team members or assign role templates, you are responsible
+              for their access, permissions, and prompt revocation when someone leaves
+              your business.
+            </li>
+            <li>
+              You must provide accurate registration details and tell us promptly if you
+              suspect unauthorised access to your account.
+            </li>
           </ul>
         </Section>
 
         <Section title="3. Your data and your rights">
           <p>
-            You keep all ownership of the business data you enter into Aide. You grant
-            us only the limited licence needed to host, process, back up and display
-            that data back to you — for example, to sync it across your devices. We do
-            not claim ownership of your sales figures, customer information or
+            You keep all ownership of the business data you enter or import into Aide.
+            You grant us only the limited licence needed to host, process, back up, and
+            display that data back to you — for example, to sync it across your devices.
+            We do not claim ownership of your sales figures, customer records, or
             products.
           </p>
           <p>
@@ -97,12 +149,23 @@ export default function TermsPage() {
 
         <Section title="4. Acceptable use">
           <p>You agree not to:</p>
-          <ul className="list-disc pl-5 space-y-1.5">
+          <ul className="list-disc space-y-2 pl-5">
             <li>Use Aide for anything unlawful, or to facilitate harm to others.</li>
-            <li>Attempt to gain access to another business&apos;s data, or to probe, scan or test the vulnerability of the Service without our written permission.</li>
-            <li>Reverse engineer, decompile, or attempt to extract source code from the apps, except to the extent that such restriction is prohibited by law.</li>
-            <li>Resell, sublicense or redistribute the Service as your own product.</li>
-            <li>Transmit malware, or use automated systems to send bulk abusive traffic.</li>
+            <li>
+              Attempt to gain access to another business&apos;s data, or to probe, scan,
+              or test the vulnerability of the Service without our written permission.
+            </li>
+            <li>
+              Reverse engineer, decompile, or attempt to extract source code from the
+              apps, except to the extent that such restriction is prohibited by law.
+            </li>
+            <li>
+              Resell, sublicense, or redistribute the Service as your own product.
+            </li>
+            <li>
+              Transmit malware, bypass bot protection, or use automated systems to send
+              bulk abusive traffic.
+            </li>
             <li>Infringe the intellectual-property rights of others.</li>
           </ul>
         </Section>
@@ -110,42 +173,46 @@ export default function TermsPage() {
         <Section title="5. Subscriptions and charges">
           <p>
             Aide is currently free while in beta. If we introduce paid plans, we will
-            tell you the price and terms <strong>before</strong> they take effect, and
-            you will have the opportunity to accept them. Any subscription you accept
-            renews at the stated interval until cancelled, and you can cancel at any
-            time from your account. We do not charge without your consent.
+            tell you the price and terms <strong className="text-ink">before</strong>{" "}
+            they take effect, and you will have the opportunity to accept them. Any
+            subscription you accept renews at the stated interval until cancelled, and you
+            can cancel at any time from your account. We do not charge without your
+            consent.
           </p>
         </Section>
 
         <Section title="6. Your responsibilities for your records">
           <p>
-            Aide is a recording tool, not your accountant. You are responsible for the
-            accuracy of the prices, tax settings, stock figures and receipts you enter,
-            and for keeping your own records and complying with the tax and bookkeeping
-            rules that apply to your business. We are not liable for business losses
-            caused by incorrect data entry, forgotten backups, or reliance on Aide as
-            your sole system of record.
+            Aide is a recording and management tool, not your accountant. You are
+            responsible for the accuracy of the prices, tax settings, stock figures,
+            imported CSV/Excel spreadsheets, invoices, and financial/year-end closing
+            entries you record, and for complying with the tax and bookkeeping rules that
+            apply to your business. We are not liable for business losses caused by
+            incorrect data entry, import errors, forgotten backups, or reliance on Aide
+            as your sole system of record.
           </p>
           <p>
-            <strong>Back up your data.</strong> The Android app keeps its records on
-            your device; uninstalling it removes that local copy. Use the in-app export
-            tools and keep your own backups.
+            <strong className="text-ink">Back up your data.</strong> The native Android
+            app keeps its records locally on your device with no cloud sync; uninstalling
+            it removes that local copy. Use the in-app export tools and keep your own
+            backups.
           </p>
         </Section>
 
         <Section title="7. Availability and offline operation">
           <p>
-            Aide is designed to work without an internet connection, and much of it will
-            continue to work during an outage. However, the Service is provided{" "}
-            &quot;as is&quot; and we do not warrant uninterrupted or error-free operation.
-            Cloud sync, sign-in and any server-generated features require connectivity.
+            Aide is designed to work without an internet connection, and core POS and
+            inventory workflows continue to work during an outage. However, the Service
+            is provided &quot;as is&quot; and we do not warrant uninterrupted or
+            error-free operation. Cloud sync, sign-in, team invitations, and any
+            server-generated features require connectivity.
           </p>
         </Section>
 
         <Section title="8. Our intellectual property">
           <p>
-            Aide, including its software, design, branding and documentation, belongs to
-            Omix Digital Solutions or its licensors. We grant you a personal, non-exclusive,
+            Aide, including its software, design, branding, and documentation, belongs to{" "}
+            {COMPANY_NAME} or its licensors. We grant you a personal, non-exclusive,
             non-transferable licence to use the Service as intended. These Terms grant
             no right to our trade marks beyond using the Service as a user.
           </p>
@@ -154,8 +221,10 @@ export default function TermsPage() {
         <Section title="9. Third-party services">
           <p>
             Aide links to or relies on third-party services (for example hosting,
-            database, and the live-chat widget on our marketing site). Their services
-            are governed by their own terms, and we are not responsible for them.
+            database, Google OAuth sign-in, Cloudflare Turnstile bot protection, Sentry
+            error monitoring, and the live-chat widget on our marketing site). Their
+            services are governed by their own terms, and we are not responsible for
+            them.
           </p>
         </Section>
 
@@ -171,7 +240,7 @@ export default function TermsPage() {
 
         <Section title="11. Limitation of liability">
           <p>
-            To the fullest extent permitted by law, Omix Digital Solutions is not liable for lost
+            To the fullest extent permitted by law, {COMPANY_NAME} is not liable for lost
             profits, lost revenue, lost business, loss of goodwill, or any indirect or
             consequential loss arising from your use of the Service. Our total aggregate
             liability to you for all claims relating to the Service is limited to the
@@ -186,10 +255,10 @@ export default function TermsPage() {
 
         <Section title="12. Indemnity">
           <p>
-            You agree to indemnify and hold harmless Omix Digital Solutions against any claim,
-            demand, loss or expense (including reasonable legal fees) arising from your
-            use of the Service, your breach of these Terms, or your violation of any
-            law or the rights of a third party.
+            You agree to indemnify and hold harmless {COMPANY_NAME} against any claim,
+            demand, loss, or expense (including reasonable legal fees) arising from your
+            use of the Service, your breach of these Terms, or your violation of any law
+            or the rights of a third party.
           </p>
         </Section>
 
@@ -198,77 +267,75 @@ export default function TermsPage() {
             You may stop using Aide and delete your account at any time. We may suspend
             or terminate your access if you materially breach these Terms — for example
             by abusing the Service, attempting to access other tenants&apos; data, or
-            using it unlawfully. Where practical we will warn you and give you a
-            chance to fix the problem first.
+            using it unlawfully. Where practical we will warn you and give you a chance
+            to fix the problem first.
           </p>
         </Section>
 
         <Section title="14. Changes to these Terms">
           <p>
             We may update these Terms. We will change the &quot;Last updated&quot; date
-            above and, for changes that materially affect your rights, give you notice
-            in the app or by email before they take effect. Continuing to use Aide after
+            above and, for changes that materially affect your rights, give you notice in
+            the app or by email before they take effect. Continuing to use Aide after
             that notice means you accept the updated Terms.
           </p>
         </Section>
 
         <Section title="15. Governing law">
           <p>
-            These Terms are governed by the laws of the Republic of Kenya, and the
-            courts of Kenya have exclusive jurisdiction over any dispute arising from
-            them. If you are a consumer, this does not remove the protection of any
-            mandatory consumer protections available to you locally.
+            These Terms are governed by the laws of the Republic of Kenya, and the courts
+            of Kenya have exclusive jurisdiction over any dispute arising from them. If
+            you are a consumer, this does not remove the protection of any mandatory
+            consumer protections available to you locally.
           </p>
         </Section>
 
         <Section title="16. Contact">
-          <p>
-            <p>
-              Omix Digital Solutions, a company registered in the Republic of Kenya.
-            </p>
-            <ul className="mt-3 space-y-1">
-              <li>
-                <span className="font-semibold text-ink">Email:</span>{" "}
-                <a href="mailto:omixsystems@gmail.com" className="text-accent hover:underline">
-                  omixsystems@gmail.com
-                </a>
-              </li>
-              <li>
-                <span className="font-semibold text-ink">Phone:</span>{" "}
-                <a href="tel:+254768213649" className="text-accent hover:underline">
-                  +254 768 213 649
-                </a>
-              </li>
-              <li>
-                <span className="font-semibold text-ink">Website:</span>{" "}
-                <a
-                  href="https://omixsystems.store"
-                  className="text-accent hover:underline"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  omixsystems.store
-                </a>
-              </li>
-            </ul>
-          </p>
+          <p>{COMPANY_NAME}, a company registered in the Republic of Kenya.</p>
+          <ul className="mt-3 space-y-1.5">
+            <li>
+              <span className="font-semibold text-ink">Email:</span>{" "}
+              <a href={`mailto:${SUPPORT_EMAIL}`} className="text-accent hover:underline">
+                {SUPPORT_EMAIL}
+              </a>
+            </li>
+            <li>
+              <span className="font-semibold text-ink">Phone:</span>{" "}
+              <a href="tel:+254768213649" className="text-accent hover:underline">
+                +254 768 213 649
+              </a>
+            </li>
+            <li>
+              <span className="font-semibold text-ink">Website:</span>{" "}
+              <a
+                href={COMPANY_URL}
+                className="text-accent hover:underline"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                omixsystems.store
+              </a>
+            </li>
+          </ul>
         </Section>
 
-        <div className="mt-12 pt-6 border-t border-rule flex flex-col sm:flex-row gap-3">
+        <div className="mt-12 flex flex-col gap-3 border-t border-rule pt-8 sm:flex-row">
           <Link
             href="/privacy"
-            className="inline-flex items-center justify-center border border-rule px-5 py-2.5 text-sm font-semibold text-ink hover:bg-rule/15"
+            className="inline-flex items-center justify-center rounded-full border border-rule px-6 py-2.5 font-display text-sm font-semibold text-ink transition hover:border-ink/40"
           >
             Read the Privacy Policy
           </Link>
           <Link
-            href="/"
-            className="inline-flex items-center justify-center bg-accent px-5 py-2.5 text-sm font-semibold text-ground hover:bg-ink"
+            href="/docs/getting-started/new-user-guide"
+            className="inline-flex items-center justify-center rounded-full bg-accent px-6 py-2.5 font-display text-sm font-semibold text-white transition hover:brightness-110"
           >
-            Back to home
+            Read the New User Guide
           </Link>
         </div>
       </main>
+
+      <LandingFooter />
     </div>
   );
 }
