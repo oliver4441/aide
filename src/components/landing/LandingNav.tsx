@@ -8,6 +8,7 @@ const links = [
   ["Features", "#features"],
   ["Pricing", "#pricing"],
   ["FAQ", "#faq"],
+  ["Docs", "/docs"],
 ];
 
 export default function LandingNav() {
@@ -30,8 +31,8 @@ export default function LandingNav() {
           {links.map(([label, href]) => <a key={label} href={href} className="text-secondary transition hover:text-ink">{label}</a>)}
         </div>
         <div className="hidden items-center gap-3 md:flex">
-          <Link href="/login" className="rounded-full px-4 py-2 font-display text-[13px] text-secondary transition hover:text-ink">Sign in</Link>
-          <Link href="/login" className="rounded-full bg-accent px-5 py-2.5 font-display text-[13px] font-semibold text-white transition hover:brightness-110">Open Aide <span aria-hidden>↗</span></Link>
+          <Link href="/login" className="rounded-full px-4 py-2 font-display text-[13px] text-secondary transition hover:text-ink active:scale-[0.98]">Sign in</Link>
+          <Link href="/login" className="rounded-full bg-accent px-5 py-2.5 font-display text-[13px] font-semibold text-white transition hover:brightness-110 active:scale-[0.98]">Open Aide <span aria-hidden="true">↗</span></Link>
         </div>
         <button type="button" onClick={() => setMobileOpen((open) => !open)} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-rule text-ink md:hidden" aria-label={mobileOpen ? "Close navigation" : "Open navigation"} aria-expanded={mobileOpen}>
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7} aria-hidden="true">{mobileOpen ? <path strokeLinecap="round" strokeLinejoin="round" d="m6 6 12 12M18 6 6 18" /> : <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h16M4 12h16M4 17h16" />}</svg>

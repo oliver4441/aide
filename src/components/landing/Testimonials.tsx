@@ -1,4 +1,5 @@
 import Container from "@/components/ui/Container";
+import ScrollFadeIn from "@/components/landing/ScrollFadeIn";
 
 const featured = {
   quote:
@@ -29,16 +30,19 @@ export default function Testimonials() {
   return (
     <section id="testimonials" className="border-t border-rule py-14 sm:py-16 lg:py-20">
       <Container wide>
-        <div className="mb-10 max-w-xl sm:mb-12">
-          <p className="mb-4 font-display text-[10px] font-medium uppercase tracking-[.16em] text-accent">
-            Trusted on the ground
-          </p>
-          <h2 className="font-display text-3xl font-semibold leading-tight tracking-[-.05em] text-ink sm:text-4xl">
-            Built for owners who cannot afford downtime.
-          </h2>
-        </div>
+        <ScrollFadeIn>
+          <div className="mb-10 max-w-xl sm:mb-12">
+            <p className="mb-4 font-display text-[10px] font-medium uppercase tracking-[.16em] text-accent">
+              Trusted on the ground
+            </p>
+            <h2 className="text-balance font-display text-3xl font-semibold leading-tight tracking-[-.05em] text-ink sm:text-4xl">
+              Built for owners who cannot afford downtime.
+            </h2>
+          </div>
+        </ScrollFadeIn>
 
-        <div className="grid gap-6 lg:grid-cols-[1.25fr_1fr]">
+        <ScrollFadeIn delay={0.08}>
+          <div className="grid gap-6 lg:grid-cols-[1.25fr_1fr]">
           <article className="flex flex-col justify-between rounded-xl border border-rule bg-surface p-7 sm:p-10">
             <div>
               <span className="inline-block rounded-full border border-rule px-3 py-1 font-display text-[10px] uppercase tracking-[.12em] text-muted">
@@ -87,6 +91,7 @@ export default function Testimonials() {
             ))}
           </div>
         </div>
+        </ScrollFadeIn>
       </Container>
     </section>
   );

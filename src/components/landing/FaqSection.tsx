@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { AnimatePresence, motion, MotionConfig } from "framer-motion";
 import { LANDING_FAQS, FAQS } from "@/lib/faqs";
 import Container from "@/components/ui/Container";
+import ScrollFadeIn from "@/components/landing/ScrollFadeIn";
 
 const faqJsonLd = {
   "@context": "https://schema.org",
@@ -25,61 +27,80 @@ export default function FaqSection() {
   };
 
   return (
-    <section id="faq" className="border-t border-rule py-14 sm:py-16 lg:py-20">
-      <Container wide>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
-        />
+    <MotionConfig reducedMotion="user">
+      <section id="faq" className="border-t border-rule py-14 sm:py-16 lg:py-20">
+        <Container wide>
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+          />
 
-        <div className="mx-auto mb-10 max-w-xl text-center sm:mb-12">
-          <p className="mb-4 font-display text-[10px] font-medium uppercase tracking-[.16em] text-accent">
-            Common questions
-          </p>
-          <h2 className="font-display text-3xl font-semibold tracking-[-.05em] text-ink sm:text-4xl">
-            Frequently asked questions
-          </h2>
-          <p className="mt-4 font-reading text-sm leading-6 text-secondary sm:text-[15px]">
-            Everything you need to know about selling offline, syncing and receipts.
-          </p>
-        </div>
+          <ScrollFadeIn>
+            <div className="mx-auto mb-10 max-w-xl text-center sm:mb-12">
+              <p className="mb-4 font-display text-[10px] font-medium uppercase tracking-[.16em] text-accent">
+                Common questions
+              </p>
+              <h2 className="text-balance font-display text-3xl font-semibold tracking-[-.05em] text-ink sm:text-4xl">
+                Frequently asked questions
+              </h2>
+              <p className="mt-4 text-pretty font-reading text-sm leading-6 text-secondary sm:text-[15px]">
+                Everything you need to know about selling offline, syncing and receipts.
+              </p>
+            </div>
+          </ScrollFadeIn>
 
-        <div className="mx-auto max-w-3xl divide-y divide-rule rounded-xl border border-rule bg-surface">
-          {visibleFaqs.map((faq, i) => {
-            const isOpen = openIndex === i;
-            return (
-              <div key={faq.question} className="px-6 sm:px-8">
-                <button
-                  type="button"
-                  onClick={() => toggle(i)}
-                  aria-expanded={isOpen}
-                  className="flex w-full items-center justify-between gap-4 py-5 text-left font-display text-sm font-semibold text-ink transition hover:text-accent sm:text-base"
-                >
-                  <span>{faq.question}</span>
-                  <span
-                    aria-hidden="true"
-                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-rule font-display text-sm text-secondary"
-                  >
-                    {isOpen ? "−" : "+"}
-                  </span>
-                </button>
-                {isOpen && (
-                  <div className="pb-6 pr-8 font-reading text-sm leading-6 text-secondary sm:text-[15px]">
-                    {faq.answer}
+          <ScrollFadeIn delay={0.08}>
+            <div className="mx-auto max-w-3xl divide-y divide-rule rounded-xl border border-rule bg-surface">
+              {visibleFaqs.map((faq, i) => {
+                const isOpen = openIndex === i;
+                return (
+                  <div key={faq.question} className="px-6 sm:px-8">
+                    <button
+                      type="button"
+                      onClick={() => toggle(i)}
+                      aria-expanded={isOpen}
+                      className="flex w-full items-center justify-between gap-4 py-5 text-left font-display text-sm font-semibold text-ink transition hover:text-accent sm:text-base"
+                    >
+                      <span>{faq.question}</span>
+                      <span
+                        aria-hidden="true"
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-rule font-display text-sm text-secondary transition"
+                      >
+                        {isOpen ? "−" : "+"}
+                      </span>
+                    </button>
+                    <AnimatePresence initial={false}>
+                      {isOpen && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                          className="overflow-hidden"
+                        >
+                          <div className="pb-6 pr-8 font-reading text-sm leading-6 text-secondary sm:text-[15px]">
+                            {faq.answer}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                );
+              })}
+            </div>
+          </ScrollFadeIn>
 
-        <p className="mt-8 text-center font-reading text-sm text-secondary">
-          Still have questions?{" "}
-          <Link href="/help" className="font-display font-semibold text-ink underline-offset-4 hover:text-accent hover:underline">
-            Visit the Help Centre
-          </Link>
-        </p>
-      </Container>
-    </section>
+          <p className="mt-8 text-center font-reading text-sm text-secondary">
+            Still have questions?{" "}
+            <Link
+              href="/help"
+              className="font-display font-semibold text-ink underline-offset-4 hover:text-accent hover:underline"
+            >
+              Visit the Help Centre
+            </Link>
+          </p>
+        </Container>
+      </section>
+    </MotionConfig>
   );
 }

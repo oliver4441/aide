@@ -39,14 +39,14 @@ const structuredData = {
   "@type": "SoftwareApplication",
   name: "Aide",
   applicationCategory: "BusinessApplication",
-  operatingSystem: "Web",
+  operatingSystem: "Web, Android, Windows, macOS, Linux",
   offers: {
     "@type": "Offer",
     price: "0",
     priceCurrency: "KES",
   },
   description:
-    "Offline-first PWA business management software for sales, inventory and reporting.",
+    "Offline-first POS, inventory, receipts and business accounting software for small businesses.",
 };
 
 export default function LandingPage() {
@@ -57,8 +57,14 @@ export default function LandingPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
       <div className="min-h-screen bg-ground">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-accent focus:px-4 focus:py-2 focus:font-display focus:text-xs focus:font-semibold focus:text-white"
+        >
+          Skip to main content
+        </a>
         <LandingNav />
-        <main>
+        <main id="main-content">
           <Hero />
           <SocialProof />
           <Features />
