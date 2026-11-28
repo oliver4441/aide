@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs"
 import { verifyTurnstile } from "./turnstile"
 import admin from "./firebaseAdmin"
 import { recordAudit } from "./audit"
+import { currentTokenVersion } from "./sessionGuard"
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "kipkiruigideon890@gmail.com")
   .split(",")
@@ -132,6 +133,7 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async jwt({ token, user, account }) {
+      let googleIdentityId: string | null = null;
       if (account && account.provider === "google" && user) {
         // Google OAuth sign-in — auto-create User + Business on first login
         const email = (user.email || "").toLowerCase().trim();
@@ -188,14 +190,25 @@ export const authOptions: NextAuthOptions = {
           token.id = existingUser.id;
           token.role = "user" as const;
           token.businessId = existingUser.businesses[0]?.businessId ?? null;
-          return token;
+          googleIdentityId = existingUser.id;
         }
       }
 
-      if (user) {
+      if (user && !googleIdentityId) {
         token.id = user.id
         token.role = (user as any).role
         token.businessId = (user as any).businessId
+      }
+
+      // AIDE-03: stamp the current account version into the JWT on minting
+      // and on every refresh. apiAuth compares it with the database on every
+      // request, so bumping the column revokes the session immediately.
+      if (token.id) {
+        const version = await currentTokenVersion(
+          token.role === "admin" ? "admin" : "user",
+          String(token.id)
+        );
+        token.tokenVersion = version ?? 0;
       }
       return token
     },
@@ -204,6 +217,7 @@ export const authOptions: NextAuthOptions = {
         ;(session.user as any).id = token.id
         ;(session.user as any).role = token.role
         ;(session.user as any).businessId = token.businessId
+        ;(session.user as any).tokenVersion = token.tokenVersion
       }
       return session
     },

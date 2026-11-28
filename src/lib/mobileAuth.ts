@@ -2,6 +2,7 @@ import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
 import { isAdminEmail } from "./adminEmails";
+import { currentTokenVersion } from "./sessionGuard";
 
 // Matches the NextAuth session lifetime (see authOptions.session.maxAge).
 const TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60;
@@ -20,6 +21,7 @@ export type TokenClaims = {
   name: string;
   role: "admin" | "user";
   businessId: string | null;
+  tokenVersion?: number;
 };
 
 export async function issueToken(claims: TokenClaims): Promise<string> {
@@ -28,6 +30,7 @@ export async function issueToken(claims: TokenClaims): Promise<string> {
     name: claims.name,
     role: claims.role,
     businessId: claims.businessId,
+    tokenVersion: claims.tokenVersion,
   })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(claims.sub)
@@ -52,6 +55,7 @@ export async function verifyToken(token: string): Promise<TokenClaims> {
     name: String(payload.name ?? ""),
     role: (payload.role as "admin" | "user") ?? "user",
     businessId: (payload.businessId as string | null) ?? null,
+    tokenVersion: typeof payload.tokenVersion === "number" ? payload.tokenVersion : undefined,
   };
 }
 
@@ -68,7 +72,7 @@ export async function authenticate(
   if (isAdminEmail(email)) {
     const admin = await prisma.admin.findUnique({
       where: { email },
-      select: { id: true, email: true, name: true, passwordHash: true },
+      select: { id: true, email: true, name: true, passwordHash: true, tokenVersion: true },
     });
     if (!admin?.passwordHash) {
       await bcrypt.compare(
@@ -92,6 +96,7 @@ export async function authenticate(
       name: admin.name,
       role: "admin",
       businessId: firstBusiness?.id ?? null,
+      tokenVersion: admin.tokenVersion,
     };
   }
 
@@ -102,6 +107,7 @@ export async function authenticate(
       email: true,
       name: true,
       passwordHash: true,
+      tokenVersion: true,
       businesses: { select: { businessId: true } },
     },
   });

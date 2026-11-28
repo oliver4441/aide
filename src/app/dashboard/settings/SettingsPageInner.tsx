@@ -171,6 +171,9 @@ export default function SettingsPage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordStatus, setPasswordStatus] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [revokePassword, setRevokePassword] = useState("");
+  const [revoking, setRevoking] = useState(false);
+  const [revokeStatus, setRevokeStatus] = useState<{ ok: boolean; msg: string } | null>(null);
   const [savingPassword, setSavingPassword] = useState(false);
 
   const saveEmail = async () => {
@@ -226,6 +229,30 @@ export default function SettingsPage() {
       setPasswordStatus({ ok: false, msg: "Network error — please try again" });
     } finally {
       setSavingPassword(false);
+    }
+  };
+
+  const revokeAllSessions = async () => {
+    setRevokeStatus(null);
+    setRevoking(true);
+    try {
+      const res = await fetch("/api/auth/revoke-sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: revokePassword }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setRevokeStatus({ ok: false, msg: data.error || "Could not revoke sessions" });
+        return;
+      }
+      setRevokeStatus({ ok: true, msg: "All sessions revoked. Signing out…" });
+      setRevokePassword("");
+      await signOut({ callbackUrl: "/login" });
+    } catch {
+      setRevokeStatus({ ok: false, msg: "Network error — please try again" });
+    } finally {
+      setRevoking(false);
     }
   };
 
@@ -366,6 +393,39 @@ export default function SettingsPage() {
               </div>
             </div>
           )}
+
+          {/* AIDE-03: explicit session revocation */}
+          <div className="border-t border-rule pt-4 space-y-3">
+            <div>
+              <div className="text-xs font-display font-black text-ink">Sign out everywhere</div>
+              <p className="text-xs text-secondary">
+                Revokes every browser session and mobile app token for this account immediately.
+                Use this if you suspect someone else is signed in.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                type="password"
+                value={revokePassword}
+                onChange={(e) => setRevokePassword(e.target.value)}
+                placeholder="Current password"
+                className="px-3 py-2 border border-rule bg-ground text-ink font-display text-sm focus:outline-none focus:border-accent"
+              />
+              <button
+                type="button"
+                onClick={revokeAllSessions}
+                disabled={revoking || !revokePassword}
+                className="np-btn text-xs px-4 py-2 disabled:opacity-40"
+              >
+                {revoking ? "Revoking..." : "Revoke all sessions"}
+              </button>
+            </div>
+            {revokeStatus && (
+              <p className={`text-xs font-display ${revokeStatus.ok ? "text-success" : "text-danger"}`}>
+                {revokeStatus.msg}
+              </p>
+            )}
+          </div>
         </div>
       </div>
 

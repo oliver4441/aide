@@ -4,6 +4,7 @@ import { requireBusiness, toAuthError } from "@/lib/apiAuth";
 import { hasPermission, hasAnyPermission, Permission, canManageRole } from "@/lib/rbac";
 import { BusinessRole } from "@prisma/client";
 import { recordAudit } from "@/lib/audit";
+import { bumpUserTokenVersion } from "@/lib/sessionGuard";
 import {
   ROLE_TEMPLATES,
   baseRoleForTemplate,
@@ -153,6 +154,9 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
         where: { id: employee.membershipId },
         data: { role: newRole },
       });
+      // AIDE-03: privilege changes take effect immediately; the old JWT is
+      // still signed with claims from before this promotion/demotion.
+      await bumpUserTokenVersion(employee.userId);
       const fromTemplate = resolveTemplateId(employee, employee.membership.role);
       if (requestedTemplate) {
         updateData.roleTemplate = requestedTemplate;
@@ -204,6 +208,9 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
     if (body?.isActive !== undefined) {
       updateData.isActive = body.isActive;
+      if (!body.isActive) {
+        await bumpUserTokenVersion(employee.userId);
+      }
       await recordAudit({
         action: body.isActive ? "employee.activate" : "employee.deactivate",
         entityType: "Employee",
@@ -302,6 +309,10 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     await prisma.businessMembership.delete({
       where: { id: employee.membershipId },
     });
+
+    // AIDE-03: the revoked member's already-issued credentials die with the
+    // membership. Nothing further needs to wait for JWT expiry.
+    await bumpUserTokenVersion(employee.userId);
 
     await recordAudit({
       action: "membership.revoke",
