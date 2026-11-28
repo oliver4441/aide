@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { requireUser, toAuthError } from "@/lib/apiAuth";
 import { prisma } from "@/lib/prisma";
+import { bumpTokenVersion } from "@/lib/sessionGuard";
 
 export const dynamic = "force-dynamic";
 
@@ -60,6 +61,11 @@ export async function POST(request: NextRequest) {
     } else {
       await prisma.user.update({ where: { id: account.id }, data: { passwordHash } });
     }
+
+    // AIDE-03: a password change must invalidate the old-password sessions
+    // everywhere. The current request already authenticated; bumping here cuts
+    // off every other cookie/bearer token that holds the previous password.
+    await bumpTokenVersion(sessionUser.role as "admin" | "user", sessionUser.id);
 
     return NextResponse.json({ ok: true });
   } catch (err) {

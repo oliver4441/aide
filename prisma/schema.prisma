@@ -13,6 +13,8 @@ model Admin {
   email         String    @unique
   name          String
   passwordHash  String
+  // AIDE-03: bump to revoke every issued JWT/bearer token immediately.
+  tokenVersion  Int       @default(0)
   role          AdminRole @default(SUPER_ADMIN)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -32,6 +34,8 @@ model User {
   email         String    @unique
   name          String
   passwordHash  String
+  // AIDE-03: bump to revoke every issued JWT/bearer token immediately.
+  tokenVersion  Int       @default(0)
   phone         String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt

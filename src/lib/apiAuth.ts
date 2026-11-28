@@ -6,6 +6,7 @@ import { verifyReplayToken } from "./internalAuth";
 import { prisma } from "./prisma";
 import { selectAccessible } from "./accessSelect.mjs";
 import { isEmployeeActive } from "./rbacScope.mjs";
+import { isSessionCurrent } from "./sessionGuard";
 
 export type SessionUser = {
   id: string;
@@ -13,6 +14,7 @@ export type SessionUser = {
   name?: string | null;
   role: "admin" | "user";
   businessId?: string | null;
+  tokenVersion?: number;
 };
 
 export class UnauthorizedError extends Error {
@@ -38,20 +40,27 @@ function bearerToken(request: NextRequest): string | null {
 
 /**
  * Resolves the caller from a NextAuth session cookie or, for the native
- * clients, an `Authorization: Bearer <token>` header.
+ * clients, an `Authorization: Bearer <token>` header, then verifies the
+ * credential is still current (AIDE-03). A bumped tokenVersion — from
+ * offboarding, password change or explicit sign-out-everywhere — rejects the
+ * request at the door, before any business or role is resolved.
  */
 export async function resolveUser(request?: NextRequest): Promise<SessionUser | null> {
+  let identity: SessionUser | null = null;
+  let isService = false;
+
   if (request) {
     const token = bearerToken(request);
     if (token) {
       try {
         const claims = await verifyToken(token);
-        return {
+        identity = {
           id: claims.sub,
           email: claims.email,
           name: claims.name,
           role: claims.role,
           businessId: claims.businessId,
+          tokenVersion: claims.tokenVersion,
         };
       } catch {
         return null;
@@ -61,26 +70,38 @@ export async function resolveUser(request?: NextRequest): Promise<SessionUser | 
 
   // Server-side approval replay only. This header is never set by the browser
   // client and is verified against NEXTAUTH_SECRET.
-  if (request) {
+  if (request && !identity) {
     const replay = request.headers.get("x-aide-replay");
     if (replay) {
       const claims = await verifyReplayToken(replay);
       if (claims) {
-        return {
+        identity = {
           id: claims.userId,
           email: "",
           name: "Approval engine",
           role: "user",
           businessId: claims.businessId,
         };
+        isService = true;
       }
     }
   }
 
-  const session = await getServerSession(authOptions);
-  const user = session?.user as SessionUser | undefined;
-  if (!session || !user?.id) return null;
-  return user;
+  if (!identity) {
+    const session = await getServerSession(authOptions);
+    const user = session?.user as SessionUser | undefined;
+    if (session && user?.id) identity = user;
+  }
+
+  if (!identity?.id) return null;
+
+  // The approval replay token is service-scoped, not a user credential; it is
+  // not subject to per-account session revocation.
+  if (!isService && !(await isSessionCurrent(identity))) {
+    return null;
+  }
+
+  return identity;
 }
 
 /**
