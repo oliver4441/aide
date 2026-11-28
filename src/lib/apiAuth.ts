@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { authOptions } from "./auth";
 import { verifyToken } from "./mobileAuth";
 import { verifyReplayToken } from "./internalAuth";
+import { resolveApiKey } from "./apiKeys";
 import { prisma } from "./prisma";
 import { selectAccessible } from "./accessSelect.mjs";
 
@@ -43,6 +44,19 @@ export async function resolveUser(request?: NextRequest): Promise<SessionUser | 
   if (request) {
     const token = bearerToken(request);
     if (token) {
+      // ENT-09 machine API keys: `aide_<prefix>_<secret>`. Scoped by the key
+      // record; scope checks happen at each endpoint via requireScope.
+      if (token.startsWith("aide_")) {
+        const key = await resolveApiKey(token);
+        if (!key) return null;
+        return {
+          id: key.id,
+          email: "",
+          name: key.name,
+          role: "user" as const,
+          businessId: key.businessId,
+        };
+      }
       try {
         const claims = await verifyToken(token);
         return {
