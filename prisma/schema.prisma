@@ -20,6 +20,7 @@ model Admin {
   updatedAt     DateTime  @updatedAt
 
   businesses    Business[]
+  mfaMethods    AdminMfaMethod[] @relation("AdminMfa")
 }
 
 enum AdminRole {
@@ -41,6 +42,10 @@ model User {
   updatedAt     DateTime  @updatedAt
 
   businesses    BusinessMembership[]
+  // AIDE-ENT-04: TOTP second factor. A user may enroll one authenticator and
+  // one set of backup codes (hashed) — both live in this dedicated table, so
+  // the User row is never a bag of auth secrets.
+  mfaMethods    UserMfaMethod[] @relation("UserMfa")
   apiKeys       ApiKey[]
   notifications Notification[]
   notificationPrefs NotificationPreference[]
@@ -1641,4 +1646,38 @@ model StockTransferLine {
   productId      String?
 
   @@index([transferId])
+}
+
+// AIDE-ENT-04: TOTP two-factor enrollment for platform admins. Admins do not
+// have a User row, so their authenticator lives on the Admin table itself.
+model AdminMfaMethod {
+  id          String   @id @default(cuid())
+  adminId     String   @unique
+  secret      String // base32 TOTP secret (authenticator only)
+  enabled     Boolean  @default(false) // false until the first code is confirmed
+  backupCodes Json     @default("[]") // array of bcrypt-hashed backup codes
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  admin       Admin    @relation("AdminMfa", fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+}
+
+// AIDE-ENT-04: TOTP two-factor enrollment for business users. A user may
+// enroll one authenticator plus hashed backup codes. Keeping this in its own
+// table means the User row never accumulates raw auth material, and disabling
+// MFA simply deletes the row.
+model UserMfaMethod {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  secret      String // base32 TOTP secret (authenticator only)
+  enabled     Boolean  @default(false) // false until the first code is confirmed
+  backupCodes Json     @default("[]") // array of bcrypt-hashed backup codes
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation("UserMfa", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

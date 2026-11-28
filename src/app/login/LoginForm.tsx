@@ -22,6 +22,12 @@ export default function LoginForm() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  // AIDE-ENT-04: the MFA challenge is discovered by a public status pre-flight
+  // before sign-in, so the password is never sent without a code when one is
+  // required.
+  const [mfaRequired, setMfaRequired] = useState(false);
+  const [mfaCode, setMfaCode] = useState("");
+  const [mfaCheckedEmail, setMfaCheckedEmail] = useState("");
   const turnstileRef = useRef<TurnstileHandle | null>(null);
   const router = useRouter();
 
@@ -39,6 +45,28 @@ export default function LoginForm() {
     if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !captchaToken) {
       setError("Please complete the security check.");
       return;
+    }
+
+    // Discover whether this account has a second factor. The endpoint is
+    // generic for unknown emails and reveals no secret material.
+    if (!isSignUp && !mfaRequired && mfaCheckedEmail !== email) {
+      try {
+        const statusRes = await fetch("/api/auth/mfa/status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+        const status = await statusRes.json().catch(() => ({ mfaRequired: false }));
+        setMfaCheckedEmail(email);
+        if (status.mfaRequired) {
+          setMfaRequired(true);
+          setError("Enter the six-digit code from your authenticator app.");
+          return;
+        }
+      } catch {
+        // If the pre-flight is unavailable, fall through to normal sign-in;
+        // the server still enforces MFA and will reject a code-less attempt.
+      }
     }
 
     setLoading(true);
@@ -91,15 +119,17 @@ export default function LoginForm() {
       email,
       password,
       captchaToken: loginToken ?? "",
+      mfaCode: mfaRequired ? mfaCode.replace(/\s/g, "") : "",
       redirect: false,
     });
 
     setLoading(false);
     turnstileRef.current?.reset();
     setCaptchaToken(null);
+    setMfaCode("");
 
     if (result?.error) {
-      setError("Invalid email or password.");
+      setError(mfaRequired ? "Invalid code or password." : "Invalid email or password.");
       return;
     }
 
@@ -184,7 +214,12 @@ export default function LoginForm() {
                 id="email"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setMfaRequired(false);
+                  setMfaCode("");
+                  setMfaCheckedEmail("");
+                }}
                 required
                 autoComplete="email"
                 className={inputClass}
@@ -208,6 +243,29 @@ export default function LoginForm() {
                 placeholder={isSignUp ? "At least 8 characters" : "••••••••"}
               />
             </div>
+
+            {!isSignUp && mfaRequired && (
+              <div>
+                <label className="block text-xs font-bold text-secondary mb-1" htmlFor="mfaCode">
+                  Authenticator code
+                </label>
+                <input
+                  id="mfaCode"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={10}
+                  value={mfaCode}
+                  onChange={(e) => setMfaCode(e.target.value)}
+                  required
+                  className={inputClass}
+                  placeholder="000000 or backup code"
+                />
+                <p className="text-xs text-secondary mt-1">
+                  Enter a six-digit code from your app, or one of your backup codes.
+                </p>
+              </div>
+            )}
 
             <TurnstileWidget
               action={isSignUp ? "signup" : "login"}
