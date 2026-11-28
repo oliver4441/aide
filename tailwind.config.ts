@@ -39,6 +39,15 @@ const config: Config = {
         rule: "rgb(var(--dp-color-rule-rgb) / <alpha-value>)",
         accent: "rgb(var(--dp-color-accent-rgb) / <alpha-value>)",
 
+        // shadcn compatibility aliases. These are aliases, not new colours: every
+        // one resolves to an existing Newsprint token so generated shadcn
+        // components (and the copied hero) render in the same palette.
+        background: "rgb(var(--dp-color-ground-rgb) / <alpha-value>)",
+        foreground: "rgb(var(--dp-color-ink-rgb) / <alpha-value>)",
+        card: "rgb(var(--dp-color-surface-rgb) / <alpha-value>)",
+        border: "rgb(var(--dp-color-rule-rgb) / <alpha-value>)",
+        "muted-foreground": "rgb(var(--dp-color-secondary-rgb) / <alpha-value>)",
+
         // Keep functional colors for errors/success (not thematic)
         error: "#ba1a1a",
         "error-container": "#ffe0d6",
