@@ -145,6 +145,10 @@ model Business {
   apiKeys           ApiKey[]
   webhookSubscriptions WebhookSubscription[]
 
+  // AIDE-10: inventory movements + transfers
+  stockMovements    StockMovement[]
+  stockTransfers    StockTransfer[]
+
   // AIDE-07 / ACC-11: fixed asset register
   fixedAssets       FixedAsset[]
   // AIDE-19 / AIDE-03: immutable audit trail
@@ -228,6 +232,9 @@ model Warehouse {
   @@unique([organizationId, code])
   @@index([organizationId])
   @@index([branchId])
+  movementsFrom     StockMovement[]
+  transfersFrom     StockTransfer[] @relation("TransferFrom")
+  transfersTo       StockTransfer[] @relation("TransferTo")
 }
 
 // A bin / shelf / zone inside a warehouse.
@@ -373,6 +380,8 @@ model Product {
   
   // AIDE-10: Inventory advanced
   stockAdjustmentLines StockAdjustmentLine[]
+  stockMovements    StockMovement[]
+  transferLines     StockTransferLine[]
 }
 
 // Sales transactions
@@ -1572,6 +1581,71 @@ model WebhookNonce {
   createdAt DateTime @default(now())
 
   @@index([createdAt])
+}
+
+// AIDE-10: append-only inventory movement ledger — stock on hand is derived
+// from these rows so every change has an explainable source.
+enum StockMovementType {
+  RECEIPT
+  SALE
+  RETURN
+  ADJUSTMENT
+  TRANSFER_IN
+  TRANSFER_OUT
+  WRITE_OFF
+}
+
+model StockMovement {
+  id            String            @id @default(cuid())
+  type          StockMovementType
+  quantityDelta Int
+  unitCost      Decimal           @db.Decimal(19, 4)
+  reference     String?
+  notes         String?
+  createdAt     DateTime          @default(now())
+
+  business      Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId    String
+  product       Product?          @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productId     String?
+  warehouse     Warehouse?        @relation(fields: [warehouseId], references: [id], onDelete: SetNull)
+  warehouseId   String?
+
+  @@index([businessId, productId, createdAt])
+  @@index([businessId, type])
+}
+
+// AIDE-10: inter-warehouse stock transfer preserving source/destination,
+// quantities, cost and audit history.
+model StockTransfer {
+  id               String              @id @default(cuid())
+  transferNo       String
+  notes            String?
+  createdAt        DateTime            @default(now())
+
+  business         Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId       String
+  fromWarehouse    Warehouse           @relation("TransferFrom", fields: [fromWarehouseId], references: [id])
+  fromWarehouseId  String
+  toWarehouse      Warehouse           @relation("TransferTo", fields: [toWarehouseId], references: [id])
+  toWarehouseId    String
+  lines            StockTransferLine[]
+
+  @@unique([businessId, transferNo])
+  @@index([businessId, createdAt])
+}
+
+model StockTransferLine {
+  id             String        @id @default(cuid())
+  productName    String
+  quantity       Int
+  unitCost       Decimal       @db.Decimal(19, 4)
+  transfer       StockTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  transferId     String
+  product        Product?      @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productId      String?
+
+  @@index([transferId])
 }
 
 // AIDE-ENT-04: TOTP two-factor enrollment for platform admins. Admins do not

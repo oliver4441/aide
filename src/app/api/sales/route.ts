@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireBusiness, toAuthError } from "@/lib/apiAuth";
 import { hasPermission, Permission } from "@/lib/rbac";
 import { postSale, seedChartOfAccounts } from "@/lib/accounting/post";
+import { recordSaleMovements } from "@/lib/inventoryLedger";
 import { resolveRbacContext, assertPermission } from "@/lib/rbacGuard";
 import { resolveEmployeeScope, ACCESS_SCOPE } from "@/lib/rbacScope.mjs";
 
@@ -182,6 +183,10 @@ export async function POST(request: NextRequest) {
           });
         }
       }
+
+      // AIDE-10: append the sale to the inventory movement ledger in the
+      // same transaction so stock on hand stays explainable.
+      await recordSaleMovements(tx, { businessId, saleId: created.id, items: normalizedItems });
 
       return created;
     });
