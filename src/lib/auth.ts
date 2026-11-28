@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto"
 import { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import GoogleProvider from "next-auth/providers/google"
@@ -12,6 +13,27 @@ const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "kipkiruigideon890@gmail.com")
   .split(",")
   .map((e) => e.trim().toLowerCase())
   .filter(Boolean)
+
+/**
+ * Session signing secret. Never fall back to a predictable literal: in
+ * production a missing secret is a fatal misconfiguration; in development we
+ * generate an ephemeral random secret so builds and local runs work without
+ * committing a constant (sessions reset when the process restarts).
+ */
+function resolveAuthSecret(): string {
+  const secret = process.env.NEXTAUTH_SECRET;
+  // Never a predictable constant. When unset (local dev / CI build without
+  // env) use an ephemeral random secret; production auth requests are
+  // rejected by assertProductionSecret() until the env var is configured.
+  return secret || randomBytes(32).toString("hex");
+}
+
+/** Fail closed at request time — builds can still import this module. */
+function assertProductionSecret(): void {
+  if (process.env.NODE_ENV === "production" && !process.env.NEXTAUTH_SECRET) {
+    throw new Error("NEXTAUTH_SECRET is required in production");
+  }
+}
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -34,6 +56,7 @@ export const authOptions: NextAuthOptions = {
         captchaToken: { label: "Security check", type: "text" },
       },
       async authorize(credentials) {
+        assertProductionSecret();
         if (!credentials?.email || !credentials?.password) {
           throw new Error("Invalid credentials")
         }
@@ -126,13 +149,14 @@ export const authOptions: NextAuthOptions = {
       },
     }),
   ],
-  secret: process.env.NEXTAUTH_SECRET || "aide-secret-development-key-32-chars-long",
+  secret: resolveAuthSecret(),
   session: {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60,
   },
   callbacks: {
     async jwt({ token, user, account }) {
+      assertProductionSecret();
       let googleIdentityId: string | null = null;
       if (account && account.provider === "google" && user) {
         // Google OAuth sign-in — auto-create User + Business on first login
