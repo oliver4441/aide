@@ -7,6 +7,7 @@ import { useBusinessSettings } from "@/hooks/useBusinessSettings";
 import { useCategories } from "@/hooks/useCategories";
 import db from "@/lib/db";
 import { getSyncStatus } from "@/lib/sync";
+import QRCode from "@/components/reports/QRCode";
 import { liveQuery } from "dexie";
 import {
   isNotificationsEnabled,
@@ -175,6 +176,127 @@ export default function SettingsPage() {
   const [revoking, setRevoking] = useState(false);
   const [revokeStatus, setRevokeStatus] = useState<{ ok: boolean; msg: string } | null>(null);
   const [savingPassword, setSavingPassword] = useState(false);
+
+  // AIDE-ENT-04: two-factor authentication (TOTP) enrollment and management.
+  const [mfaStatus, setMfaStatus] = useState<"checking" | "disabled" | "enrolled">("checking");
+  const [mfaStep, setMfaStep] = useState<"idle" | "enrolling" | "confirm" | "enrolled-saved">("idle");
+  const [mfaPassword, setMfaPassword] = useState("");
+  const [mfaSecret, setMfaSecret] = useState("");
+  const [mfaUri, setMfaUri] = useState("");
+  const [mfaCode, setMfaCode] = useState("");
+  const [mfaError, setMfaError] = useState("");
+  const [mfaSuccess, setMfaSuccess] = useState("");
+  const [backupCodes, setBackupCodes] = useState<string[]>([]);
+  const [mfaBusy, setMfaBusy] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/auth/mfa/status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: session?.user?.email ?? "" }),
+        });
+        const data = await res.json().catch(() => ({ mfaRequired: false }));
+        setMfaStatus(data.mfaRequired ? "enrolled" : "disabled");
+      } catch {
+        setMfaStatus("disabled");
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const startMfaEnrollment = async () => {
+    setMfaError("");
+    setMfaSuccess("");
+    setMfaBusy(true);
+    try {
+      const res = await fetch("/api/user/mfa/enroll", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: mfaPassword }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setMfaError(data.error || "Could not start enrollment");
+        return;
+      }
+      setMfaSecret(data.secret);
+      setMfaUri(data.uri);
+      setMfaStep("confirm");
+      setMfaPassword("");
+    } catch {
+      setMfaError("Network error — please try again");
+    } finally {
+      setMfaBusy(false);
+    }
+  };
+
+  const confirmMfa = async () => {
+    setMfaError("");
+    setMfaBusy(true);
+    try {
+      const res = await fetch("/api/user/mfa/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: mfaCode }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setMfaError(data.error || "Invalid code");
+        return;
+      }
+      setBackupCodes(data.backupCodes || []);
+      setMfaCode("");
+      setMfaStep("enrolled-saved");
+      setMfaStatus("enrolled");
+    } finally {
+      setMfaBusy(false);
+    }
+  };
+
+  const cancelMfa = () => {
+    setMfaStep("idle");
+    setMfaPassword("");
+    setMfaCode("");
+    setMfaError("");
+  };
+
+  const closeMfa = () => {
+    setMfaStep("idle");
+    setBackupCodes([]);
+    setMfaSecret("");
+    setMfaUri("");
+  };
+
+  const disableMfa = async () => {
+    setMfaError("");
+    setMfaBusy(true);
+    try {
+      const res = await fetch("/api/user/mfa/disable", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: mfaPassword, code: mfaCode }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setMfaError(data.error || "Could not disable two-factor authentication");
+        return;
+      }
+      setMfaSuccess("Two-factor authentication disabled.");
+      setMfaStatus("disabled");
+      setMfaPassword("");
+      setMfaCode("");
+      setMfaStep("idle");
+    } finally {
+      setMfaBusy(false);
+    }
+  };
+
+  const copyBackupCodes = () => {
+    navigator.clipboard?.writeText(backupCodes.join("\n")).catch(() => {});
+    setMfaSuccess("Backup codes copied.");
+  };
 
   const saveEmail = async () => {
     setEmailStatus(null);
@@ -424,6 +546,148 @@ export default function SettingsPage() {
               <p className={`text-xs font-display ${revokeStatus.ok ? "text-success" : "text-danger"}`}>
                 {revokeStatus.msg}
               </p>
+            )}
+          </div>
+
+          {/* AIDE-ENT-04: two-factor authentication */}
+          <div className="border-t border-rule pt-4 space-y-3">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div className="max-w-lg">
+                <div className="text-xs font-display font-black text-ink">Two-Factor Authentication</div>
+                <p className="text-xs text-secondary">
+                  Add an authenticator app (TOTP) to protect this account. When enabled you will be
+                  asked for a six-digit code after your password on web and mobile.
+                </p>
+              </div>
+              <span
+                className={`text-xs font-display font-black px-2 py-1 border ${
+                  mfaStatus === "enrolled" ? "border-success text-success" : "border-rule text-secondary"
+                }`}
+              >
+                {mfaStatus === "checking" ? "Checking…" : mfaStatus === "enrolled" ? "ON" : "OFF"}
+              </span>
+            </div>
+
+            {mfaError && <p className="text-xs font-display text-danger">{mfaError}</p>}
+            {mfaSuccess && <p className="text-xs font-display text-success">{mfaSuccess}</p>}
+
+            {mfaStatus !== "enrolled" && mfaStep === "idle" && (
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  type="password"
+                  value={mfaPassword}
+                  onChange={(e) => setMfaPassword(e.target.value)}
+                  placeholder="Current password"
+                  className="px-3 py-2 border border-rule bg-ground text-ink font-display text-sm focus:outline-none focus:border-accent"
+                />
+                <button
+                  type="button"
+                  onClick={startMfaEnrollment}
+                  disabled={mfaBusy || !mfaPassword}
+                  className="np-btn np-btn--accent text-xs px-4 py-2 disabled:opacity-40"
+                >
+                  {mfaBusy ? "Starting…" : "Enable two-factor auth"}
+                </button>
+              </div>
+            )}
+
+            {mfaStatus !== "enrolled" && mfaStep === "confirm" && mfaUri && (
+              <div className="space-y-3">
+                <p className="text-xs text-secondary">
+                  Scan this QR code with your authenticator app (Google Authenticator, Authy, 1Password, …),
+                  then enter the six-digit code it shows to confirm.
+                </p>
+                <div className="flex flex-wrap items-start gap-4">
+                  <QRCode url={mfaUri} size={160} label="Scan with authenticator" />
+                  <div className="flex-1 space-y-2 text-xs text-secondary">
+                    <p className="font-display font-black text-ink">Or enter the secret manually:</p>
+                    <code className="block border border-rule bg-ground px-2 py-1 text-ink select-all">
+                      {mfaSecret}
+                    </code>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      maxLength={10}
+                      value={mfaCode}
+                      onChange={(e) => setMfaCode(e.target.value)}
+                      placeholder="000000"
+                      className="w-full px-3 py-2 border border-rule bg-ground text-ink font-display text-sm focus:outline-none focus:border-accent"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={confirmMfa}
+                        disabled={mfaBusy || mfaCode.replace(/\s/g, "").length < 6}
+                        className="np-btn np-btn--accent text-xs px-4 py-2 disabled:opacity-40"
+                      >
+                        {mfaBusy ? "Confirming…" : "Confirm & enable"}
+                      </button>
+                      <button type="button" onClick={cancelMfa} className="np-btn text-xs px-4 py-2">
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {mfaStatus !== "enrolled" && mfaStep === "enrolled-saved" && backupCodes.length > 0 && (
+              <div className="space-y-3 border-t border-rule pt-3">
+                <p className="text-xs font-display font-black text-ink">Two-factor authentication is now on.</p>
+                <p className="text-xs text-secondary">
+                  Save these backup codes somewhere safe. Each can be used once if you lose your phone.
+                </p>
+                <ul className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {backupCodes.map((code) => (
+                    <li key={code} className="border border-rule bg-ground px-2 py-1 font-mono text-xs text-ink text-center">
+                      {code}
+                    </li>
+                  ))}
+                </ul>
+                <div className="flex gap-2">
+                  <button type="button" onClick={copyBackupCodes} className="np-btn text-xs px-4 py-2">
+                    Copy codes
+                  </button>
+                  <button type="button" onClick={closeMfa} className="np-btn np-btn--accent text-xs px-4 py-2">
+                    I saved them
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {mfaStatus === "enrolled" && (
+              <div className="space-y-3 border-t border-rule pt-3">
+                <p className="text-xs text-secondary">
+                  When signed in, a code is required after your password. To turn it off, enter your
+                  password and a current code.
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    type="password"
+                    value={mfaPassword}
+                    onChange={(e) => setMfaPassword(e.target.value)}
+                    placeholder="Current password"
+                    className="px-3 py-2 border border-rule bg-ground text-ink font-display text-sm focus:outline-none focus:border-accent"
+                  />
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={mfaCode}
+                    onChange={(e) => setMfaCode(e.target.value)}
+                    placeholder="Authenticator code"
+                    className="px-3 py-2 border border-rule bg-ground text-ink font-display text-sm focus:outline-none focus:border-accent"
+                  />
+                  <button
+                    type="button"
+                    onClick={disableMfa}
+                    disabled={mfaBusy || !mfaPassword || mfaCode.length < 6}
+                    className="np-btn text-xs px-4 py-2 disabled:opacity-40"
+                  >
+                    {mfaBusy ? "Disabling…" : "Disable two-factor auth"}
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         </div>

@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
 import { isAdminEmail } from "./adminEmails";
 import { currentTokenVersion } from "./sessionGuard";
+import { hasEnabledMfa, verifySecondFactor } from "./mfa";
 
 // Matches the NextAuth session lifetime (see authOptions.session.maxAge).
 const TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60;
@@ -62,10 +63,58 @@ export async function verifyToken(token: string): Promise<TokenClaims> {
 /**
  * Validates email/password against the Admin or User table and returns the
  * identity to mint a token for, or null when the credentials do not match.
+ *
+ * When the account has MFA enabled this returns a partial shell carrying
+ * `mfaRequired`, and no token is signed until the caller supplies the code.
  */
 export async function authenticate(
   emailRaw: string,
   password: string
+): Promise<TokenClaims | null> {
+  return authenticateWithMfa(emailRaw, password, undefined);
+}
+
+export type MfaLoginResult =
+  | { ok: true; claims: TokenClaims }
+  | { ok: false; reason: "invalid-credentials" | "mfa-required" | "mfa-invalid" };
+
+/**
+ * AIDE-ENT-04: password plus TOTP/backup code, with an explicit challenge
+ * result so the native client can prompt for the code without guessing.
+ */
+export async function authenticateForToken(
+  emailRaw: string,
+  password: string,
+  mfaCode?: string
+): Promise<MfaLoginResult> {
+  const claims = await authenticateWithMfa(emailRaw, password, mfaCode);
+  if (!claims) {
+    const email = emailRaw.toLowerCase().trim();
+    const role = isAdminEmail(email) ? "admin" : "user";
+    const id = await lookupAccountId(role, email);
+    if (id && (await hasEnabledMfa(role, id))) {
+      return { ok: false, reason: mfaCode ? "mfa-invalid" : "mfa-required" };
+    }
+    return { ok: false, reason: "invalid-credentials" };
+  }
+  return { ok: true, claims };
+}
+
+async function lookupAccountId(
+  role: "admin" | "user",
+  email: string
+): Promise<string | null> {
+  const record =
+    role === "admin"
+      ? await prisma.admin.findUnique({ where: { email }, select: { id: true } })
+      : await prisma.user.findUnique({ where: { email }, select: { id: true } });
+  return record?.id ?? null;
+}
+
+export async function authenticateWithMfa(
+  emailRaw: string,
+  password: string,
+  mfaCode?: string
 ): Promise<TokenClaims | null> {
   const email = emailRaw.toLowerCase().trim();
 
@@ -84,6 +133,10 @@ export async function authenticate(
 
     const ok = await bcrypt.compare(password, admin.passwordHash);
     if (!ok) return null;
+
+    if (await hasEnabledMfa("admin", admin.id)) {
+      if (!(await verifySecondFactor("admin", admin.id, mfaCode))) return null;
+    }
 
     const firstBusiness = await prisma.business.findFirst({
       where: { adminId: admin.id },
@@ -122,6 +175,10 @@ export async function authenticate(
 
   const ok = await bcrypt.compare(password, user.passwordHash);
   if (!ok) return null;
+
+  if (await hasEnabledMfa("user", user.id)) {
+    if (!(await verifySecondFactor("user", user.id, mfaCode))) return null;
+  }
 
   return {
     sub: user.id,

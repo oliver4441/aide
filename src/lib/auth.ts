@@ -7,6 +7,7 @@ import { verifyTurnstile } from "./turnstile"
 import admin from "./firebaseAdmin"
 import { recordAudit } from "./audit"
 import { currentTokenVersion } from "./sessionGuard"
+import { hasEnabledMfa, verifySecondFactor } from "./mfa"
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "kipkiruigideon890@gmail.com")
   .split(",")
@@ -32,6 +33,8 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
         captchaToken: { label: "Security check", type: "text" },
+        // AIDE-ENT-04: TOTP or backup code. Empty when a code is not needed.
+        mfaCode: { label: "Two-factor code", type: "text" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
@@ -59,6 +62,12 @@ export const authOptions: NextAuthOptions = {
 
           const isValid = await bcrypt.compare(credentials.password, admin.passwordHash)
           if (!isValid) throw new Error("Invalid credentials")
+
+          if (await hasEnabledMfa("admin", admin.id)) {
+            if (!(await verifySecondFactor("admin", admin.id, (credentials as any).mfaCode))) {
+              throw new Error("Two-factor authentication is required")
+            }
+          }
 
           const firstBusiness = await prisma.business.findFirst({
             where: { adminId: admin.id },
@@ -105,6 +114,12 @@ export const authOptions: NextAuthOptions = {
 
         const isValid = await bcrypt.compare(credentials.password, user.passwordHash)
         if (!isValid) throw new Error("Invalid credentials")
+
+        if (await hasEnabledMfa("user", user.id)) {
+          if (!(await verifySecondFactor("user", user.id, (credentials as any).mfaCode))) {
+            throw new Error("Two-factor authentication is required")
+          }
+        }
 
         await recordAudit({
           action: "auth.login",

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticate, issueToken } from "@/lib/mobileAuth";
+import { authenticateForToken, issueToken } from "@/lib/mobileAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
  * `Authorization: Bearer <token>`.
  */
 export async function POST(request: NextRequest) {
-  let body: { email?: string; password?: string };
+  let body: { email?: string; password?: string; mfaCode?: string };
   try {
     body = await request.json();
   } catch {
@@ -23,11 +23,24 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
   }
 
-  const identity = await authenticate(email, password);
-  if (!identity) {
+  const result = await authenticateForToken(email, password, body.mfaCode);
+  if (!result.ok) {
+    if (result.reason === "mfa-required") {
+      return NextResponse.json(
+        { error: "MFA code required", mfaRequired: true },
+        { status: 401 }
+      );
+    }
+    if (result.reason === "mfa-invalid") {
+      return NextResponse.json(
+        { error: "Invalid or expired authenticator code", mfaRequired: true },
+        { status: 401 }
+      );
+    }
     return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
   }
 
+  const identity = result.claims;
   const token = await issueToken(identity);
 
   return NextResponse.json({
