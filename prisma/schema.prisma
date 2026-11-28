@@ -161,6 +161,13 @@ model Organization {
 
   // AIDE-19 / AIDE-03: immutable audit trail
   auditEvents     AuditEvent[]
+
+  // AIDE-ADMIN: OMIX platform subscription billing (not merchant billing)
+  billingEmail        String?
+  platformSubscription PlatformSubscription?
+  platformInvoices     PlatformInvoice[]
+  platformEvents       PlatformWebhookEvent[]
+  platformNotes        PlatformSupportNote[]
 }
 
 enum OrgStatus {
@@ -1464,4 +1471,257 @@ model AuditEvent {
   @@index([organizationId, createdAt])
   @@index([actorId, createdAt])
   @@index([entityType, entityId])
+}
+
+// =====================================================================
+// AIDE-ADMIN: OMIX platform subscription and billing domain.
+//
+// This is the *platform* side of the business: what an organization pays
+// OMIX for Aide. It is deliberately separate from the merchant accounting
+// models above (Sale, Invoice, PaymentAllocation), which record what a
+// business's own customers pay that business. The two must never be summed
+// together or labelled interchangeably.
+// =====================================================================
+
+/// Billing cadence for a platform plan version.
+enum PlatformBillingInterval {
+  MONTHLY
+  YEARLY
+}
+
+/// Lifecycle of a plan version. Only PUBLISHED versions may be subscribed to.
+enum PlatformPlanVersionStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+/// Subscription states the console must distinguish.
+enum PlatformSubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  GRACE_PERIOD
+  CANCELED
+  EXPIRED
+}
+
+enum PlatformInvoiceStatus {
+  DRAFT
+  OPEN
+  PAID
+  VOID
+  UNCOLLECTIBLE
+}
+
+enum PlatformPaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+enum PlatformWebhookEventStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  DEAD_LETTER
+}
+
+/// A plan family (Starter, Professional, Enterprise). Commercial values live
+/// on versions, never here, so editing a plan cannot silently rewrite history.
+model PlatformPlan {
+  id          String   @id @default(cuid())
+  key         String   @unique // starter | professional | enterprise
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  versions      PlatformPlanVersion[]
+  subscriptions PlatformSubscription[]
+}
+
+/// One immutable, dated version of a plan. Publishing creates a new row; the
+/// version already attached to a subscription is never mutated.
+model PlatformPlanVersion {
+  id            String                    @id @default(cuid())
+  plan          PlatformPlan              @relation(fields: [planId], references: [id], onDelete: Cascade)
+  planId        String
+  version       Int
+  status        PlatformPlanVersionStatus @default(DRAFT)
+  displayName   String
+  description   String?
+  price         Decimal                   @default(0) @db.Decimal(19, 4)
+  currency      String                    @default("KES")
+  interval      PlatformBillingInterval   @default(MONTHLY)
+  trialDays     Int                       @default(0)
+  /// Feature switches, e.g. { "pos": true, "reports": true }.
+  entitlements  Json?
+  /// Quantitative limits, e.g. { "branches": 1, "members": 5 }. null = unlimited.
+  limits        Json?
+  effectiveFrom DateTime                  @default(now())
+  publishedAt   DateTime?
+  archivedAt    DateTime?
+  createdBy     String?
+  changeReason  String?
+  createdAt     DateTime                  @default(now())
+  updatedAt     DateTime                  @updatedAt
+
+  subscriptions PlatformSubscription[]
+
+  @@unique([planId, version])
+  @@index([planId, status])
+}
+
+/// An organization's current platform subscription. `status` mirrors the
+/// provider; a local administrative exception lives in `localOverrideNote`
+/// and never overwrites the provider state silently.
+model PlatformSubscription {
+  id                     String                     @id @default(cuid())
+  organization           Organization               @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId         String                     @unique
+  plan                   PlatformPlan               @relation(fields: [planId], references: [id])
+  planId                 String
+  planVersion            PlatformPlanVersion        @relation(fields: [planVersionId], references: [id])
+  planVersionId          String
+  status                 PlatformSubscriptionStatus @default(TRIALING)
+  provider               String                     @default("stripe")
+  providerSubscriptionId String?                    @unique
+  amount                 Decimal                    @default(0) @db.Decimal(19, 4)
+  currency               String                     @default("KES")
+  interval               PlatformBillingInterval    @default(MONTHLY)
+  trialStart             DateTime?
+  trialEnd               DateTime?
+  currentPeriodStart     DateTime?
+  currentPeriodEnd       DateTime?
+  cancelAtPeriodEnd      Boolean                    @default(false)
+  canceledAt             DateTime?
+  endedAt                DateTime?
+  localOverrideNote      String?
+  createdAt              DateTime                   @default(now())
+  updatedAt              DateTime                   @updatedAt
+
+  invoices PlatformInvoice[]
+  events   PlatformWebhookEvent[]
+  notes    PlatformSupportNote[]
+
+  @@index([status])
+  @@index([currentPeriodEnd])
+  @@index([planId])
+}
+
+/// An OMIX-issued subscription invoice. Read-only in the console.
+model PlatformInvoice {
+  id                String                @id @default(cuid())
+  organization      Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId    String
+  subscription      PlatformSubscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  subscriptionId    String?
+  number            String                @unique
+  providerInvoiceId String?               @unique
+  status            PlatformInvoiceStatus @default(OPEN)
+  amount            Decimal               @db.Decimal(19, 4)
+  amountPaid        Decimal               @default(0) @db.Decimal(19, 4)
+  currency          String                @default("KES")
+  issuedAt          DateTime              @default(now())
+  dueAt             DateTime?
+  paidAt            DateTime?
+  hostedUrl         String?
+  createdAt         DateTime              @default(now())
+
+  payments PlatformPayment[]
+  events   PlatformWebhookEvent[]
+  notes    PlatformSupportNote[]
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([issuedAt])
+}
+
+/// A single payment attempt against an invoice. Failure detail is sanitized
+/// before it is stored, so no card data or provider secret can reach the UI.
+model PlatformPayment {
+  id                String                @id @default(cuid())
+  invoice           PlatformInvoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoiceId         String
+  providerPaymentId String?               @unique
+  status            PlatformPaymentStatus @default(PENDING)
+  amount            Decimal               @db.Decimal(19, 4)
+  currency          String                @default("KES")
+  failureCode       String?
+  failureMessage    String?
+  attemptedAt       DateTime              @default(now())
+  createdAt         DateTime              @default(now())
+
+  @@index([invoiceId])
+  @@index([status])
+  @@index([attemptedAt])
+}
+
+/// Provider webhook deliveries and their processing state. `payloadSummary`
+/// holds a redacted projection only; the raw payload never reaches the client.
+model PlatformWebhookEvent {
+  id             String                     @id @default(cuid())
+  providerEventId String                   @unique
+  type           String
+  status         PlatformWebhookEventStatus @default(PENDING)
+  attempts       Int                        @default(0)
+  receivedAt     DateTime                   @default(now())
+  processedAt    DateTime?
+  lastError      String?
+  correlationId  String?
+  organization   Organization?              @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  organizationId String?
+  subscription   PlatformSubscription?      @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  subscriptionId String?
+  invoice        PlatformInvoice?           @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  invoiceId      String?
+  payloadSummary Json?
+  createdAt      DateTime                   @default(now())
+
+  @@index([status, receivedAt])
+  @@index([type])
+  @@index([organizationId])
+}
+
+/// Append-only platform administration audit trail. Separate from AuditEvent
+/// because the actor is a platform Admin, not a business User.
+model PlatformAuditEvent {
+  id         String   @id @default(cuid())
+  actorId    String
+  actorEmail String
+  actorRole  String
+  action     String
+  entityType String
+  entityId   String?
+  reason     String?
+  before     Json?
+  after      Json?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([entityType, entityId])
+  @@index([actorId, createdAt])
+}
+
+/// Support notes recorded by platform staff against an organization,
+/// subscription or invoice.
+model PlatformSupportNote {
+  id             String                @id @default(cuid())
+  organization   Organization?         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String?
+  subscription   PlatformSubscription? @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  subscriptionId String?
+  invoice        PlatformInvoice?      @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoiceId      String?
+  body           String
+  authorId       String
+  authorEmail    String
+  createdAt      DateTime              @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([subscriptionId, createdAt])
 }

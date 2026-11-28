@@ -495,7 +495,14 @@ async function handleSaleMutation(
 
       const totalQty = movements.reduce((sum, m) => sum + Math.abs(m.delta), 0);
       const check = checkStockOversell(productId, product.quantity, movements);
+
+      // The sale is still recorded (sales are append-only), but the movement
+      // ledger must never take stock below zero. An oversell is queued for the
+      // owner to resolve, so the decrement is capped at what was on hand; the
+      // conflict row keeps the quantity the client believed it had.
+      let decrement = totalQty;
       if (!check.ok) {
+        decrement = Math.min(totalQty, Math.max(0, product.quantity));
         const conflict = await tx.syncConflict.create({
           data: {
             entityType: "product",
@@ -510,10 +517,12 @@ async function handleSaleMutation(
         conflicts.push(conflict);
       }
 
-      await tx.product.update({
-        where: { id: productId },
-        data: { quantity: { decrement: totalQty } },
-      });
+      if (decrement > 0) {
+        await tx.product.update({
+          where: { id: productId },
+          data: { quantity: { decrement } },
+        });
+      }
     }
 
     return sale;
