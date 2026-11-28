@@ -37,6 +37,7 @@ model User {
   updatedAt     DateTime  @updatedAt
 
   businesses    BusinessMembership[]
+  apiKeys       ApiKey[]
   notifications Notification[]
   notificationPrefs NotificationPreference[]
 
@@ -131,6 +132,10 @@ model Business {
   // AIDE-22: Data import
   importBatches     ImportBatch[]
 
+  // ENT-09: integrations
+  apiKeys           ApiKey[]
+  webhookSubscriptions WebhookSubscription[]
+
   // AIDE-07 / ACC-11: fixed asset register
   fixedAssets       FixedAsset[]
   // AIDE-19 / AIDE-03: immutable audit trail
@@ -153,6 +158,7 @@ model Organization {
   updatedAt     DateTime  @updatedAt
 
   businesses      Business[]
+  apiKeys         ApiKey[]
   departments     Department[]
   warehouses      Warehouse[]
   stockLocations  StockLocation[]
@@ -1490,4 +1496,71 @@ model AuditEvent {
   @@index([organizationId, createdAt])
   @@index([actorId, createdAt])
   @@index([entityType, entityId])
+}
+
+// ENT-09: governed integration platform — machine credentials
+model ApiKey {
+  id             String     @id @default(cuid())
+  name           String
+  prefix         String     @unique
+  hashedKey      String     @unique
+  scopes         Json
+  lastUsedAt     DateTime?
+  expiresAt      DateTime?
+  revokedAt      DateTime?
+  createdAt      DateTime   @default(now())
+
+  business       Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId     String
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  organizationId String?
+  createdBy      User?      @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdById    String?
+
+  @@index([businessId, createdAt])
+  @@index([organizationId])
+}
+
+// ENT-09: signed webhook subscriptions and delivery audit
+model WebhookSubscription {
+  id          String            @id @default(cuid())
+  url         String
+  events      Json
+  secret      String
+  active      Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  business    Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId  String
+  deliveries  WebhookDelivery[]
+
+  @@index([businessId, active])
+}
+
+model WebhookDelivery {
+  id             String              @id @default(cuid())
+  event          String
+  payloadHash    String
+  status         String              @default("PENDING")
+  attempts       Int                 @default(0)
+  lastError      String?
+  nextAttemptAt  DateTime?
+  deliveredAt    DateTime?
+  createdAt      DateTime            @default(now())
+
+  subscription   WebhookSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  subscriptionId String
+
+  @@index([subscriptionId, createdAt])
+  @@index([status, nextAttemptAt])
+}
+
+// ENT-09: seen inbound webhook nonces for replay protection
+model WebhookNonce {
+  id        String   @id @default(cuid())
+  nonce     String   @unique
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }
